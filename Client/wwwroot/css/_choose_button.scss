@@ -1,0 +1,53 @@
+﻿$tl: #FFAB00;
+$al: #EF2711;
+$sl: #BABABA;
+
+$mainbuttsize: 100%;
+$negbuttsize: 48.5%;
+
+%butt-all {
+    padding-bottom: 4px;
+    border-radius: 6px;
+    border: none;
+    position: absolute;
+    color: white;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    transition-duration: 200ms;
+}
+
+%butt-my {
+    background: $tl;
+    left: 100%;
+    width: $mainbuttsize;
+    transform: translate(-100%, 0);
+}
+
+%butt-my-neg {
+    background: $al;
+    left: 0;
+    width: $negbuttsize;
+    transform: scale(0.9, 0.9);
+}
+
+%butt-my-mir {
+    background: $tl;
+    left: 100%;
+    width: $negbuttsize;
+    transform: translate(-100%, 0);
+}
+
+%butt-my-neg-mir {
+    background: $al;
+    left: 0;
+    width: $negbuttsize;
+}
+
+%butt-my-disabled-mir {
+    background: $sl;
+    left: 0;
+    width: $negbuttsize;
+}

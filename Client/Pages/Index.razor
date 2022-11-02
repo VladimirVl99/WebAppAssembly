@@ -1,0 +1,2530 @@
+﻿@page "/"
+@using System.Net.Http
+@using Newtonsoft.Json
+@using System.Net
+@using System.Text
+@using WebAppAssembly.Shared.Entities.EMenu
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.JSInterop
+@using WebAppAssembly.Shared.Entities.CreateDelivery
+@using WebAppAssembly.Shared.Entities.Exceptions
+@using WebAppAssembly.Shared.Entities.IikoCloudApi
+@using WebAppAssembly.Shared.Entities.Telegram
+@using WebAppAssembly.Shared.Models
+@using WebAppAssembly.Shared.Models.Order
+@using WebAppAssembly.Shared.Entities
+@using Product = WebAppAssembly.Shared.Entities.EMenu.Product
+@inject IJSRuntime JsRuntime
+@inject HttpClient Http
+
+<PageTitle>Index</PageTitle>
+
+@*Page for orders*@
+@if (FirstRender)
+{
+    if (OrderModel is null || WebAppMenu is null || WebAppInfo is null || HaveErrors)
+    {
+        <div>
+            <center>
+                <h6>Happened something wrong:(</h6>
+            </center>
+        </div>
+    }
+    else if (RazorOrderInfo.PageType == PageType.OrderPage)
+    {
+        // Show the page for selecting products
+        if (RazorOrderInfo.OrderStatusType == OrderStatusType.OrderSelect)
+        {
+            var groups = WebAppMenu.NecessaryGroups;
+            if (groups != null && groups.Any())
+            {
+                <h1 style="padding-top: 20px;margin-bottom: 0px;">
+                    Категории
+                </h1>
+                <hr style="color:grey;margin-bottom:0px;margin-top:10px;"/>
+                <div class="horizontal_slider" style="padding-left: 0px;padding-right: 0px;padding-top:5px;margin-top: 0px;padding-bottom:10px;">
+                    <div class="slider_container">
+                        @foreach (var group in groups)
+                        {
+                            <div class="item">
+                                <div class="row">
+                                    <img class="img-fluid rounded" src="@group.ImageLinks?.LastOrDefault()" alt="@group.Name" @onclick="(e => AddCurrentGroupId(group.Id))"/>
+                                </div>
+                                <div class="row">
+                                    <h6 style="text-align:center;">@group.Name</h6>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            var products = CurrentGroupId == Guid.Empty ? WebAppMenu.NecessaryProducts?.ToList() : GetListOfProductsByGroupId(CurrentGroupId);
+            if (CurrentGroupId != Guid.Empty)
+            {
+                <h1 style="padding-top: 0px;margin-bottom: 0px;">
+                    @WebAppMenu?.NecessaryGroups?.FirstOrDefault(x => x.Id == CurrentGroupId)?.Name
+                </h1>
+            }
+            else
+            {
+                <h1 style="padding-top: 0px;margin-bottom: 0px;">
+                    Меню
+                </h1>
+            }
+            <hr style="color:grey;"/>
+
+            if (products != null && products.Any())
+            {
+                int columnAmount = 3;
+                int productCount = products.Count;
+
+                for (int i = 0; i < productCount; i += columnAmount)
+                {
+                    <div>
+                        <div class="row mt-1 mb-1">
+                        @for (int j = i; j < i + columnAmount; j++)
+                        {
+                            if (j < productCount)
+                            {
+                                var product = products[j];
+
+                                <div class="col">
+                                    <center>
+                                        <img class="img-fluid rounded" @onclick="(e => product.HaveModifiers() ? AddProductInMainMenuAsync(product.Id) : AddProductForOtherMenuAsync(product.Id))"
+            src="@product.ImageLink()" alt="@product.Name" />
+                                    </center>
+                                    <h6 style="line-height:0.5;margin-top: 5px;">@($"₽{(product.Price().ToString() ?? "?")}")</h6>
+                                    <p style="line-height:1;" id="@product.Id">@product.Name</p>
+                                    <p style="line-height:0.5;color:lightgrey;margin-top:0px;" id="@product.Id">@(product.Weight * 1000) г</p>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="col"></div>
+                            }
+                        }
+                        </div>
+
+                        <div class="row mb-3">
+                            @for (int j = i; j < i + columnAmount; j++)
+                            {
+                                if (j < productCount)
+                                {
+                                    var product = products[j];
+                                    <div class="col">
+                                        @if (!product.HaveItems())
+                                        {
+                                            <div class="TlBlr_div TlBlrCounter_x TlBlrDesktopProductCard_footer TlBlrCounter_y">
+                                                <button @onclick="(e => AddProductInMainMenuAsync(product.Id))" class="TlBlrCounter_btn TlBlrCounter_onlyIncrement"
+                    data-testid="amount-select-increment" id="@product.AddButtonId">
+                                                    <span>Добавить</span>
+                                                </button>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="TlBlr_div TlBlrCounter_x TlBlrDesctopProductCard TlBlrCounter_y">
+                                                <button @onclick="(e => product.HaveModifiers() ? ChangeProductsWithModifiersForChangingMenuAsync(product.Id)
+                    : RemoveProductInMainMenuAsync(product.Id))" class="TlBlrCounter_btn TlBlrCounter_decrement"
+                    data-testid="amount-select-decrement" id="@product.AddButtonId">
+                                                    <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
+                                                        <path fill-rule="evenodd" clip-rule="evenodd" d="M6 12a1 1 0 0 0 1 1h10a1 1 0 1 0 0-2H7a1 1 0 0 0-1 1Z" fill="currentColor"></path>
+                                                    </svg>
+                                                </button>
+                                                <span>@product.TotalAmount</span>
+                                                <button @onclick="(e => AddProductInMainMenuAsync(product.Id))" class="TlBlrCounter_btn TlBlrCounter_increment"
+                    data-testid="amount-select-increment" id="@product.RemoveButtonId">
+                                                    <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
+                                                        <path fill-rule="evenodd" clip-rule="evenodd" d="M12 6a1 1 0 0 0-1 1v4H7a1 1 0 1 0 0 2h4v4a1 1 0 1 0 2 0v-4h4a1 1 0 1 0 0-2h-4V7a1 1 0 0 0-1-1Z"
+                        fill="currentColor"></path>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="col"></div>
+                                }
+                            }
+                        </div>                
+                    </div>
+                }
+            }
+
+            if (IsTestMode)
+            {
+                if (OrderModel.HaveSelectedProducts())
+                {
+                    <div>
+                        <center>
+        @*Show button if at least one product is selected*@
+                            <a href="#" @onclick="(e => ViewOrder())" data-toggle="modal" data-target="#productModal" class="btn btn-success">Корзина</a>
+                        </center>
+                    </div>
+                }
+            }
+        }
+        // Show the page for to select modifiers for the selected product
+        else if (RazorOrderInfo.OrderStatusType == OrderStatusType.OrderProductWithModifiersSelect)
+        {
+            var item = ItemById(SelectedProductId, ProductPositionId);
+            var product = ProductById(SelectedProductId);
+
+            <div class="container">
+            @if (IsTestMode)
+            {
+                <div align="right">
+                    <button @onclick="(e => CancelSelectModifiersAsync(SelectedProductId, ProductPositionId))" 
+        data-toggle="modal" data-target="#productModal" class="btn btn-link btn-sm btn-text-green">Отмена</button>
+                </div>
+            }
+            <div align="center">
+                <img class="img-thumbnail" style="margin-top:5px;margin-bottom:5px;" src="@product.ImageLink()"
+        alt="@product.Name" />
+            </div>
+
+            <h5>@product.Name</h5> <h6 style="color:lightgrey;">@(product.Weight * 1000) г</h6>
+            <div class="row">
+                <div class="col">
+                    <h5>В 100 граммах</h5>
+                    <p>@(product.EnergyAmount) Ккал · @(product.CarbohydratesAmount) Углеводы</p>
+                </div>
+                <div class="col">
+                    <div class="TlBlr_div TlBlrCounter_x TlBlrDesctopProductCard TlBlrCounter_y" style="height:48px;">
+                        <button @onclick="(e => RemoveProductInModifierMenuAsync(product.Id, ProductPositionId))" class="TlBlrCounter_btn TlBlrCounter_decrement"
+        data-testid="amount-select-decrement" id="@product.AddButtonId">
+                            <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
+                                <path fill-rule="evenodd" clip-rule="evenodd" d="M6 12a1 1 0 0 0 1 1h10a1 1 0 1 0 0-2H7a1 1 0 0 0-1 1Z" fill="currentColor"></path>
+                            </svg>
+                        </button>
+                        <span>@item.Amount</span>
+                        <button @onclick="(e => AddProductInModifierMenuAsync(product.Id, ProductPositionId))" class="TlBlrCounter_btn TlBlrCounter_increment"
+        data-testid="amount-select-increment" id="@product.RemoveButtonId">
+                            <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
+                                <path fill-rule="evenodd" clip-rule="evenodd" d="M12 6a1 1 0 0 0-1 1v4H7a1 1 0 1 0 0 2h4v4a1 1 0 1 0 2 0v-4h4a1 1 0 1 0 0-2h-4V7a1 1 0 0 0-1-1Z"
+                fill="currentColor"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            @if (!string.IsNullOrEmpty(product.Description))
+            {
+                <h4>Описание</h4>
+                <p>@product.Description</p>
+            }
+            @if (product.GroupModifiers != null && product.GroupModifiers.Any())
+            {
+                foreach (var groupModifier in product.GroupModifiers)
+                {
+                    <div class="row">
+                        @{
+                            var groupInfo = item.SimpleGroupModifiers?.FirstOrDefault(x => x.Id == groupModifier.Id);
+                        }
+                        @if (groupInfo != null)
+                        {
+                            <h5>@(groupInfo.Name)</h5>
+                        }
+                        else
+                        {
+                            <h5>#UnknownGroupName</h5>
+                        }
+                    </div>
+                    @if (groupModifier.ChildModifiers is not null)
+                    {
+                        foreach (var modifier in groupModifier.ChildModifiers)
+                        {
+                            <div class="row">
+                                <div class="col-5">
+                                    @if (item.IsSelectedModifier(modifier.Id, groupModifier.Id))
+                                    {
+                                        <button @onclick="(e => RemoveModifierAsync(SelectedProductId, modifier.Id, ProductPositionId, groupModifier.Id))"
+                                            id="@modifier.Id" data-toggle="modal" data-target="#productModal" class="btn btn-light full-width-left TlBlrModifierCounter" style="box-shadow:none;">
+                                            -
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button @onclick="(e => RemoveModifierAsync(SelectedProductId, modifier.Id, ProductPositionId, groupModifier.Id))"
+                                            id="@modifier.Id" data-toggle="modal" data-target="#productModal" class="btn btn-light full-width-left TlBlrModifierCounter" style="box-shadow:none;" disabled>
+                                            -
+                                        </button>
+                                    }
+
+                                    @if (!item.IsReachedMaxAmountOfGroupModifier(groupModifier.Id))
+                                    {
+                                        <button @onclick="(e => AddModifierAsync(SelectedProductId, modifier.Id, ProductPositionId, groupModifier.Id))"
+                                            id="@modifier.Id" data-toggle="modal" data-target="#productModal" class="btn btn-light full-width-right TlBlrModifierCounter" style="box-shadow:none;">
+                                            +
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button @onclick="(e => AddModifierAsync(SelectedProductId, modifier.Id, ProductPositionId, groupModifier.Id))"
+                                            id="@modifier.Id" data-toggle="modal" data-target="#productModal" class="btn btn-light full-width-right TlBlrModifierCounter" style="box-shadow:none;" disabled>
+                                            +
+                                        </button>
+                                    }
+                                    </div>
+
+                                    <div class="col">
+                                    @if (item.IsSelectedModifier(modifier.Id, groupModifier.Id))
+                                    {
+                                        var modifierD = item.Modifiers?.FirstOrDefault(x => x.ProductId == modifier.Id);
+                                        <p>@modifierD?.Name x@(item.AmountOfModifier(modifier.Id, groupModifier.Id))</p>
+                                    }
+                                    else
+                                    {
+                                        var modifierD = item.Modifiers?.FirstOrDefault(x => x.ProductId == modifier.Id);
+                                        <p>@modifierD?.Name</p>
+                                    }
+                                    </div>
+                                    <div align="right" class="col">
+                                    @{
+                                        var price = PriceByProductId(modifier.Id);
+                                    }
+                                    <p>@(price == 0 ? "Бесплатно" : $"₽{price}")</p>
+                                </div>
+                            </div>
+                        }
+                    }
+                }
+            }
+
+            @if (product.Modifiers != null && product.Modifiers.Any())
+            {
+                <div class="row">
+                    <h5>Дополнительно</h5>
+                </div>
+                @foreach (var modifier in product.Modifiers)
+                {
+                    <div class="row">
+                        <div class="col-5">
+                            @if (item.IsSelectedModifier(modifier.Id))
+                            {
+                                <button @onclick="(e => RemoveModifierAsync(SelectedProductId, modifier.Id, ProductPositionId))"
+                                    id="@modifier.Id" data-toggle="modal" data-target="#productModal" class="btn btn-light full-width-left TlBlrModifierCounter" style="box-shadow:none;">
+                                    -
+                                </button>
+                            }
+                            else
+                            {
+                                <button @onclick="(e => RemoveModifierAsync(SelectedProductId, modifier.Id, ProductPositionId))"
+                                    id="@modifier.Id" data-toggle="modal" data-target="#productModal" class="btn btn-light full-width-left TlBlrModifierCounter" style="box-shadow:none;" disabled>
+                                    -
+                                </button>
+                            }
+                            @if (item.IsReachedMaxAmountOfModifier(modifier.Id))
+                            {
+                                <button id="@modifier.Id" data-toggle="modal" data-target="#productModal" class="btn btn-light full-width-right TlBlrModifierCounter"
+                                    style="box-shadow:none;" disabled>
+                                    +
+                                </button>
+                            }
+                            else
+                            {
+                                <button @onclick="(e => AddModifierAsync(SelectedProductId, modifier.Id, ProductPositionId))"
+                                    id="@modifier.Id" data-toggle="modal" data-target="#productModal" class="btn btn-light full-width-right TlBlrModifierCounter" style="box-shadow:none;">
+                                    +
+                                </button>
+                            }
+                            </div>
+
+                            <div class="col">
+                            @if (OrderModel.Items is not null &&
+                            OrderModel.Items.First(x => x.ProductId == SelectedProductId && x.PositionId == ProductPositionId).IsSelectedModifier(modifier.Id))
+                            {
+                                var modifierD = item.Modifiers?.FirstOrDefault(x => x.ProductId == modifier.Id);
+                                <p>@modifierD?.Name x@(item.AmountOfModifier(modifier.Id))</p>
+                            }
+                            else
+                            {
+                                var modifierD = item.Modifiers?.FirstOrDefault(x => x.ProductId == modifier.Id);
+                                <p>@modifierD?.Name</p>
+                            }
+                            </div>
+
+                            <div align="right" class="col">
+                            @{
+                                var price = PriceByProductId(modifier.Id);
+                            }
+                            <p>@(price == 0 ? "Бесплатно" : $"₽{price}")</p>
+                        </div>
+                    </div>
+                }
+            }
+
+            @if (IsTestMode)
+            {
+                <br />
+                <div>
+                    @if (item.IsReachedMinAmountOfGroupModifiers() && item.IsReachedMinAmountOfModifiers())
+                    {
+                        <button @onclick="(e => CompleteSelectModifiers())" id="@SelectedProductId" data-toggle="modal" data-target="#productModal"
+                            class="btn btn-success w-100">Добавить ₽@(TotalSumOfSelectedProductWithModifiers(SelectedProductId, ProductPositionId))</button>
+                    }
+                    else
+                    {
+                        <button @onclick="(e => CompleteSelectModifiers())" id="@SelectedProductId" data-toggle="modal" data-target="#productModal"
+                            class="btn btn-success w-100" disabled>Добавить ₽@(TotalSumOfSelectedProductWithModifiers(SelectedProductId, ProductPositionId))</button>
+                    }
+                </div>
+            }
+        </div>
+        }
+        // Show the page to add products
+        else if (RazorOrderInfo.OrderStatusType == OrderStatusType.OrderProductSelect)
+        {
+            var item = ItemById(SelectedProductId);
+            var product = ProductById(SelectedProductId);
+
+            <div class="container">
+                @if (IsTestMode)
+                {
+                    <div align="right">
+                        <button @onclick="(e => CancelSelectedProductAsync(SelectedProductId))" 
+            data-toggle="modal" data-target="#productModal" class="btn btn-link btn-sm btn-text-green">Отмена</button>
+                    </div>
+                }
+                <div align="center">
+                    <img class="img-thumbnail" style="margin-top:5px;margin-bottom:5px;" src="@product.ImageLink()"
+            alt="@product.Name" />
+                </div>
+
+                <h5>@product.Name</h5> <h6 style="color:lightgrey;">@(product.Weight * 1000) г</h6>
+                <div class="row">
+                    <div class="col">
+                        <h5>В 100 граммах</h5>
+                        <p>@(product.EnergyAmount) Ккал · @(product.CarbohydratesAmount) Углеводы</p>
+                    </div>
+                    <div class="col">
+                        <div class="TlBlr_div TlBlrCounter_x TlBlrDesctopProductCard TlBlrCounter_y" style="height:48px;">
+                            <button @onclick="(e => RemoveProductInOtherMenuAsync(product.Id))" class="TlBlrCounter_btn TlBlrCounter_decrement"
+            data-testid="amount-select-decrement" id="@product.AddButtonId">
+                                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
+                                    <path fill-rule="evenodd" clip-rule="evenodd" d="M6 12a1 1 0 0 0 1 1h10a1 1 0 1 0 0-2H7a1 1 0 0 0-1 1Z" fill="currentColor"></path>
+                                </svg>
+                            </button>
+                            <span>@item.Amount</span>
+                            <button @onclick="(e => AddProductInOtherMenuAsync(product.Id))" class="TlBlrCounter_btn TlBlrCounter_increment"
+            data-testid="amount-select-increment" id="@product.RemoveButtonId">
+                                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
+                                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 6a1 1 0 0 0-1 1v4H7a1 1 0 1 0 0 2h4v4a1 1 0 1 0 2 0v-4h4a1 1 0 1 0 0-2h-4V7a1 1 0 0 0-1-1Z"
+                    fill="currentColor"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(product.Description))
+                {
+                    <h4>Описание</h4>
+                    <p>@product.Description</p>
+                }
+
+                @if (IsTestMode)
+                {
+                    <br />
+                    <div>
+                        <button @onclick="(e => CompleteSelectedProducts())" id="@SelectedProductId" data-toggle="modal" data-target="#productModal"
+            class="btn btn-success w-100">Добавить</button>
+                    </div>
+                }
+            </div>
+        }
+        // Show the page to remove selected products with modifiers
+        else if (RazorOrderInfo.OrderStatusType == OrderStatusType.OrderProductWithModifiersRemove)
+        {
+            bool hr = false;
+            var items = OrderModel.Items?.Where(item => item.ProductId == SelectedProductId);
+            double totalSumOfSelectedProducts = 0;
+            <br />
+
+            @if (items is not null)
+            {
+                foreach (var item in items)
+                {
+                    if (hr)
+                    {
+                        <hr style="color:lightgrey;" />
+                    }
+                    else
+                    {
+                        hr = true;
+                    }
+
+                    <div class="row">
+                        <div class="col">
+                            <img class="img-fluid rounded" src="@ImageLinkByProductId(item.ProductId)" alt="@item.ProductName" />
+                        </div>
+                        <div class="col-6">
+                            <p>@item.ProductName</p>
+                            @foreach (var modifier in item.SelectedModifiers())
+                            {
+                                <p> • @modifier.Name x@(modifier.Amount)</p>
+                            }
+                            <div style="display: flex;">
+                                <button @onclick="(e => RemoveProductWithModifiersInChangingMenuAsync(item.ProductId, item.PositionId ?? Guid.Empty))"
+                                    data-toggle="modal" data-target="#productModal" class="btn btn-light" style="box-shadow:none;width:35px;border-radius:50%;background-color: #F5F4F2;">
+                                    -
+                                </button>
+                                <p style="padding-left:10px;padding-right:10px;margin-bottom:0;margin-top:3%;">@(item.Amount) шт</p>
+                                <button @onclick="(e => AddProductWithModifiersInChangingMenuAsync(item.ProductId, item.PositionId ?? Guid.Empty))"
+                                    data-toggle="modal" data-target="#productModal" class="btn btn-light" style="box-shadow:none;width:35px;border-radius:50%;background-color: #F5F4F2;">
+                                    +
+                                </button>
+                            </div>
+                        </div>
+                        <div align="right" class="col-2">
+                            @{
+                                var product = WebAppMenu?.NecessaryProducts?.FirstOrDefault(x => x.Id == item.ProductId);
+                                var totalSum = product != null ? TotalSumOfSelectedProductWithModifiers(product, item)
+                                : TotalSumOfSelectedProductWithModifiers(item.ProductId, item.PositionId ?? Guid.Empty);
+                                totalSumOfSelectedProducts += totalSum;
+                            }
+                            <p>₽@totalSum</p>
+                        </div>
+                    </div>
+                }
+            }
+        <h5 align="right" style="margin-top:20px;margin-bottom:5px;">Итого: ₽@totalSumOfSelectedProducts</h5>
+
+        <br />
+        <center>
+            <button @onclick="(e => RemoveSelectedProductsWithMofifiersByIdAsync(SelectedProductId))" style="background-color:rgba(28,28,28,0);outline:none;border:0;width:42px;height:32px;">
+                <svg xmlns="http://www.w3.org/2000/svg" class="Trash" viewBox="0 0 16 18.286" width="16" height="18.286">
+                    <path d="M1.143 16.571a1.714 1.714 0 0 0 1.714 1.714h10.286a1.714 1.714 0 0 0 1.714 -1.714V4.571H1.143zm9.714 -9.143a0.571 0.571 0 0 1 1.143 0v8a0.571 0.571 0 0 1 -1.143 0zm-3.429 0a0.571 0.571 0 0 1 1.143 0v8a0.571 0.571 0 0 1 -1.143 0zm-3.429 0a0.571 0.571 0 0 1 1.143 0v8a0.571 0.571 0 0 1 -1.143 0zM15.429 1.143H11.143l-0.336 -0.668A0.857 0.857 0 0 0 10.039 0H5.957a0.847 0.847 0 0 0 -0.764 0.475L4.857 1.143H0.571A0.571 0.571 0 0 0 0 1.714v1.143a0.571 0.571 0 0 0 0.571 0.571h14.857a0.571 0.571 0 0 0 0.571 -0.571V1.714a0.571 0.571 0 0 0 -0.571 -0.571z"></path>
+                </svg>
+            </button>
+        </center>
+        }
+        // Show the page for view and check selected products in the order
+        else if (RazorOrderInfo.OrderStatusType == OrderStatusType.OrderView)
+        {   
+            <div class="container-fluid">
+                @if (IsTestMode)
+                {
+                    <div class="row mt-1 mb-2">
+                        <div class="col">
+                            <h1>Ваш заказ</h1>
+                        </div>
+                        <div align="right" class="col" style="padding-right:0px;padding-left:0px;">
+            @*Show the button for to edit the created order if the page isn't going to open in the Telegram app*@
+                            <button style="background-color:rgba(28,28,28,0);outline:none;border:0;width:42px;height:32px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="Trash" viewBox="0 0 16 18.286" width="16" height="18.286">
+                                    <path d="M1.143 16.571a1.714 1.714 0 0 0 1.714 1.714h10.286a1.714 1.714 0 0 0 1.714 -1.714V4.571H1.143zm9.714 -9.143a0.571 0.571 0 0 1 1.143 0v8a0.571 0.571 0 0 1 -1.143 0zm-3.429 0a0.571 0.571 0 0 1 1.143 0v8a0.571 0.571 0 0 1 -1.143 0zm-3.429 0a0.571 0.571 0 0 1 1.143 0v8a0.571 0.571 0 0 1 -1.143 0zM15.429 1.143H11.143l-0.336 -0.668A0.857 0.857 0 0 0 10.039 0H5.957a0.847 0.847 0 0 0 -0.764 0.475L4.857 1.143H0.571A0.571 0.571 0 0 0 0 1.714v1.143a0.571 0.571 0 0 0 0.571 0.571h14.857a0.571 0.571 0 0 0 0.571 -0.571V1.714a0.571 0.571 0 0 0 -0.571 -0.571z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="row mt-1 mb-2">
+                        <div class="col">
+                            <h1>Ваш заказ</h1>
+                        </div>
+                        <div align="right" class="col" style="padding-right:0px;padding-left:0px;">
+            @*Show the button for to edit the created order if the page isn't going to open in the Telegram app*@
+                            <button @onclick="(e => RemoveAllSelectedProductsInShoppingCartAsync())" style="background-color:rgba(28,28,28,0);outline:none;border:0;width:42px;height:32px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="Trash" viewBox="0 0 16 18.286" width="16" height="18.286">
+                                    <path d="M1.143 16.571a1.714 1.714 0 0 0 1.714 1.714h10.286a1.714 1.714 0 0 0 1.714 -1.714V4.571H1.143zm9.714 -9.143a0.571 0.571 0 0 1 1.143 0v8a0.571 0.571 0 0 1 -1.143 0zm-3.429 0a0.571 0.571 0 0 1 1.143 0v8a0.571 0.571 0 0 1 -1.143 0zm-3.429 0a0.571 0.571 0 0 1 1.143 0v8a0.571 0.571 0 0 1 -1.143 0zM15.429 1.143H11.143l-0.336 -0.668A0.857 0.857 0 0 0 10.039 0H5.957a0.847 0.847 0 0 0 -0.764 0.475L4.857 1.143H0.571A0.571 0.571 0 0 0 0 1.714v1.143a0.571 0.571 0 0 0 0.571 0.571h14.857a0.571 0.571 0 0 0 0.571 -0.571V1.714a0.571 0.571 0 0 0 -0.571 -0.571z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                }
+
+                @{
+                    bool hr = false;
+                }
+
+                @*Get the selected products in the order
+                    Output all selected products*@
+                @if (OrderModel.Items is not null)
+                {
+                    foreach (var item in OrderModel.Items)
+                    {
+                        if (hr)
+                        {
+                            <hr style="color:lightgrey;" />
+                        }
+                        else
+                        {
+                            hr = true;
+                        }
+                        if (item.HaveModifiers())
+                        {
+                            <div class="row">
+                                <div class="col">
+                                    <img class="img-fluid rounded" src="@ImageLinkByProductId(item.ProductId)" alt="@item.ProductName" />
+                                </div>
+                                <div class="col-6">
+                                    <p>@item.ProductName</p>
+                                    @foreach (var modifier in item.SelectedModifiers())
+                                    {
+                                        <p> • @modifier.Name x@(modifier.Amount)</p>
+                                    }
+                                    <div style="display: flex;">
+                                        <button @onclick="(e => RemoveProductInShoppingCartAsync(item.ProductId, item.PositionId))" data-toggle="modal" data-target="#productModal" class="btn btn-light"
+    style="box-shadow:none;width:35px;border-radius:50%;background-color: #F5F4F2;">
+                                            -
+                                        </button>
+                                        <p style="padding-left:10px;padding-right:10px;margin-bottom:0;margin-top:3%;">@(item.Amount) шт</p>
+                                        <button @onclick="(e => AddProductInShoppingCartAsync(item.ProductId, item.PositionId))" data-toggle="modal" data-target="#productModal" class="btn btn-light"
+    style="box-shadow:none;width:35px;border-radius:50%;background-color: #F5F4F2;">
+                                            +
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div align="right" class="col-2">
+                                    @{
+                                        var product = WebAppMenu?.NecessaryProducts?.FirstOrDefault(x => x.Id == item.ProductId);
+                                        var totalSum = product != null ? TotalSumOfSelectedProductWithModifiers(product, item)
+                                        : TotalSumOfSelectedProductWithModifiers(item.ProductId, item.PositionId ?? Guid.Empty);
+                                        var freeItems = OrderModel?.FreePriceItems?.Where(id => id == item.PositionId);
+                                    }
+                                    @if (freeItems != null && freeItems.Any())
+                                    {
+                                        double discountSum = 0;
+                                        foreach (var freeItem in freeItems)
+                                        {
+                                            discountSum += item.Price ?? 0;
+                                        }
+                                        <del>₽@totalSum</del>
+                                        <p>₽@(totalSum - discountSum)</p>
+                                    }
+                                    else
+                                    {
+                                        <p>₽@totalSum</p>
+                                    }
+
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="row">
+                                <div class="col">
+                                    <img class="img-fluid rounded" src="@ImageLinkByProductId(item.ProductId)" alt="@item.ProductName" />
+                                </div>
+                                <div class="col-6">
+                                    <p>@item.ProductName</p>
+                                    <div style="display: flex;">
+                                        <button @onclick="(e => RemoveProductInShoppingCartAsync(item.ProductId, item.PositionId))" data-toggle="modal" data-target="#productModal" class="btn btn-light"
+                                            style="box-shadow:none;width:35px;border-radius:50%;background-color: #F5F4F2;">
+                                            -
+                                        </button>
+                                        <p style="padding-left:10px;padding-right:10px;margin-bottom:0;margin-top:3%;">@(item.Amount) шт</p>
+                                        <button @onclick="(e => AddProductInShoppingCartAsync(item.ProductId, item.PositionId))" data-toggle="modal" data-target="#productModal" class="btn btn-light"
+                                            style="box-shadow:none;width:35px;border-radius:50%;background-color: #F5F4F2;">
+                                            +
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div align="right" class="col-2">
+                                    @{
+                                        var freeItems = OrderModel?.FreePriceItems?.Where(id => id == item.PositionId);
+                                    }
+
+                                    @if (freeItems != null && freeItems.Any())
+                                    {
+                                        double discountSum = 0;
+                                        foreach (var freeItem in freeItems)
+                                        {
+                                            discountSum += item.Price ?? 0;
+                                        }
+                                        <del>₽@(item.Price * item.Amount)</del>
+                                        <p>₽@(item.Price * item.Amount - discountSum)</p>
+                                    }
+                                    else
+                                    {
+                                        <p>₽@(item.Price * item.Amount)</p>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    }
+                }
+                @if (OrderModel.FreeItems != null)
+                {
+                    foreach (var item in OrderModel.FreeItems)
+                    {
+                        <hr style="color:lightgrey;" />
+                        <div class="row">
+                            <div class="col">
+                                <img class="img-fluid rounded" src="@ImageLinkByProductId(item.ProductId)" alt="@item.ProductName" />
+                            </div>
+                            <div class="col-6">
+                                <p>@item.ProductName</p>
+                            </div>
+                            <div align="right" class="col-2">
+                                <p>🎁</p>
+                            </div>
+                        </div>
+                    }
+                }
+
+            </div>
+            <br />
+
+            @if (OrderModel.DiscountSum > 0)
+            {
+
+                var discountProcent = OrderModel.DiscountProcent;
+                bool isInteger = (int)(discountProcent * 100 % 100) == 0;
+                <h5 style="margin-top:5px;">Скидка: -@string.Format(isInteger ? "{0:F0}" : "{0:F2}", OrderModel.DiscountProcent)%</h5>
+
+                <div class="row mb-2">
+                    <div class="col">
+                        <h5>Итого:</h5>
+                    </div>
+                    <div class="col" style="flex:0 0 auto;width:80%;">
+                        <h6 align="left" style="padding-top:5px;"><del>₽@OrderModel.TotalSum</del></h6>
+                        <h6 align="left">₽@(OrderModel.FinalSum)</h6>
+                    </div>
+                </div>
+            }
+            @if (WebAppInfo.UseCoupon)
+            {
+                <div class="row" style="padding-bottom:5px;">
+                        <div class="col">
+                        <input class="comment" type="text" name="Coupon" placeholder="Введите промокод" @bind="@CouponValue" />
+                    </div>
+                    <div class="col">
+                        <button @onclick="CalculateDiscountProgramByCouponAsync" class="btn btn-light TlBlrCouponApply" style="box-shadow:none;background-color:#F5F4F2;height:100%;">
+                            <span>Применить</span>
+                        </button>
+                    </div>
+                </div>
+            }
+
+            <div>
+                <h5>Способ доставки</h5>
+            </div>
+            @if (OrderModel.ByCourier)
+            {
+                <div class="btn-group" role="group" aria-label="Delivery type">
+                    <button type="button" @onclick="(e => ChangeDeliveryTypeFlagAsync(true))" data-toggle="modal" data-target="#productModal" class="btn btn-success disabled">Доставка</button>
+                    <button type="button" @onclick="(e => ChangeDeliveryTypeFlagAsync(false))" data-toggle="modal" data-target="#productModal" class="btn btn-secondary"
+                        style="background-color:#c2c9cf;border-color: #c2c9cf;">Самовывоз</button>
+                </div>
+                <input class="comment" type="text" name="City" placeholder="Город" @bind="@CityValue" />
+                <input class="comment" type="text" name="Street" placeholder="Улица" @bind="@StreetValue" />
+                <div style="display: flex;">
+                    <input class="comment" style="width:49%;" type="text" name="House" placeholder="Дом" @bind="@HouseValue" />
+                    <input class="comment" style="width:49%;margin-left:auto;margin-right:0em;" type="text" name="Flat" placeholder="Квартира" @bind="@FlatValue" />
+                </div>
+                <div style="display: flex;">
+                    <input class="comment" style="width:49%;" type="text" name="Entrance" placeholder="Подъезд" @bind="@EntranceValue" />
+                    <input class="comment" style="width:49%;margin-left:auto;margin-right:0em;" type="text" name="Floor" placeholder="Этаж" @bind="@FloorValue" />
+                </div>
+            }
+            else
+            {
+                <div class="btn-group" role="group" aria-label="Delivery type">
+                    <button @onclick="(e => ChangeDeliveryTypeFlagAsync(true))" data-toggle="modal" data-target="#productModal" class="btn btn-secondary"
+                        style="background-color:#c2c9cf;border-color: #c2c9cf;">
+                        Доставка
+                    </button>
+                    <button @onclick="(e => ChangeDeliveryTypeFlagAsync(false))" data-toggle="modal" data-target="#productModal" class="btn btn-success disabled">Самовывоз</button>
+                </div>
+                <div style="margin-top:10px;">
+                    <select class="form-select" style="box-shadow:none;" aria-label="Default select example" @onchange="@OnSelectTerminal">
+                    @{
+                        var delTerminal = OrderModel.DeliveryTerminal;
+                    }
+                    @if (delTerminal != null)
+                    {
+                        <option id="@delTerminal.Id" selected>@(delTerminal.Name)</option>
+                    }
+                    else if (OrderModel.TerminalId != null && OrderModel.TerminalId != Guid.Empty)
+                    {
+                        delTerminal = DeliveryTerminals?.FirstOrDefault(x => x.Id == OrderModel.TerminalId);
+                        if (delTerminal != null)
+                        {
+                            <option id="@delTerminal.Id" selected>@(delTerminal.Name)</option>
+                        }
+                        else
+                        {
+                            <option selected>Выберите улицу</option>
+                        }
+                    }
+                    else
+                    {
+                        <option selected>Выберите улицу</option>
+                    }
+                    @if (DeliveryTerminals is not null)
+                    {
+                        foreach (var terminal in DeliveryTerminals)
+                        {
+                            <option value="@terminal.Id">@terminal.Name</option>
+                        }
+                    }
+                    </select>
+                </div>
+            }
+
+            @*Comment field*@
+            <input class="comment" type="text" name="Comment" placeholder="Ваш комментарий..." @bind="@CommentValue"/>
+@*            if (DiscountBalance != 0)
+            {
+                <div class="row">
+                    <div class="col">
+                        <h6>У Вас @OrderService.DiscountBalance @((0 < OrderService.DiscountBalance && OrderService.DiscountBalance < 5) || ((0 < OrderService.DiscountBalance % 10 && OrderService.DiscountBalance % 10 < 5) && !(10 < OrderService.DiscountBalance && OrderService.DiscountBalance < 20)) ? "балла" : "баллов")</h6>
+                    </div>
+                    <div class="col">
+                        @if (!ConfirmDiscountBonus)
+                        {
+                            <button @onclick="(e => ConfirmDiscountBonus = true)" data-toggle="modal" data-target="#productModal" class="btn btn-success">Применить</button>
+                        }
+                        else
+                        {
+                            <button data-toggle="modal" data-target="#productModal" class="btn btn-secondary" disabled>Применить</button>
+                        }
+                    </div>
+                </div>
+            }*@
+
+            <div>
+                <br/>
+                @if (IsTestMode)
+                {
+                    <central>
+                        @*The button for to pay the created order if the page isn't going to open in the Telegram app*@
+                        @if (OrderModel.TotalSum < 70)
+                        {
+                            <button data-toggle="modal" data-target="#productModal" class="btn btn-success" disabled>Pay ₽@(OrderModel.TotalSum)</button>
+                        }
+                        else
+                        {
+                            var sum = OrderModel.TotalSum - OrderModel.DiscountSum;
+                            <button @onclick="(e => PayOrder())" data-toggle="modal" data-target="#productModal" class="btn btn-success">Оплатить ₽@(sum)</button>
+                        }
+                    </central>
+                }
+            </div>
+        }
+        // Page to show information about the created order
+        else if (RazorOrderInfo.OrderStatusType == OrderStatusType.OrderCreated && IsTestMode)
+        {
+            <p>@InfoAboutCreatedOrder()</p>
+        }
+    }
+}
+
+@code {
+    // Parameters for state of page
+    public RazorOrderInfo RazorOrderInfo = new RazorOrderInfo();
+    // Comment for order
+    public string CommentValue { get; set; } = string.Empty;
+    public string StreetValue { get; set; } = string.Empty;
+    public string CityValue { get; set; } = string.Empty;
+    public string HouseValue { get; set; } = string.Empty;
+    public string FlatValue { get; set; } = string.Empty;
+    public string EntranceValue { get; set; } = string.Empty;
+    public string FloorValue { get; set; } = string.Empty;
+    public string CouponValue { get; set; } = string.Empty;
+    // Selected product in order
+    public Guid SelectedProductId { get; set; }
+    public Guid ProductPositionId { get; set; }
+    public bool ConfirmDiscountBonus { get; set; } = false;
+    public Guid CurrentGroupId { get; set; } = Guid.Empty;
+    public bool FirstRender { get; set; } = false;
+    public bool HaveErrors { get; set; } = false;
+    public bool IsPageBlocked { get; set; } = false;
+    public bool FinishedRender { get; set; } = false;
+    public int ChatIdForTestMode { get; } = 2098619539;
+    public string OrderControllerPath { get; } = "Order/";
+
+    public OrderModel? OrderModel { get; set; }
+    public long ChatId { get; set; } = 0;
+    public IEnumerable<DeliveryTerminal>? DeliveryTerminals { get; set; }
+    public WebAppMenu? WebAppMenu { get; set; }
+    public bool IsTestMode { get; set; }
+    public WebAppInfo? WebAppInfo { get; set; }
+
+    //
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var foodShopInfo = await GetFoodShopInfoAsync() ?? throw new Exception($"!!!");
+            DeliveryTerminals = foodShopInfo.DeliveryTerminals ?? throw new Exception($"!!!");
+            WebAppMenu = foodShopInfo.WebAppMenu ?? throw new Exception($"!!!");
+            IsTestMode = foodShopInfo.IsTestMode ?? false;
+            WebAppInfo = foodShopInfo.WebAppInfo ?? throw new Exception($"!!!");
+
+            Console.WriteLine(typeof(Index).FullName!, nameof(OnAfterRenderAsync), "Initializing the connection with the TelegramBot");
+            if (!IsTestMode) await MakeTelegramReadyAsync();
+            else ChatId = ChatIdForTestMode;
+            OrderModel = await OrderModelAsync();
+            Task? statesOfButtonsTask = null;
+
+            OrderModel.Coupon = string.Empty;
+            var deliveryPoint = OrderModel.Address;
+            if (deliveryPoint != null)
+            {
+                CityValue = deliveryPoint.City ?? string.Empty;
+                StreetValue = deliveryPoint.Street ?? string.Empty;
+                HouseValue = deliveryPoint.House ?? string.Empty;
+                FlatValue = deliveryPoint.Flat ?? string.Empty;
+                EntranceValue = deliveryPoint.Entrance ?? string.Empty;
+                FloorValue = deliveryPoint.Floor ?? string.Empty;
+            }
+
+            if (!IsTestMode)
+            {
+                statesOfButtonsTask = ListenTlgMainButtonAsync();
+                if (OrderModel.HaveSelectedProducts())
+                    await JsRuntime.InvokeVoidAsync("SetViewOrderButton");
+            }
+
+            if (statesOfButtonsTask != null) await statesOfButtonsTask;
+            FirstRender = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            HaveErrors = true;
+        }
+    }
+
+    // 
+    private async Task<FoodShopInfo?> GetFoodShopInfoAsync()
+    {
+        var response = await Http.GetAsync(OrderControllerPath + nameof(FoodShopInfo));
+        response.EnsureSuccessStatusCode();
+        string responseBody = await response.Content.ReadAsStringAsync();
+        if (!response.StatusCode.Equals(HttpStatusCode.OK))
+            throw new HttpProcessException(response.StatusCode, responseBody);
+
+        return JsonConvert.DeserializeObject<FoodShopInfo>(responseBody);
+    }
+
+    // ???
+    //protected override async Task OnAfterRenderAsync(bool firstRender)
+    //{
+    //    try
+    //    {
+    //        if (firstRender)
+    //        {
+    //        }
+    //        FinishedRender = true;
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        Console.WriteLine(ex.Message);
+    //        HaveErrors = true;
+    //        StateHasChanged();
+    //        await JsRuntime.InvokeVoidAsync("console.log", ex.Message);
+    //    }
+    //}
+
+    private async Task<OrderModel> OrderModelAsync()
+    {
+        var json = JsonConvert.SerializeObject(new { ChatId });
+        var data = new StringContent(json, Encoding.UTF8, "application/json");
+        var response = await Http.PostAsync(OrderControllerPath + nameof(OrderModel), data) ?? throw new Exception($"!!!");
+        string responseBody = await response.Content.ReadAsStringAsync();
+        if (!response.StatusCode.Equals(HttpStatusCode.OK))
+            throw new HttpProcessException(response.StatusCode, responseBody);
+        return JsonConvert.DeserializeObject<OrderModel>(responseBody) ?? throw new Exception("Json convert order model is empty");
+    }
+
+    // Select group
+    private async Task AddCurrentGroupId(Guid id)
+    {
+        if (IsPageBlocked) return;
+        try
+        {
+            CurrentGroupId = id;
+            if (!IsTestMode) await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(AddCurrentGroupId)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // 
+    public List<Product>? GetListOfProductsByGroupId(Guid id)
+    {
+        if (WebAppMenu is null)
+        {
+            HaveErrors = true;
+            throw new Exception("!!!");
+        }
+
+        var productsByGroup = WebAppMenu.GroupsWithProducts?.FirstOrDefault(x => x.GroupId == id)?.Products;
+        return productsByGroup != null ? WebAppMenu.NecessaryProducts?.AsParallel().Where(x => productsByGroup.Any(y => y.Id == x.Id)).ToList() : null;
+    }
+
+    // Add new item to order with position id
+    private Guid AddItemToOrderWithNewPosition(Guid productId, Product? product = null)
+    {
+        if (OrderModel is null) throw new Exception($"{typeof(Index).FullName}.{nameof(AddItemToOrderWithNewPosition)}.{nameof(Exception)}: " +
+            $"{nameof(OrderModel)} can't be null");
+
+        var newId = Guid.NewGuid();
+        product ??= WebAppMenu?.NecessaryProducts?.FirstOrDefault(x => x.Id == productId);
+        if (product is not null && OrderModel.Items is not null)
+        {
+            OrderModel.Items.Add(new Item(productId, product.Name ?? string.Empty, positionId: newId, modifiers: product.Modifiers, product.GroupModifiers,
+                product.Price(), WebAppMenu?.Menu?.Products, WebAppMenu?.Menu?.Groups));
+        }
+        return newId; // ???
+    }
+
+    // 
+    private void AddProduct(ref Product product, ref Item item)
+    {
+        Console.WriteLine(typeof(Index).FullName!, nameof(AddProduct), "Increase an amount of product");
+        if (OrderModel is null) throw new Exception($"{typeof(Index).FullName}.{nameof(AddProduct)}.{nameof(Exception)}: " +
+            $"{nameof(OrderModel)} can't be null");
+
+        item.IncrementAmount();
+        OrderModel.IncrementTotalAmount();
+        product.IncrementAmount();
+    }
+
+    // 
+    public void RemoveProduct(ref Product product, ref Item item)
+    {
+        Console.WriteLine(typeof(Index).FullName!, nameof(RemoveProduct), "Decrease an amount of product");
+        if (OrderModel is null) throw new Exception($"{typeof(Index).FullName}.{nameof(RemoveProduct)}.{nameof(Exception)}: " +
+            $"{nameof(OrderModel)} can't be null");
+
+        item.DecrementAmount();
+        OrderModel.DecrementTotalAmount();
+        product.DecrementAmount();
+    }
+
+    // 
+    private double TotalSumOfSelectedProductWithModifiers(Product product, Item item)
+    {
+        var productPrice = product.Price() ?? throw new Exception($"{typeof(Index).FullName}.{nameof(TotalSumOfSelectedProductWithModifiers)}.{nameof(Exception)}: " +
+            $"Price of product by ID - '{product.Id}' can't be null");
+        return (productPrice + PriceWithModifiersByProductId(item)) * item.Amount;
+    }
+
+    // 
+    private double PriceWithModifiersByProductId(Item item)
+    {
+        var modifiers = item.SelectedModifiers();
+        double total = 0;
+        foreach (var modifier in modifiers)
+            total += modifier.Price ?? throw new Exception($"{typeof(Index).FullName}.{nameof(PriceWithModifiersByProductId)}.{nameof(Exception)}: " +
+                $"Price of modifier by ID - '{modifier.ProductId}' can't be null");
+        return total;
+    }
+
+    // 
+    private async Task SendChangedOrderModelToServerAsync()
+    {
+        try
+        {
+            var body = JsonConvert.SerializeObject(new { OrderModel });
+            var data = new StringContent(body, Encoding.UTF8, "application/json");
+            var response = await Http.PostAsync(OrderControllerPath + "saveChangedOrder", data);
+
+            string responseBody = await response.Content.ReadAsStringAsync();
+            if (!response.StatusCode.Equals(HttpStatusCode.OK))
+                throw new HttpProcessException(response.StatusCode, responseBody);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    // Add product in the main menu
+    private async Task AddProductInMainMenuAsync(Guid productId)
+    {
+        if (IsPageBlocked) return;
+        try
+        {
+            if (WebAppMenu is null)
+            {
+                HaveErrors = true;
+                throw new Exception("!!!");
+            }
+
+            var product = WebAppMenu.NecessaryProducts?.FirstOrDefault(x => x.Id == productId);
+            if (product != null)
+            {
+                Item item;
+                var items = OrderModel?.Items ?? throw new Exception($"{nameof(OrderModel)} can't be null");
+
+                if (product.HaveModifiers())
+                {
+                    RazorOrderInfo.OrderStatusType = OrderStatusType.OrderProductWithModifiersSelect;
+                    SelectedProductId = productId;
+                    ProductPositionId = AddItemToOrderWithNewPosition(productId, product);
+                    item = items.Last(x => x.ProductId == productId && x.PositionId == ProductPositionId);
+                }
+                else
+                {
+                    var itm = items.FirstOrDefault(x => x.ProductId == productId);
+                    if (itm == null)
+                    {
+                        AddItemToOrderWithNewPosition(productId, product);
+                        item = items.Last(x => x.ProductId == productId);
+                    }
+                    else item = itm;
+                }
+
+                AddProduct(ref product, ref item);
+                if (!IsTestMode)
+                {
+                    await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+                    await JsRuntime.InvokeVoidAsync("SetViewOrderButton");
+                    if (product.HaveModifiers())
+                    {
+                        await JsRuntime.InvokeVoidAsync("BackButtonShow");
+                        await JsRuntime.InvokeVoidAsync("SetSelectProductWithModifiersButton", TotalSumOfSelectedProductWithModifiers(product, item));
+                    }
+                }
+                if (!product.HaveModifiers()) await SendChangedOrderModelToServerAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(AddProductInMainMenuAsync)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // Remove product in the main menu
+    private async Task RemoveProductInMainMenuAsync(Guid productId)
+    {
+        if (IsPageBlocked) return;
+        try
+        {
+            if (WebAppMenu is null)
+            {
+                HaveErrors = true;
+                throw new Exception("!!!");
+            }
+
+            var product = WebAppMenu.NecessaryProducts?.FirstOrDefault(x => x.Id == productId);
+            if (product != null)
+            {
+                var order = OrderModel ?? throw new Exception($"{nameof(OrderModel)} can't be null");
+                if (product.HaveModifiers())
+                {
+                    product.TotalAmount = 0;
+                    await CancelSelectedProductsWithModifiersAsync(productId);
+                }
+                else
+                {
+                    var item = order.Items?.FirstOrDefault(x => x.ProductId == productId);
+                    if (item is null) return;
+                    RemoveProduct(ref product, ref item);
+                    if (!item.HaveItems()) order.ZeroAmountOfItem(item);
+                }
+
+                if (!IsTestMode)
+                {
+                    await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+                    if (!order.HaveSelectedProducts()) await JsRuntime.InvokeVoidAsync("HideViewOrderButton");
+                }
+                await SendChangedOrderModelToServerAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(RemoveProductInMainMenuAsync)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // 
+    public double UpdateTotalSumOfOrder()
+    {
+        double total = 0;
+        if (OrderModel is null) throw new Exception($"{typeof(Index).FullName}.{nameof(UpdateTotalSumOfOrder)}.{nameof(Exception)}: " +
+            $"{nameof(OrderModel)} can't be null");
+
+        var items = OrderModel.Items;
+        if (items is not null)
+        {
+            if (WebAppMenu is null)
+            {
+                HaveErrors = true;
+                throw new Exception("!!!");
+            }
+
+            foreach (var item in items)
+            {
+                var product = WebAppMenu.NecessaryProducts?.FirstOrDefault(x => x.Id == item.ProductId)
+                ?? throw new Exception($"{typeof(Index).FullName}.{nameof(UpdateTotalSumOfOrder)}.{nameof(Exception)}: " +
+                    $"{nameof(Product)} can't be null");
+
+                if (item.HaveModifiers()) total += TotalSumOfSelectedProductWithModifiers(product, item);
+                else total += item.Amount * product.Price() ?? throw new Exception($"{typeof(Index).FullName}.{nameof(UpdateTotalSumOfOrder)}.{nameof(Exception)}: " +
+                    $"Price of product can't be null");
+            }
+        }
+        else total = double.MaxValue;
+        return OrderModel.TotalSum = total;
+    }
+
+    // Increase an amount of product by ID in the shopping cart
+    private async Task AddProductInShoppingCartAsync(Guid productId, Guid? positionId = default)
+    {
+        if (IsPageBlocked) return;
+        try
+        {
+            Console.WriteLine(typeof(Index).FullName!, nameof(AddProductInShoppingCartAsync), "Increase an amount of product");
+
+            if (WebAppMenu is null || WebAppInfo is null)
+            {
+                HaveErrors = true;
+                throw new Exception("!!!");
+            }
+
+            var product = WebAppMenu?.NecessaryProducts?.FirstOrDefault(x => x.Id == productId);
+            if (product != null)
+            {
+                var order = OrderModel ?? throw new Exception($"{nameof(OrderModel)} can't be null");
+                var item = order.Items?.FirstOrDefault(x => x.ProductId == productId && x.PositionId == positionId);
+                if (item is null) return;
+                AddProduct(ref product, ref item);
+                UpdateTotalSumOfOrder();
+                if (!IsTestMode)
+                {                 
+                    await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+                    if (WebAppInfo.UseIikoBizProgram) await CalculateLoyaltyProgramAsync();
+                    await JsRuntime.InvokeVoidAsync("SetPayOrderButton", WebAppInfo.UseIikoBizProgram ? OrderModel.FinalSum : OrderModel.TotalSum);
+                }
+                else if (WebAppInfo.UseIikoBizProgram) await CalculateLoyaltyProgramAsync();
+                await SendChangedOrderModelToServerAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(AddProductInShoppingCartAsync)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // Decrease an amount of product by ID in the shopping cart
+    private async Task RemoveProductInShoppingCartAsync(Guid productId, Guid? positionId = default)
+    {
+        if (IsPageBlocked) return;
+        try
+        {
+            Console.WriteLine(typeof(Index).FullName!, nameof(RemoveProductInShoppingCartAsync), "Decrease an amount of product");
+
+            if (WebAppMenu is null || WebAppInfo is null)
+            {
+                HaveErrors = true;
+                throw new Exception("!!!");
+            }
+
+            var product = WebAppMenu?.NecessaryProducts?.FirstOrDefault(x => x.Id == productId);
+            if (product != null)
+            {
+                var order = OrderModel ?? throw new Exception($"{nameof(OrderModel)} can't be null");
+                var item = order.Items?.FirstOrDefault(x => x.ProductId == productId && x.PositionId == positionId);
+                if (item is null) return;
+                RemoveProduct(ref product, ref item);
+                if (!item.HaveItems()) OrderModel.ZeroAmountOfItem(item);
+                UpdateTotalSumOfOrder();
+                if (!IsTestMode)
+                {
+                    await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+                    if (order.HaveSelectedProducts())
+                    {
+                        if (WebAppInfo.UseIikoBizProgram) await CalculateLoyaltyProgramAsync();
+                        await JsRuntime.InvokeVoidAsync("SetPayOrderButton", WebAppInfo.UseIikoBizProgram ? OrderModel.FinalSum
+                        : OrderModel.TotalSum);
+                    }
+                    else
+                    {
+                        RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
+                        await JsRuntime.InvokeVoidAsync("HideViewOrderButton");
+                        await JsRuntime.InvokeVoidAsync("BackButtonHide");
+                    }
+                }
+                else if (WebAppInfo.UseIikoBizProgram) await CalculateLoyaltyProgramAsync();
+                await SendChangedOrderModelToServerAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(RemoveProductInShoppingCartAsync)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // Change products with modifiers
+    private async Task ChangeProductsWithModifiersForChangingMenuAsync(Guid productId)
+    {
+        try
+        {
+            var order = OrderModel ?? throw new Exception($"{nameof(OrderModel)} can't be null");
+            var items = order.Items?.Where(x => x.ProductId == productId) ?? throw new Exception($"{nameof(Item)} can't be null");
+            var len = items.Count();
+            if (len == 1)
+            {
+                var product = WebAppMenu?.NecessaryProducts?.FirstOrDefault(x => x.Id == productId);
+                if (product != null)
+                {
+                    var item = items.First();
+                    RemoveProduct(ref product, ref item);
+                    if (!item.HaveItems()) OrderModel.ZeroAmountOfItem(item);
+                    if (!IsTestMode)
+                    {
+                        await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+                        if (!order.HaveSelectedProducts()) await JsRuntime.InvokeVoidAsync("HideViewOrderButton");
+                    }
+                    await SendChangedOrderModelToServerAsync();
+                }
+            }
+            else if (len > 1)
+            {
+                SelectedProductId = productId;
+                RazorOrderInfo.OrderStatusType = OrderStatusType.OrderProductWithModifiersRemove;
+                if (!IsTestMode)
+                {
+                    await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+                    await JsRuntime.InvokeVoidAsync("BackButtonShow");
+                    await JsRuntime.InvokeVoidAsync("SetMainButtonText", "Готово");
+                }
+            }
+            else if (!IsTestMode) await JsRuntime.InvokeVoidAsync("SetMainButtonText", "Готово");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(ChangeProductsWithModifiersForChangingMenuAsync)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // Increase an amount of product with modifiers by ID
+    private async Task AddProductWithModifiersInChangingMenuAsync(Guid productId, Guid positionId)
+    {
+        try
+        {
+            Console.WriteLine(typeof(Index).FullName!, nameof(AddProductInShoppingCartAsync), "Increase an amount of product");
+
+            var product = WebAppMenu?.NecessaryProducts?.FirstOrDefault(x => x.Id == productId);
+            if (product != null)
+            {
+                var order = OrderModel ?? throw new Exception($"{nameof(OrderModel)} can't be null");
+                var item = order.Items?.FirstOrDefault(x => x.ProductId == productId && x.PositionId == positionId);
+                if (item is null) return;
+                AddProduct(ref product, ref item);
+                if (!IsTestMode) await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+                await SendChangedOrderModelToServerAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(AddProductWithModifiersInChangingMenuAsync)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // Decrease an amount of product with modifiers by ID
+    private async Task RemoveProductWithModifiersInChangingMenuAsync(Guid productId, Guid positionId)
+    {
+        try
+        {
+            Console.WriteLine(typeof(Index).FullName!, nameof(RemoveProductInShoppingCartAsync), "Decrease an amount of product");
+
+            var product = WebAppMenu?.NecessaryProducts?.FirstOrDefault(x => x.Id == productId);
+            if (product != null)
+            {
+                var order = OrderModel ?? throw new Exception($"{nameof(OrderModel)} can't be null");
+                if (order.Items is null) return;
+                var item = order.Items.FirstOrDefault(x => x.ProductId == productId && x.PositionId == positionId);
+                if (item is null) return;
+                RemoveProduct(ref product, ref item);
+                if (!item.HaveItems()) OrderModel.ZeroAmountOfItem(item);
+
+                if (!order.Items.Where(x => x.ProductId == productId).Any())
+                {
+                    RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
+                    if (!IsTestMode)
+                    {
+                        await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+                        await JsRuntime.InvokeVoidAsync("HideViewOrderButton");
+                        await JsRuntime.InvokeVoidAsync("BackButtonHide");
+                    }
+                }
+                else await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+
+                await SendChangedOrderModelToServerAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(RemoveProductWithModifiersInChangingMenuAsync)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    //
+    private void AddModifier(ref Item item, Guid modifierId, Guid? productGroupId = null)
+    {
+        Console.WriteLine(typeof(Index).FullName!, nameof(AddModifier), "Increase an amount of modifier");
+        item.IncreaseAmountOfModifier(modifierId, productGroupId);
+    }
+
+    // 
+    public void RemoveModifier(ref Item item, Guid modifierId, Guid? productGroupId = null)
+    {
+        Console.WriteLine(typeof(Index).FullName!, nameof(RemoveModifier), "Decrease an amount of modifier");
+        item.DecreaseAmountOfModifier(modifierId, productGroupId);
+    }
+
+    // Add a modifier to product by id
+    private async Task AddModifierAsync(Guid productId, Guid modifierId, Guid positionId, Guid? productGroupId = null)
+    {
+        try
+        {
+            Console.WriteLine(typeof(Index).FullName!, nameof(AddModifierAsync), "Increase an amount of modifier");
+
+            var product = WebAppMenu?.NecessaryProducts?.FirstOrDefault(x => x.Id == productId);
+            if (product != null)
+            {
+                var order = OrderModel ?? throw new Exception($"{nameof(OrderModel)} can't be null");
+                if (order.Items is null) return;
+                var item = order.Items.FirstOrDefault(x => x.ProductId == productId && x.PositionId == positionId);
+                if (item is null) return;
+                AddModifier(ref item, modifierId, productGroupId);
+                if (!IsTestMode)
+                {
+                    await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+                    await JsRuntime.InvokeVoidAsync("SetSelectProductWithModifiersButton", TotalSumOfSelectedProductWithModifiers(product, item));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(AddModifierAsync)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // Remove a modifier from product by id
+    private async Task RemoveModifierAsync(Guid productId, Guid modifierId, Guid positionId, Guid? productGroupId = null)
+    {
+        try
+        {
+            Console.WriteLine(typeof(Index).FullName!, nameof(RemoveModifierAsync), "Increase an amount of modifier");
+
+            var product = WebAppMenu?.NecessaryProducts?.FirstOrDefault(x => x.Id == productId);
+            if (product != null)
+            {
+                var order = OrderModel ?? throw new Exception($"{nameof(OrderModel)} can't be null");
+                var item = order.Items?.FirstOrDefault(x => x.ProductId == productId && x.PositionId == positionId);
+                if (item is null) return;
+                RemoveModifier(ref item, modifierId, productGroupId);
+                if (!IsTestMode)
+                {
+                    await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+                    await JsRuntime.InvokeVoidAsync("SetSelectProductWithModifiersButton", TotalSumOfSelectedProductWithModifiers(product, item));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(RemoveModifierAsync)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // Add product in the modifier menu
+    private async Task AddProductInModifierMenuAsync(Guid productId, Guid positionId)
+    {
+        try
+        {
+            if (WebAppMenu is null || WebAppInfo is null)
+            {
+                HaveErrors = true;
+                throw new Exception("!!!");
+            }
+
+            var product = WebAppMenu.NecessaryProducts?.FirstOrDefault(x => x.Id == productId);
+            if (product != null)
+            {
+                var order = OrderModel ?? throw new Exception($"{nameof(OrderModel)} can't be null");
+                var item = order.Items?.FirstOrDefault(x => x.ProductId == productId && x.PositionId == positionId);
+                if (item is null) return;
+                AddProduct(ref product, ref item);
+                if (!IsTestMode)
+                {
+                    await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+                    await JsRuntime.InvokeVoidAsync("SetSelectProductWithModifiersButton", TotalSumOfSelectedProductWithModifiers(product, item));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(AddProductInModifierMenuAsync)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // Remove product in the modifier menu
+    private async Task RemoveProductInModifierMenuAsync(Guid productId, Guid positionId)
+    {
+        try
+        {
+            if (WebAppMenu is null || WebAppInfo is null)
+            {
+                HaveErrors = true;
+                throw new Exception("!!!");
+            }
+
+            var product = WebAppMenu.NecessaryProducts?.FirstOrDefault(x => x.Id == productId);
+            if (product != null)
+            {
+                var order = OrderModel ?? throw new Exception($"{nameof(OrderModel)} can't be null");
+                var item = order.Items?.FirstOrDefault(x => x.ProductId == productId && x.PositionId == positionId);
+                if (item is null) return;
+                RemoveProduct(ref product, ref item);
+
+                if (!item.HaveItems())
+                {
+                    CancelSelectModifiers(item);
+                    if (!IsTestMode)
+                    {
+                        await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+                        if (OrderModel.HaveSelectedProducts()) await JsRuntime.InvokeVoidAsync("SetViewOrderButton");
+                        else await JsRuntime.InvokeVoidAsync("HideViewOrderButton");
+                    }
+                }
+                else if (!IsTestMode)
+                {
+                    await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+                    await JsRuntime.InvokeVoidAsync("SetSelectProductWithModifiersButton", TotalSumOfSelectedProductWithModifiers(product, item));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(RemoveProductInModifierMenuAsync)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // Add product
+    private async Task AddProductForOtherMenuAsync(Guid productId)
+    {
+        try
+        {
+            if (WebAppMenu is null || WebAppInfo is null)
+            {
+                HaveErrors = true;
+                throw new Exception("!!!");
+            }
+
+            var order = OrderModel ?? throw new Exception($"{nameof(OrderModel)} can't be null");
+            var product = WebAppMenu.NecessaryProducts?.FirstOrDefault(x => x.Id == productId);
+            var item = order.Items?.FirstOrDefault(x => x.ProductId == productId);
+
+            if (RazorOrderInfo.OrderStatusType != OrderStatusType.OrderProductSelect)
+            {
+                SelectedProductId = productId;
+                var items = OrderModel?.Items ?? throw new Exception($"{nameof(OrderModel)} can't be null");
+                var itm = items.FirstOrDefault(x => x.ProductId == productId);
+                if (itm == null)
+                {
+                    AddItemToOrderWithNewPosition(productId, product);
+                    item = items.Last(x => x.ProductId == productId);
+                }
+                else item = itm;
+                RazorOrderInfo.OrderStatusType = OrderStatusType.OrderProductSelect;
+            }
+            if (product != null)
+            {
+                if (item is null) return;
+                else if ((int)item.Amount <= 0) AddProduct(ref product, ref item);
+                if (!IsTestMode)
+                {
+                    await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+                    await JsRuntime.InvokeVoidAsync("SetSelectProductWithModifiersButton", item.Price * item.Amount);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(AddProductInOtherMenuAsync)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // Add product
+    private async Task AddProductInOtherMenuAsync(Guid productId)
+    {
+        try
+        {
+            if (WebAppMenu is null || WebAppInfo is null)
+            {
+                HaveErrors = true;
+                throw new Exception("!!!");
+            }
+
+            var order = OrderModel ?? throw new Exception($"{nameof(OrderModel)} can't be null");
+            var product = WebAppMenu.NecessaryProducts?.FirstOrDefault(x => x.Id == productId);
+            var item = order.Items?.FirstOrDefault(x => x.ProductId == productId);
+
+            if (product != null)
+            {
+                if (item is null) return;
+                AddProduct(ref product, ref item);
+                if (!IsTestMode)
+                {
+                    await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+                    await JsRuntime.InvokeVoidAsync("SetSelectProductWithModifiersButton", item.Price * item.Amount);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(AddProductInOtherMenuAsync)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // Remove product
+    private async Task RemoveProductInOtherMenuAsync(Guid productId)
+    {
+        try
+        {
+            if (WebAppMenu is null || WebAppInfo is null)
+            {
+                HaveErrors = true;
+                throw new Exception("!!!");
+            }
+
+            var product = WebAppMenu.NecessaryProducts?.FirstOrDefault(x => x.Id == productId);
+            if (product != null)
+            {
+                var order = OrderModel ?? throw new Exception($"{nameof(OrderModel)} can't be null");
+                var item = order.Items?.FirstOrDefault(x => x.ProductId == productId);
+                if (item is null) return;
+                RemoveProduct(ref product, ref item);
+
+                if (!item.HaveItems())
+                {
+                    CancelSelectedProduct(item);
+                    if (!IsTestMode)
+                    {
+                        await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+                        if (OrderModel.HaveSelectedProducts()) await JsRuntime.InvokeVoidAsync("SetViewOrderButton");
+                        else await JsRuntime.InvokeVoidAsync("HideViewOrderButton");
+                    }
+                }
+                else if (!IsTestMode)
+                {
+                    await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+                    await JsRuntime.InvokeVoidAsync("SetSelectProductWithModifiersButton", item.Price * item.Amount);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(RemoveProductInOtherMenuAsync)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // Set the order to view status (use only in web mode)
+    private async Task ViewOrder()
+    {
+        try
+        {
+            Console.WriteLine(typeof(Index).FullName!, nameof(ViewOrder), "Show the preview selected products in order");
+            RazorOrderInfo.OrderStatusType = OrderStatusType.OrderView;
+            UpdateTotalSumOfOrder();
+            await CalculateLoyaltyProgramAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(ViewOrder)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // Tracking the click of the main telegram button
+    private async Task TelegramHandlerMainButtonAsync()
+    {
+        // Wait a callback from the telegram    
+        Console.WriteLine(typeof(Index).FullName!, nameof(TelegramHandlerMainButtonAsync), "Listening the TelegramBot main button");
+
+        int exCount = 0;
+        while (true)
+        {
+            try
+            {
+                if (WebAppInfo is null)
+                {
+                    HaveErrors = true;
+                    throw new Exception("~~~");
+                }
+
+                await JsRuntime.InvokeVoidAsync("HandlerMainButton");
+                if (RazorOrderInfo.OrderStatusType == OrderStatusType.OrderSelect)
+                {
+                    Console.WriteLine(typeof(Index).FullName!, nameof(TelegramHandlerMainButtonAsync), "Show the preview selected products in order");
+
+                    var totalSum = UpdateTotalSumOfOrder();
+                    if (OrderModel != null) OrderModel.FinalSum = totalSum;
+                    if (totalSum < 70)
+                    {
+                        await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", "Сумма заказа слишком мала", HapticFeedBackNotificationType.warning.ToString());
+                        continue;
+                    }
+
+                    if (WebAppInfo.UseIikoBizProgram)
+                    {
+                        // Show the telegram button for to pay the order
+                        await CalculateLoyaltyProgramAsync();
+                    }
+                    // Transition page to order view state
+                    RazorOrderInfo.OrderStatusType = OrderStatusType.OrderView;
+                    await JsRuntime.InvokeVoidAsync("ScrollToTop");
+                    await JsRuntime.InvokeVoidAsync("BackButtonShow");
+                    await JsRuntime.InvokeVoidAsync("SetPayOrderButton",
+                    WebAppInfo.UseIikoBizProgram ? OrderModel?.FinalSum : OrderModel?.TotalSum ?? 0);
+                    StateHasChanged();
+                }
+                else if (RazorOrderInfo.OrderStatusType == OrderStatusType.OrderProductWithModifiersSelect)
+                {
+                    Console.WriteLine(typeof(Index).FullName!, nameof(TelegramHandlerMainButtonAsync), "Show the preview selected modifiers in order");
+
+                    var item = OrderModel?.Items?.FirstOrDefault(x => x.ProductId == SelectedProductId && x.PositionId == ProductPositionId);
+                    if (item == null || !item.IsReachedMinAmountOfGroupModifiers() || !item.IsReachedMinAmountOfModifiers())
+                    {
+                        await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", "Не выбран обязательный модификатор", HapticFeedBackNotificationType.warning.ToString());
+                        continue;
+                    }
+
+                    RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
+                    StateHasChanged();
+                    await JsRuntime.InvokeVoidAsync("BackButtonHide");
+                    await JsRuntime.InvokeVoidAsync("SetViewOrderButton");
+                    await SendChangedOrderModelToServerAsync();
+                }
+                else if (RazorOrderInfo.OrderStatusType == OrderStatusType.OrderProductSelect)
+                {
+                    Console.WriteLine(typeof(Index).FullName!, nameof(TelegramHandlerMainButtonAsync), "Show the preview selected products in order");
+
+                    RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
+                    StateHasChanged();
+                    await JsRuntime.InvokeVoidAsync("BackButtonHide");
+                    await JsRuntime.InvokeVoidAsync("SetViewOrderButton");
+                    await SendChangedOrderModelToServerAsync();
+                }
+                else if (RazorOrderInfo.OrderStatusType == OrderStatusType.OrderProductWithModifiersRemove)
+                {
+                    RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
+                    StateHasChanged();
+                    await JsRuntime.InvokeVoidAsync("BackButtonHide");
+                    await JsRuntime.InvokeVoidAsync("SetViewOrderButton");
+                    await SendChangedOrderModelToServerAsync();
+                }
+                else if (RazorOrderInfo.OrderStatusType == OrderStatusType.OrderView)
+                {
+                    Console.WriteLine(typeof(Index).FullName!, nameof(TelegramHandlerMainButtonAsync), "Save the created order in db and send it to server");
+                    FinishedRender = false;
+
+                    if (OrderModel != null && OrderModel.FinalSum < 70)
+                    {
+                        await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", "Сумма заказа слишком мала", HapticFeedBackNotificationType.warning.ToString());
+                        continue;
+                    }
+                    else if (string.IsNullOrEmpty(CityValue))
+                    {
+                        await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", "Укажите пожалуйста Ваш город", HapticFeedBackNotificationType.warning.ToString());
+                        continue;
+                    }
+                    else if (string.IsNullOrEmpty(StreetValue))
+                    {
+                        await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", "Укажите пожалуйста улицу", HapticFeedBackNotificationType.warning.ToString());
+                        continue;
+                    }
+                    else if (string.IsNullOrEmpty(HouseValue))
+                    {
+                        await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", "Укажите пожалуйста номер дома", HapticFeedBackNotificationType.warning.ToString());
+                        continue;
+                    }
+                    else StateHasChanged();
+                    // End the order
+                    for (int i = 0; i < 10; i++)
+                    {
+                        if (FinishedRender)
+                        {
+                            if (OrderModel is not null)
+                            {
+                                OrderModel.Comment = CommentValue;
+                                OrderModel.Address = new(CityValue, StreetValue, HouseValue, FlatValue, EntranceValue, FloorValue);
+                            }
+                            break;
+                        }
+                        await Task.Delay(1);
+                    }
+                    await SendChangedOrderModelToServerAsync();
+                    await CreateInvoiceLinkAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                if (exCount < 3)
+                {
+                    exCount++;
+                }
+                else
+                {
+                    HaveErrors = true;
+                    await JsRuntime.InvokeVoidAsync("CloseWebApp");
+                    return;
+                }
+                Console.WriteLine(ex.Message);
+                await Task.Delay(25);
+            }
+        }
+    }
+
+    // Set the order select state back (use only in web mode)
+    private void EditOrder()
+    {
+        try
+        {
+            Console.WriteLine(typeof(Index).FullName!, nameof(EditOrder), "Get back to select products page");
+            RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(EditOrder)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // 
+    private void AddChatId(long chatId)
+    {
+        Console.WriteLine(typeof(Index).FullName!, nameof(AddChatId), "Add a chat id via the TelegramBot");
+        ChatId = chatId;
+        if (OrderModel != null) OrderModel.ChatId = chatId;
+    }
+
+    // 
+    public async Task<InvoiceLinkStatus> CreateInvoiceUrlLinkAsync()
+    {
+        try
+        {
+            using var client = new HttpClient();
+            var body = JsonConvert.SerializeObject(new { orderInfoViaWebApp = OrderModel });
+            var data = new StringContent(body, Encoding.UTF8, "application/json");
+            var response = await client.PostAsync("createInvoiceLink", data);
+
+            string responseBody = await response.Content.ReadAsStringAsync();
+            if (response.StatusCode != HttpStatusCode.OK)
+                throw new HttpProcessException(response.StatusCode, responseBody);
+
+            return JsonConvert.DeserializeObject<InvoiceLinkStatus>(responseBody) ?? throw new Exception("Received an invoice link is invalid");
+        }
+        catch (HttpRequestException hre)
+        {
+            Console.WriteLine(hre.Message);
+            return new(false, null, hre.Message);
+        }
+        catch (HttpProcessException hpe)
+        {
+            Console.WriteLine(hpe.Message);
+            return new(false, null, hpe.Message);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            return new(false, null, ex.Message);
+        }
+    }
+
+    // 
+    private async Task<string?> CreateAndGetInvoiceLinkAsync()
+    {
+        var response = await CreateInvoiceUrlLinkAsync();
+
+        if (response.Ok) return response.InvoiceLink;
+        else return null;
+    }
+
+    // Pay the completed order (use only in web mode)
+    private async Task PayOrder()
+    {
+        try
+        {
+            Console.WriteLine(typeof(Index).FullName!, nameof(PayOrder), "Show info about created order");
+            AddChatId(ChatIdForTestMode);
+            if (OrderModel is not null)
+            {
+                OrderModel.Comment = CommentValue;
+                OrderModel.Address = new(CityValue, StreetValue, HouseValue, FlatValue, EntranceValue, FloorValue);
+            }
+            var result = await CreateAndGetInvoiceLinkAsync();
+            //await OrderService.SendCreatedOrderToTelegramBot();
+            RazorOrderInfo.OrderStatusType = OrderStatusType.OrderCreated;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(PayOrder)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // Initialize the Telegram connection
+    private async Task MakeTelegramReadyAsync()
+    {
+        try
+        {
+            Console.WriteLine(typeof(Index).FullName!, nameof(MakeTelegramReadyAsync), "Ready to connect with the TelegramBot and get chat id");
+            var chatId = await JsRuntime.InvokeAsync<long>("InitTelegram");
+            // Add received chatId via the TelegramBot
+            AddChatId(chatId);
+            RazorOrderInfo.IsTelegramConnectionInit = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(ViewOrder)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+            HaveErrors = true;
+            StateHasChanged();
+        }
+    }
+
+    // Cancel the selected product in modifier menu
+    private async Task CancelSelectModifiersAsync(Guid productId, Guid positionId)
+    {
+        try
+        {
+            if (WebAppMenu is null)
+            {
+                HaveErrors = true;
+                throw new Exception("!!!");
+            }
+
+            RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
+            var order = OrderModel ?? throw new Exception($"{nameof(OrderModel)} can't be null");
+            var item = order.Items?.Last(x => x.ProductId == productId && x.PositionId == positionId) ??
+            throw new Exception($"{typeof(Index).FullName}.{nameof(CancelSelectModifiersAsync)}.{nameof(Exception)}: " +
+                $"{nameof(Item)} can't be null");
+            var product = WebAppMenu.NecessaryProducts?.FirstOrDefault(x => x.Id == productId);
+            if (product is not null) product.TotalAmount -= (int)item.Amount;
+            OrderModel.ZeroAmountOfItem(item);
+
+            if (!IsTestMode)
+            {
+                if (OrderModel.HaveSelectedProducts())
+                {
+                    await JsRuntime.InvokeVoidAsync("SetViewOrderButton");
+                }
+                else
+                {
+                    await JsRuntime.InvokeVoidAsync("HideViewOrderButton");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(CancelSelectModifiersAsync)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // Cancel the selected product
+    private void CancelSelectedProductAsync(Guid productId)
+    {
+        try
+        {
+            RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(CancelSelectedProductAsync)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // Cancel the selected product in modifier menu
+    private void CancelSelectModifiers(Item item)
+    {
+        try
+        {
+            if (WebAppMenu is null)
+            {
+                HaveErrors = true;
+                throw new Exception("!!!");
+            }
+
+            RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
+            var order = OrderModel;
+            if (order is null) return;
+            var product = WebAppMenu.NecessaryProducts?.FirstOrDefault(x => x.Id == item.ProductId);
+            if (product is not null) product.TotalAmount -= (int)item.Amount;
+            order.ZeroAmountOfItem(item);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(CancelSelectModifiersAsync)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // Cancel the selected product
+    private void CancelSelectedProduct(Item item)
+    {
+        try
+        {
+            RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(CancelSelectedProduct)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // Cancel the selected products with modifiers in main menu
+    private async Task CancelSelectedProductsWithModifiersAsync(Guid productId)
+    {
+        try
+        {
+            if (WebAppMenu is null)
+            {
+                HaveErrors = true;
+                throw new Exception("!!!");
+            }
+
+            if (OrderModel is null) return;
+            OrderModel.RemoveItemsById(productId);
+            var product = WebAppMenu.NecessaryProducts?.FirstOrDefault(x => x.Id == productId);
+            if (product != null) product.TotalAmount = 0;
+            RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
+            if (!IsTestMode && !OrderModel.HaveSelectedProducts())
+                await JsRuntime.InvokeVoidAsync("HideViewOrderButton");
+            else
+                await JsRuntime.InvokeVoidAsync("SetViewOrderButton");
+            await JsRuntime.InvokeVoidAsync("BackButtonHide");
+            await SendChangedOrderModelToServerAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(CancelSelectedProductsWithModifiersAsync)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // Finish to select product with modifiers (use only in web mode)
+    private void CompleteSelectModifiers()
+    {
+        try
+        {
+            RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(CompleteSelectModifiers)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // Finish to select product with modifiers (use only in web mode)
+    private void CompleteSelectedProducts()
+    {
+        try
+        {
+            RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(CompleteSelectModifiers)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // Tracking the click of the back telegram button
+    private async Task TelegramHandlerBackButtonAsync()
+    {
+        // Wait a callback from the telegram
+        Console.WriteLine(typeof(Index).FullName!, nameof(TelegramHandlerBackButtonAsync), "Listening the TelegramBot main button");
+        int exCount = 0;
+
+        while (true)
+        {
+            try
+            {
+                await JsRuntime.InvokeVoidAsync("HandlerBackButtonClicked");
+                if (IsPageBlocked) return;
+
+                if (RazorOrderInfo.OrderStatusType == OrderStatusType.OrderProductWithModifiersSelect)
+                {
+                    await JsRuntime.InvokeVoidAsync("BackButtonHide");
+                    await CancelSelectModifiersAsync(SelectedProductId, ProductPositionId);
+                    StateHasChanged();
+                }
+                else if (RazorOrderInfo.OrderStatusType == OrderStatusType.OrderProductSelect)
+                {
+                    await JsRuntime.InvokeVoidAsync("BackButtonHide");
+                    StateHasChanged();
+                }
+                else if (RazorOrderInfo.OrderStatusType == OrderStatusType.OrderProductWithModifiersRemove)
+                {
+                    RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
+                    await JsRuntime.InvokeVoidAsync("BackButtonHide");
+                    await JsRuntime.InvokeVoidAsync("SetViewOrderButton");
+                    StateHasChanged();
+                }
+                else if (RazorOrderInfo.OrderStatusType == OrderStatusType.OrderView)
+                {
+                    Console.WriteLine(typeof(Index).FullName!, nameof(TelegramHandlerBackButtonAsync), "Show the preview selected products in order back");
+                    FinishedRender = false;
+                    await JsRuntime.InvokeVoidAsync("BackButtonHide");
+                    RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
+                    StateHasChanged();
+                    await JsRuntime.InvokeVoidAsync("SetViewOrderButton");
+                    for (int i = 0; i < 10; i++)
+                    {
+                        if (FinishedRender)
+                        {
+                            if (OrderModel is not null)
+                            {
+                                OrderModel.Comment = CommentValue;
+                                OrderModel.Address = new(CityValue, StreetValue, HouseValue, FlatValue, EntranceValue, FloorValue);
+                            }
+                            break;
+                        }
+                        await Task.Delay(1);
+                    }
+                    await SendChangedOrderModelToServerAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                if (exCount < 3)
+                {
+                    exCount++;
+                }
+                else
+                {
+                    await JsRuntime.InvokeVoidAsync("CloseWebApp");
+                    return;
+                }
+                Console.WriteLine(ex.Message);
+                await Task.Delay(25);
+            }
+        }
+    }
+
+    // Listen handler events of JS (***Testing mode***)
+    async Task ListenTlgMainButtonAsync()
+    {
+        try
+        {
+            Console.WriteLine(typeof(Index).FullName!, nameof(ListenTlgMainButtonAsync), "Listening the main button of the TelegramBot");
+            // Call handler to catch the click of telegram button
+            var mainButtonTask = TelegramHandlerMainButtonAsync();
+            var backButtonTask = TelegramHandlerBackButtonAsync();
+            await mainButtonTask;
+            await backButtonTask;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(ListenTlgMainButtonAsync)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+            HaveErrors = true;
+            StateHasChanged();
+        }
+    }
+
+    // Create the invoice link, open it in the TelegramBot and process event results (beta)
+    async Task<string?> CreateInvoiceLinkAsync()
+    {
+        try
+        {
+            var result = await CreateInvoiceUrlLinkAsync();
+            if (!result.Ok)
+            {
+                await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", result.Message, HapticFeedBackNotificationType.error.ToString());
+                return result.Message;
+            }
+
+            var invoiceClosedStatus = await JsRuntime.InvokeAsync<string>("HandlerOpenInvoice", result.InvoiceLink);
+
+            if (!Enum.TryParse(invoiceClosedStatus, out InvoiceClosedStatus invoiceClosedType))
+            {
+                Console.WriteLine($"Failed to convert string value to {nameof(InvoiceClosedStatus)} type");
+                return invoiceClosedStatus;
+            }
+
+            switch (invoiceClosedType)
+            {
+                case InvoiceClosedStatus.cancelled:
+                    {
+                        RazorOrderInfo.OrderStatusType = OrderStatusType.OrderView;
+                        await JsRuntime.InvokeVoidAsync("HapticFeedbackSet");
+                        break;
+                    }
+                case InvoiceClosedStatus.paid:
+                    {
+                        await JsRuntime.InvokeVoidAsync("CloseWebApp");
+                        break;
+                    }
+                default: break;
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(CreateInvoiceLinkAsync)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+            return ex.Message;
+        }
+    }
+
+    // Receive terminal id from html form (beta)
+    private async Task OnSelectTerminal(ChangeEventArgs e)
+    {
+        if (IsPageBlocked) return;
+        try
+        {
+            if (WebAppInfo is null)
+            {
+                HaveErrors = true;
+                throw new Exception("!!!");
+            }
+
+            Console.WriteLine("The selected ID is " + e.Value?.ToString());
+            var arg = Convert.ToString(e.Value);
+            if (!string.IsNullOrEmpty(arg))
+            {
+                var id = Guid.Parse(arg);
+                var order = OrderModel ?? throw new Exception($"{nameof(OrderModel)} can't be null");
+                order.TerminalId = id;
+                var delTerminal = DeliveryTerminals?.FirstOrDefault(x => x.Id == id);
+                if (delTerminal != null)
+                    order.DeliveryTerminal = new(id, delTerminal.Name);
+                if (WebAppInfo.UseIikoBizProgram)
+                {
+                    await CalculateLoyaltyProgramAsync();
+                    await JsRuntime.InvokeVoidAsync("SetPayOrderButton", OrderModel?.FinalSum ?? 0);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(OnSelectTerminal)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // Receive the product by ID
+    private Product ProductById(Guid id)
+    {
+        try
+        {
+            return WebAppMenu?.NecessaryProducts?.FirstOrDefault(x => x.Id == id)
+            ?? throw new Exception($"{typeof(Index).FullName}.{nameof(ProductById)}.{nameof(Exception)}: " +
+                        $"Not found product by ID - '{id}'");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(ProductById)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+            HaveErrors = true;
+            StateHasChanged();
+            return new Product();
+        }
+    }
+
+    // Receive the item by ID
+    private Item ItemById(Guid productId, Guid positionId)
+    {
+        try
+        {
+            var order = OrderModel ?? throw new Exception($"{nameof(OrderModel)} can't be null");
+            return order.Items?.FirstOrDefault(x => x.ProductId == productId && x.PositionId == positionId)
+            ?? throw new Exception($"{typeof(Index).FullName}.{nameof(ItemById)}.{nameof(Exception)}: " +
+                        $"Not found item by ProductID - '{productId}' and PositionID - '{positionId}'");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(ItemById)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+            HaveErrors = true;
+            StateHasChanged();
+            return new Item();
+        }
+    }
+
+    // Receive the item by ID
+    private Item ItemById(Guid productId)
+    {
+        try
+        {
+            var order = OrderModel ?? throw new Exception($"{nameof(OrderModel)} can't be null");
+            return order.Items?.FirstOrDefault(x => x.ProductId == productId)
+            ?? throw new Exception($"{typeof(Index).FullName}.{nameof(ItemById)}.{nameof(Exception)}: " +
+                        $"Not found item by ProductID - '{productId}'");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(ItemById)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+            HaveErrors = true;
+            StateHasChanged();
+            return new Item();
+        }
+    }
+
+    // 
+    private async Task<Checkin> CalculateCheckinAsync()
+    {
+        var json = JsonConvert.SerializeObject(OrderModel);
+        var data = new StringContent(json, Encoding.UTF8, "application/json");
+        var response = await Http.PostAsync("calculateCheckin", data) ?? throw new Exception($"!!!");
+        string responseBody = await response.Content.ReadAsStringAsync();
+        if (!response.StatusCode.Equals(HttpStatusCode.OK))
+            throw new HttpProcessException(response.StatusCode, responseBody);
+        return JsonConvert.DeserializeObject<Checkin>(responseBody) ?? throw new Exception("Json convert order model is empty");
+    }
+
+    // Calculate discount program
+    private async Task CalculateLoyaltyProgramAsync()
+    {
+        IsPageBlocked = true;
+
+        await JsRuntime.InvokeVoidAsync("ShowProgress");
+        if (IsTestMode) AddChatId(ChatIdForTestMode);
+        try
+        {
+            if (OrderModel != null)
+            {
+                var result = await CalculateCheckinAsync();
+
+                if (!string.IsNullOrEmpty(result.WarningMessage))
+                {
+                    Console.WriteLine(result.WarningMessage);
+                    await JsRuntime.InvokeVoidAsync("HideProgress");
+                    if (!IsTestMode) await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", result.WarningMessage, HapticFeedBackNotificationType.warning.ToString());
+                    OrderModel.Coupon = string.Empty;
+                    IsPageBlocked = false;
+                    return;
+                }
+                else if (result.LoyaltyProgramResults != null && result.LoyaltyProgramResults.Any())
+                {
+                    OrderModel.DiscountSum = 0;
+                    OrderModel.FreePriceItems.Clear();
+                    OrderModel.FreeItems.Clear();
+                    var products = WebAppMenu?.Menu?.Products;
+
+                    foreach (var loyaltyProgram in result.LoyaltyProgramResults)
+                    {
+                        if (loyaltyProgram.Discounts != null && loyaltyProgram.Discounts.Any())
+                        {
+                            foreach (var discount in loyaltyProgram.Discounts)
+                            {
+                                OrderModel.DiscountSum += discount.DiscountSum;
+                                if (discount.Code == (int)DiscountType.FreeProduct && discount.OrderItemId != null && discount.OrderItemId != Guid.Empty)
+                                    OrderModel.FreePriceItems.Add((Guid)discount.OrderItemId);
+                            }
+                        }
+                        if (loyaltyProgram.FreeProducts != null && loyaltyProgram.FreeProducts.Any())
+                        {
+                            foreach (var freeProduct in loyaltyProgram.FreeProducts)
+                            {
+                                if (freeProduct.Products != null && freeProduct.Products.Any())
+                                {
+                                    foreach (var product in freeProduct.Products)
+                                    {
+                                        if (products != null && products.Any())
+                                            OrderModel.FreeItems.Add(new Item(
+                                                productId: product.Id,
+                                                productName: products.FirstOrDefault(x => x.Id == product.Id)?.Name ?? string.Empty));
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    OrderModel.FinalSum = OrderModel.TotalSum - OrderModel.DiscountSum;
+                    OrderModel.DiscountProcent = OrderModel.DiscountSum * 100 / OrderModel.TotalSum;
+                }
+            }
+            IsPageBlocked = false;
+            await JsRuntime.InvokeVoidAsync("HideProgress");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            IsPageBlocked = false;
+            await JsRuntime.InvokeVoidAsync("HideProgress");
+            if (!IsTestMode) await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", ex.Message, HapticFeedBackNotificationType.error.ToString());
+        }
+    }
+
+    // Calculate discount program
+    private async Task CalculateDiscountProgramByCouponAsync()
+    {
+        if (OrderModel != null) OrderModel.Coupon = CouponValue;
+        await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+        await CalculateLoyaltyProgramAsync();
+        await JsRuntime.InvokeVoidAsync("SetPayOrderButton", OrderModel?.FinalSum ?? 0);
+    }
+
+    // 
+    private async Task ChangeDeliveryTypeFlagAsync(bool byCourier)
+    {
+        if (IsPageBlocked) return;
+        if (OrderModel != null) OrderModel.ByCourier = byCourier;
+        await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+        if (WebAppInfo is not null && WebAppInfo.UseIikoBizProgram)
+        {
+            await CalculateLoyaltyProgramAsync();
+            await JsRuntime.InvokeVoidAsync("SetPayOrderButton", OrderModel?.FinalSum ?? 0);
+        }
+    }
+
+    //
+    private async Task ScrollToTopAsync()
+    {
+        await JsRuntime.InvokeVoidAsync("ScrollBack");
+    }
+
+    // Remove all selected products in the shopping cart
+    private async Task RemoveAllSelectedProductsInShoppingCartAsync()
+    {
+        try
+        {
+            if (!IsTestMode)
+            {
+                await JsRuntime.InvokeVoidAsync("HapticFeedbackNotificationSet", HapticFeedBackNotificationType.warning.ToString());
+                var allow = await JsRuntime.InvokeAsync<bool>("RemoveSelectedProductsWithMofifiers", "Вы действительно хотите очистить корзину?");
+                if (allow)
+                {
+                    if (OrderModel != null)
+                    {
+                        OrderModel.TotalAmount = 0;
+                        if (OrderModel.Items is not null) OrderModel.Items.Clear();
+                    }
+
+                    if (WebAppMenu?.NecessaryProducts != null)
+                        foreach (var product in WebAppMenu.NecessaryProducts)
+                            product.TotalAmount = 0;
+
+                    RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
+                    await JsRuntime.InvokeVoidAsync("HideViewOrderButton");
+                    await JsRuntime.InvokeVoidAsync("BackButtonHide");
+                    await SendChangedOrderModelToServerAsync();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(RemoveSelectedProductsWithMofifiersByIdAsync)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    // Remove selected products with modifiers by ID
+    private async Task RemoveSelectedProductsWithMofifiersByIdAsync(Guid productId)
+    {
+        try
+        {
+            if (!IsTestMode)
+            {
+                await JsRuntime.InvokeVoidAsync("HapticFeedbackNotificationSet", HapticFeedBackNotificationType.warning.ToString());
+                var allow = await JsRuntime.InvokeAsync<bool>("RemoveSelectedProductsWithMofifiers", "Вы хотите удалить выбранные позиции?");
+                if (allow) await CancelSelectedProductsWithModifiersAsync(productId);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(RemoveSelectedProductsWithMofifiersByIdAsync)}.{nameof(Exception)}: " +
+                $"{ex.Message}");
+        }
+    }
+
+    //
+    private double PriceByProductId(Guid id) => WebAppMenu?.Menu?.Products?.FirstOrDefault(x => x.Id == id)?.Price()
+    ?? throw new Exception($"{typeof(Index).FullName}.{nameof(PriceByProductId)}.{nameof(Exception)}: " +
+        $"{nameof(WebAppMenu.Menu)} can't be null");
+
+    //
+    private double TotalSumOfSelectedProductWithModifiers(Guid productId, Guid positionId)
+    {
+        if (OrderModel is null) throw new Exception($"{typeof(Index).FullName}.{nameof(TotalSumOfSelectedProductWithModifiers)}.{nameof(Exception)}: " +
+            $"{nameof(OrderModel)} can't be null");
+
+        var product = WebAppMenu?.NecessaryProducts?.FirstOrDefault(x => x.Id == productId);
+        if (OrderModel.Items is not null)
+        {
+            var item = OrderModel.Items.First(x => x.ProductId == productId && x.PositionId == positionId);
+
+            if (product != null)
+            {
+                var productPrice = product.Price() ?? throw new Exception($"{typeof(Index).FullName}.{nameof(TotalSumOfSelectedProductWithModifiers)}.{nameof(Exception)}: " +
+                    $"Price of product by ID - '{product.Id}' can't be null");
+                return (productPrice + PriceWithModifiersByProductId(item)) * item.Amount;
+            }
+            throw new Exception($"{typeof(Index).FullName}.{nameof(TotalSumOfSelectedProductWithModifiers)}.{nameof(Exception)}: " +
+                $"Product by ID - '{productId}' can't be null");
+        }
+        return double.MaxValue;
+    }
+
+    //
+    private string ImageLinkByProductId(Guid id)
+    {
+        var imageLinks = WebAppMenu?.NecessaryProducts?.First(x => x.Id == id).ImageLinks;
+        return imageLinks != null && imageLinks.Any() ? imageLinks.Last() : string.Empty;
+    }
+
+    //
+    private string InfoAboutCreatedOrder()
+    {
+        Console.WriteLine(typeof(Index).FullName!, nameof(InfoAboutCreatedOrder),
+            $"Insert the {nameof(OrderModel)} item into db and info in the WebApp about the created order");
+        if (OrderModel is null) throw new Exception($"{typeof(Index).FullName}.{nameof(InfoAboutCreatedOrder)}.{nameof(Exception)}: " +
+            $"{nameof(OrderModel)} can't be null");
+
+        try
+        {
+            // Info of the selected products
+            string selectedProductsInfo = string.Empty;
+            if (OrderModel.Items is not null)
+                foreach (var product in OrderModel.Items)
+                    selectedProductsInfo += $"{product.ProductName} x{product.Amount} - ₽{product.Price}\n";
+
+            return $"Order summary:\n" +
+            $"operationId: {OrderModel.OperationId}\n" +
+            $"\n{selectedProductsInfo}\n" +
+            $"Total: ₽{OrderModel.TotalSum}\n" +
+            $"Comment: {OrderModel.Comment}\n" +
+            $"Order's create date: {OrderModel.CreatedDate}";
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            return "Database Error";
+        }
+    }
+}
