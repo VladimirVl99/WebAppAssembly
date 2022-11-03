@@ -1,90 +1,17 @@
 ﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 using WebAppAssembly.Shared.Entities.CreateDelivery;
 using WebAppAssembly.Shared.Entities.Telegram;
 
 namespace WebAppAssembly.Shared.Models.Order
 {
-    public class OrderModel : ICloneable
+    public class OrderClientModel
     {
-        public OrderModel()
-        {
-            OperationId = Guid.NewGuid();
-            CreatedDate = DateTime.Now.ToString("yyyy-mm-dd hh:mm:ss");
-            Items = new List<Item>();
-        }
-
-        public OrderModel(Guid operationId, double totalSum, string comment, string createdDate)
-        {
-            OperationId = operationId;
-            TotalSum = totalSum;
-            Comment = comment;
-            CreatedDate = createdDate;
-        }
-
-        public OrderModel(List<Item> items)
-        {
-            OperationId = Guid.NewGuid();
-            Items = items;
-            CreatedDate = DateTime.Now.ToString("yyyy-mm-dd hh:mm:ss");
-        }
-
-        public OrderModel(Guid operationId, List<Item> items, string comment, double totalSum, string createdDate, double totalAmount, double bonusSum, bool byCourier, Guid? terminalId)
-        {
-            OperationId = operationId;
-            Items = items;
-            Comment = comment;
-            TotalSum = totalSum;
-            CreatedDate = createdDate;
-            TotalAmount = totalAmount;
-            BonusSum = bonusSum;
-            ByCourier = byCourier;
-            TerminalId = terminalId;
-        }
-
-        public OrderModel(Guid operationId, long chatId, List<Item> items, List<Item> freeItems, string comment, double totalSum, string createdDate, double totalAmount, double bonusSum, bool byCourier, Guid? terminalId, DeliveryTerminal deliveryTerminal, DeliveryPoint address, string coupon, double discountSum, List<Guid> freePriceItems)
-        {
-            OperationId = operationId;
-            ChatId = chatId;
-            Items = items;
-            FreeItems = freeItems;
-            Comment = comment;
-            TotalSum = totalSum;
-            CreatedDate = createdDate;
-            TotalAmount = totalAmount;
-            BonusSum = bonusSum;
-            ByCourier = byCourier;
-            TerminalId = terminalId;
-            DeliveryTerminal = deliveryTerminal;
-            Address = address;
-            Coupon = coupon;
-            DiscountSum = discountSum;
-            FreePriceItems = freePriceItems;
-        }
-
-        public OrderModel(Guid operationId, long chatId, List<Item> items, double totalSum, double totalAmount, double bonusSum, bool byCourier,
-            Guid? terminalId, double discountSum, List<Guid> freePriceItems, List<Item> freeItems, string? comment = null, string? createdDate = null,
-            DeliveryTerminal? deliveryTerminal = null, DeliveryPoint? address = null, string? coupon = null)
-        {
-            OperationId = operationId;
-            ChatId = chatId;
-            Items = items;
-            FreeItems = freeItems;
-            Comment = comment;
-            TotalSum = totalSum;
-            CreatedDate = createdDate;
-            TotalAmount = totalAmount;
-            BonusSum = bonusSum;
-            ByCourier = byCourier;
-            TerminalId = terminalId;
-            DeliveryTerminal = deliveryTerminal;
-            Address = address;
-            Coupon = coupon;
-            DiscountSum = discountSum;
-            FreePriceItems = freePriceItems;
-        }
-
         [JsonProperty("operationId")]
         [JsonPropertyName("operationId")]
         public Guid OperationId { get; set; }
@@ -105,7 +32,7 @@ namespace WebAppAssembly.Shared.Models.Order
         public double TotalSum { get; set; } = 0;
         [JsonProperty("createdDate")]
         [JsonPropertyName("createdDate")]
-        public string? CreatedDate { get; private set; }
+        public string? CreatedDate { get; set; }
         [JsonProperty("totalAmount")]
         [JsonPropertyName("totalAmount")]
         public double TotalAmount { get; set; } = 0;
@@ -170,7 +97,7 @@ namespace WebAppAssembly.Shared.Models.Order
             }
         }
         public void RemoveItemsById(Guid productId)
-        {           
+        {
             try
             {
                 if (Items is null || !Items.Any()) return;
@@ -199,7 +126,7 @@ namespace WebAppAssembly.Shared.Models.Order
             else foreach (var item in Items)
                     items.Add((Item)item.Clone());
 
-            return new OrderModel(OperationId, ChatId, items, TotalSum, TotalAmount, BonusSum, ByCourier, TerminalId, DiscountSum, FreePriceItems, FreeItems, Comment, CreatedDate, 
+            return new OrderModel(OperationId, ChatId, items, TotalSum, TotalAmount, BonusSum, ByCourier, TerminalId, DiscountSum, FreePriceItems, FreeItems, Comment, CreatedDate,
                 DeliveryTerminal, Address, Coupon);
         }
     }

@@ -37,8 +37,8 @@ namespace WebAppAssembly.Server.Controllers
             }
         }
 
-        [HttpPost(nameof(OrderModel))]
-        public async Task<ActionResult<FoodShopInfo>> GetOrderModelAsync(ChatInfo chatInfo)
+        [HttpPost(nameof(OrderClientModel))]
+        public async Task<ActionResult<OrderClientModel?>> GetOrderModelAsync(ChatInfo chatInfo)
         {
             try
             {
@@ -53,13 +53,46 @@ namespace WebAppAssembly.Server.Controllers
         }
 
         [HttpPost("saveChangedOrder")]
-        public async Task<IActionResult> SaveChangedOrderAsync(OrderModel order)
+        public async Task<IActionResult> SaveChangedOrderAsync(OrderClientModel order)
         {
             try
             {
+                if (_orderService.ChatId == 0) _orderService.AddChatId(order.ChatId);
                 _orderService.OrderModel = order;
                 await _orderService.SendChangedOrderModelToServerAsync();
                 return Ok();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return StatusCode((int)HttpStatusCode.InternalServerError, ex.Message);
+            }
+        }
+
+        [HttpPost("calculateCheckin")]
+        public async Task<ActionResult<Checkin>> CalculateCheckinAsync(OrderClientModel order)
+        {
+            try
+            {
+                if (_orderService.ChatId == 0) _orderService.AddChatId(order.ChatId);
+                _orderService.OrderModel ??= order;                
+                return Ok(await _orderService.CalculateCheckinAsync());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return StatusCode((int)HttpStatusCode.InternalServerError, ex.Message);
+            }
+        }
+
+        [HttpPost("createInvoiceLink")]
+        public async Task<ActionResult<InvoiceLinkStatus>> CreateInvoiceLinkAsync(OrderClientModel order)
+        {
+            try
+            {
+                if (_orderService.ChatId == 0) _orderService.AddChatId(order.ChatId);
+                _orderService.OrderModel ??= order;
+                return Ok(await _orderService.CreateInvoiceLinkAsync());
             }
             catch (Exception ex)
             {

@@ -41,7 +41,7 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         }
 
         private readonly IConfiguration Configuration;
-        public OrderModel? OrderModel { get; set; }
+        public OrderClientModel? OrderModel { get; set; }
         public IEnumerable<DeliveryTerminal> DeliveryTerminals { get; private set; }
         public WebAppMenu WebAppMenu { get; }
         public double DiscountBalance =>
@@ -58,37 +58,17 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         /// </summary>
         /// <param name="chatId"></param>
         /// <returns></returns>
-        public async Task<OrderModel> InitializeOrderModelAsync()
+        public async Task<OrderClientModel?> InitializeOrderModelAsync()
         {
             try
             {
-                var orderModelCash = await OrderModelCashAsync(Url.OrderModel, ChatId);
-                if (orderModelCash != null)
-                {
-                    orderModelCash.Items ??= new List<Item>();
-
-                    if (!orderModelCash.Items.Any())
-                        orderModelCash.WithNewParameters();
-                    else
-                    {
-                        var items = orderModelCash.Items;
-                        var products = WebAppMenu?.NecessaryProducts;
-                        if (products != null)
-                            foreach (var item in items) products.First(y => y.Id == item.ProductId).TotalAmount += (int)item.Amount;
-                    }
-                    OrderModel = orderModelCash;
-                    OrderModel.FreeItems ??= new List<Item>();
-                    OrderModel.FreePriceItems ??= new List<Guid>();
-                }
-                else OrderModel = new OrderModel();
-
-                return OrderModel;
+                var obj = await OrderModelCashAsync(Url.OrderModel, ChatId);
+                return OrderModel = obj;
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
-                OrderModel = new OrderModel();
-                return OrderModel;
+                return null;
             }
         }
 
@@ -130,7 +110,7 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         /// <returns></returns>
         /// <exception cref="HttpProcessException"></exception>
         /// <exception cref="Exception"></exception>
-        private static async Task<OrderModel?> OrderModelCashAsync(string url, long chatId)
+        private static async Task<OrderClientModel?> OrderModelCashAsync(string url, long chatId)
         {
             using var httpClient = new HttpClient();
             try
@@ -143,7 +123,7 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
                 if (!response.StatusCode.Equals(HttpStatusCode.OK))
                     throw new HttpProcessException(response.StatusCode, responseBody);
 
-                return JsonConvert.DeserializeObject<OrderModel>(responseBody) ?? throw new Exception("Json convert order model is empty");
+                return JsonConvert.DeserializeObject<OrderClientModel>(responseBody) ?? throw new Exception("Json convert order model is empty");
             }
             catch (HttpRequestException ex)
             {

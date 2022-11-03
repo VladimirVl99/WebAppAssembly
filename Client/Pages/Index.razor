@@ -41,7 +41,7 @@
             var groups = WebAppMenu.NecessaryGroups;
             if (groups != null && groups.Any())
             {
-                <h1 style="padding-top: 20px;margin-bottom: 0px;">
+                <h1 style="padding-top: 5px;margin-bottom: 0px;">
                     Категории
                 </h1>
                 <hr style="color:grey;margin-bottom:0px;margin-top:10px;"/>
@@ -866,7 +866,7 @@
 
             if (!IsTestMode) await MakeTelegramReadyAsync();
             else ChatId = ChatIdForTestMode;
-            OrderModel = await OrderModelAsync();
+            OrderModel = await InitializeOrderModelAsync();
             Task? statesOfButtonsTask = null;
 
             OrderModel.Coupon = string.Empty;
@@ -881,6 +881,9 @@
                 FloorValue = deliveryPoint.Floor ?? string.Empty;
             }
 
+            FirstRender = true;
+            StateHasChanged();
+
             if (!IsTestMode)
             {
                 statesOfButtonsTask = ListenTlgMainButtonAsync();
@@ -889,13 +892,46 @@
             }
 
             if (statesOfButtonsTask != null) await statesOfButtonsTask;
-            FirstRender = true;
-            StateHasChanged();
         }
         catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
             HaveErrors = true;
+        }
+    }
+
+    //
+    public async Task<OrderModel> InitializeOrderModelAsync()
+    {
+        try
+        {
+            var orderModelCash = await OrderModelAsync();
+            if (orderModelCash != null)
+            {
+                orderModelCash.Items ??= new List<Item>();
+
+                if (!orderModelCash.Items.Any())
+                    orderModelCash.WithNewParameters();
+                else
+                {
+                    var items = orderModelCash.Items;
+                    var products = WebAppMenu?.NecessaryProducts;
+                    if (products != null)
+                        foreach (var item in items) products.First(y => y.Id == item.ProductId).TotalAmount += (int)item.Amount;
+                }
+                OrderModel = orderModelCash;
+                OrderModel.FreeItems ??= new List<Item>();
+                OrderModel.FreePriceItems ??= new List<Guid>();
+            }
+            else OrderModel = new OrderModel();
+
+            return OrderModel;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            OrderModel = new OrderModel();
+            return OrderModel;
         }
     }
 
@@ -911,30 +947,12 @@
         return JsonConvert.DeserializeObject<FoodShopInfo>(responseBody);
     }
 
-    // ???
-    //protected override async Task OnAfterRenderAsync(bool firstRender)
-    //{
-    //    try
-    //    {
-    //        if (firstRender)
-    //        {
-    //        }
-    //        FinishedRender = true;
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        Console.WriteLine(ex.Message);
-    //        HaveErrors = true;
-    //        StateHasChanged();
-    //        await JsRuntime.InvokeVoidAsync("console.log", ex.Message);
-    //    }
-    //}
-
+    // 
     private async Task<OrderModel> OrderModelAsync()
     {
         var json = JsonConvert.SerializeObject(new { ChatId });
         var data = new StringContent(json, Encoding.UTF8, "application/json");
-        var response = await Http.PostAsync(OrderControllerPath + nameof(OrderModel), data) ?? throw new Exception($"!!!");
+        var response = await Http.PostAsync(OrderControllerPath + nameof(OrderClientModel), data) ?? throw new Exception($"!!!");
         string responseBody = await response.Content.ReadAsStringAsync();
         if (!response.StatusCode.Equals(HttpStatusCode.OK))
             throw new HttpProcessException(response.StatusCode, responseBody);
@@ -1034,7 +1052,7 @@
     {
         try
         {
-            var body = JsonConvert.SerializeObject(new { OrderModel });
+            var body = JsonConvert.SerializeObject(OrderModel);
             var data = new StringContent(body, Encoding.UTF8, "application/json");
             var response = await Http.PostAsync(OrderControllerPath + "saveChangedOrder", data);
 
@@ -1686,7 +1704,7 @@
 
                     var totalSum = UpdateTotalSumOfOrder();
                     if (OrderModel != null) OrderModel.FinalSum = totalSum;
-                    if (totalSum < 70)
+                    if (totalSum < 80)
                     {
                         await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", "Сумма заказа слишком мала", HapticFeedBackNotificationType.warning.ToString());
                         continue;
@@ -1745,7 +1763,7 @@
                     Console.WriteLine(typeof(Index).FullName!, nameof(TelegramHandlerMainButtonAsync), "Save the created order in db and send it to server");
                     FinishedRender = false;
 
-                    if (OrderModel != null && OrderModel.FinalSum < 70)
+                    if (OrderModel != null && OrderModel.FinalSum < 80)
                     {
                         await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", "Сумма заказа слишком мала", HapticFeedBackNotificationType.warning.ToString());
                         continue;
@@ -1830,10 +1848,9 @@
     {
         try
         {
-            using var client = new HttpClient();
-            var body = JsonConvert.SerializeObject(new { orderInfoViaWebApp = OrderModel });
+            var body = JsonConvert.SerializeObject(OrderModel);
             var data = new StringContent(body, Encoding.UTF8, "application/json");
-            var response = await client.PostAsync("createInvoiceLink", data);
+            var response = await Http.PostAsync(OrderControllerPath + "createInvoiceLink", data);
 
             string responseBody = await response.Content.ReadAsStringAsync();
             if (response.StatusCode != HttpStatusCode.OK)
@@ -2300,7 +2317,7 @@
     {
         var json = JsonConvert.SerializeObject(OrderModel);
         var data = new StringContent(json, Encoding.UTF8, "application/json");
-        var response = await Http.PostAsync("calculateCheckin", data) ?? throw new Exception($"!!!");
+        var response = await Http.PostAsync(OrderControllerPath + "calculateCheckin", data) ?? throw new Exception($"!!!");
         string responseBody = await response.Content.ReadAsStringAsync();
         if (!response.StatusCode.Equals(HttpStatusCode.OK))
             throw new HttpProcessException(response.StatusCode, responseBody);
