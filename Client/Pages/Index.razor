@@ -864,7 +864,6 @@
             IsTestMode = foodShopInfo.IsTestMode ?? false;
             WebAppInfo = foodShopInfo.WebAppInfo ?? throw new Exception($"!!!");
 
-            Console.WriteLine(typeof(Index).FullName!, nameof(OnAfterRenderAsync), "Initializing the connection with the TelegramBot");
             if (!IsTestMode) await MakeTelegramReadyAsync();
             else ChatId = ChatIdForTestMode;
             OrderModel = await OrderModelAsync();
@@ -891,6 +890,7 @@
 
             if (statesOfButtonsTask != null) await statesOfButtonsTask;
             FirstRender = true;
+            StateHasChanged();
         }
         catch (Exception ex)
         {
