@@ -1168,7 +1168,7 @@
     }
 
     // 
-    public double UpdateTotalSumOfOrder()
+    private double UpdateTotalSumOfOrder()
     {
         double total = 0;
         if (OrderModel is null) throw new Exception($"{typeof(Index).FullName}.{nameof(UpdateTotalSumOfOrder)}.{nameof(Exception)}: " +
@@ -1546,6 +1546,12 @@
     {
         try
         {
+            if (!IsTestMode)
+            {
+                await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+                await JsRuntime.InvokeVoidAsync("BackButtonShow");
+            }
+
             if (WebAppMenu is null || WebAppInfo is null)
             {
                 HaveErrors = true;
@@ -1573,11 +1579,7 @@
             {
                 if (item is null) return;
                 else if ((int)item.Amount <= 0) AddProduct(ref product, ref item);
-                if (!IsTestMode)
-                {
-                    await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
-                    await JsRuntime.InvokeVoidAsync("SetSelectProductWithModifiersButton", item.Price * item.Amount);
-                }
+                if (!IsTestMode) await JsRuntime.InvokeVoidAsync("SetSelectProductWithModifiersButton", item.Price * item.Amount);
             }
         }
         catch (Exception ex)

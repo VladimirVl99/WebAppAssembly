@@ -1,4 +1,6 @@
-﻿using WebAppAssembly.Shared.Entities.EMenu;
+﻿using Newtonsoft.Json;
+using System.Text.Json.Serialization;
+using WebAppAssembly.Shared.Entities.EMenu;
 
 namespace WebAppAssembly.Shared.Entities.Telegram
 {
@@ -10,7 +12,11 @@ namespace WebAppAssembly.Shared.Entities.Telegram
             Modifiers = modifiers;
         }
 
+        [JsonProperty("groupModifiers")]
+        [JsonPropertyName("groupModifiers")]
         public IEnumerable<GroupModifier>? GroupModifiers { get; set; }
+        [JsonProperty("modifiers")]
+        [JsonPropertyName("modifiers")]
         public IEnumerable<Modifier>? Modifiers { get; set; }
     }
 }

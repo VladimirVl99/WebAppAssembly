@@ -1,6 +1,7 @@
 ﻿using WebAppAssembly.Shared.Entities.EMenu;
 using Newtonsoft.Json;
 using System.Data;
+using System.Text.Json.Serialization;
 
 namespace WebAppAssembly.Shared.Entities.CreateDelivery
 {
@@ -85,40 +86,54 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
         }
 
         [JsonProperty("productName")]
+        [JsonPropertyName("productName")]
         public string? ProductName { get; set; }
         // ID of menu item
         // Can be obtained by /api/1/nomenclature operation
         [JsonRequired]
         [JsonProperty("productId")]
+        [JsonPropertyName("productId")]
         public Guid ProductId { get; set; }
         // Modifiers
         [JsonProperty("modifiers")]
+        [JsonPropertyName("modifiers")]
         public IEnumerable<Modifier>? Modifiers { get; set; }
         // Price per item unit. Can be sent different from the price in the base menu
         [JsonProperty("price")]
+        [JsonPropertyName("price")]
         public double? Price { get; set; }
         // Unique identifier of the item in the order. MUST be unique for the whole system. Therefore it must be generated with Guid.NewGuid()
         // If sent null, it generates automatically on iikoTransport side
         [JsonProperty("positionId")]
+        [JsonPropertyName("positionId")]
         public Guid? PositionId { get; set; }
         // Product or Compound
         [JsonRequired]
         [JsonProperty("type")]
+        [JsonPropertyName("type")]
         public string? Type { get; set; }
         // Quantity [ 0 .. 999.999 ]
         [JsonRequired]
         [JsonProperty("amount")]
+        [JsonPropertyName("amount")]
         public double Amount { get; set; } = 0;
         // Size ID. Required if a stock list item has a size scale
         [JsonProperty("productSizeId")]
+        [JsonPropertyName("productSizeId")]
         public Guid? ProductSizeId { get; set; }
         // Combo details if combo includes order item
         [JsonProperty("comboInformation")]
+        [JsonPropertyName("comboInformation")]
         public ComboInformation? ComboInformation { get; set; }
         // Comment [ 0 .. 255 ] characters
         [JsonProperty("comment")]
+        [JsonPropertyName("comment")]
         public string? Comment { get; set; }
+        [JsonProperty("simpleGroupModifiers")]
+        [JsonPropertyName("simpleGroupModifiers")]
         public IEnumerable<SimpleGroupModifier>? SimpleGroupModifiers { get; set; }
+        [JsonProperty("simpleModifiers")]
+        [JsonPropertyName("simpleModifiers")]
         public IEnumerable<SimpleModifier>? SimpleModifiers { get; set; }
 
         public void IncrementAmount() => Amount++;
@@ -324,7 +339,6 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
                 defaultAmount: defaultAmount, price: products?.First(x => x.Id == modifier.Id).Price()));
             simpleModifiers.Add(new SimpleModifier(modifier.Id, name, modifier.MinAmount - defaultAmount, modifier.MaxAmount - defaultAmount));
         }
-
         public object Clone() => new Item(ProductName ?? string.Empty, ProductId, Modifiers, Price, PositionId, Type ?? string.Empty, Amount, ProductSizeId, ComboInformation, Comment,
             SimpleGroupModifiers, SimpleModifiers);
     }

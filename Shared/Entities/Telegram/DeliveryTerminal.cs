@@ -1,4 +1,7 @@
-﻿namespace WebAppAssembly.Shared.Entities.Telegram
+﻿using Newtonsoft.Json;
+using System.Text.Json.Serialization;
+
+namespace WebAppAssembly.Shared.Entities.Telegram
 {
     public class DeliveryTerminal
     {
@@ -10,7 +13,11 @@
             Name = name;
         }
 
+        [JsonProperty("id")]
+        [JsonPropertyName("id")]
         public Guid Id { get; set; }
+        [JsonProperty("name")]
+        [JsonPropertyName("name")]
         public string? Name { get; set; }
     }
 }
