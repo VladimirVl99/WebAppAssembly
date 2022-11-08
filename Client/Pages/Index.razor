@@ -1770,36 +1770,30 @@
                         await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", "Сумма заказа слишком мала", HapticFeedBackNotificationType.warning.ToString());
                         continue;
                     }
-                    else if (string.IsNullOrEmpty(CityValue))
+                    else if (string.IsNullOrEmpty(CityValue) && OrderModel is not null && OrderModel.ByCourier)
                     {
                         await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", "Укажите пожалуйста Ваш город", HapticFeedBackNotificationType.warning.ToString());
                         continue;
                     }
-                    else if (string.IsNullOrEmpty(StreetValue))
+                    else if (string.IsNullOrEmpty(StreetValue) && OrderModel is not null && OrderModel.ByCourier)
                     {
                         await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", "Укажите пожалуйста улицу", HapticFeedBackNotificationType.warning.ToString());
                         continue;
                     }
-                    else if (string.IsNullOrEmpty(HouseValue))
+                    else if (string.IsNullOrEmpty(HouseValue) && OrderModel is not null && OrderModel.ByCourier)
                     {
                         await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", "Укажите пожалуйста номер дома", HapticFeedBackNotificationType.warning.ToString());
                         continue;
                     }
                     else StateHasChanged();
                     // End the order
-                    for (int i = 0; i < 10; i++)
+
+                    if (OrderModel is not null)
                     {
-                        if (FinishedRender)
-                        {
-                            if (OrderModel is not null)
-                            {
-                                OrderModel.Comment = CommentValue;
-                                OrderModel.Address = new(CityValue, StreetValue, HouseValue, FlatValue, EntranceValue, FloorValue);
-                            }
-                            break;
-                        }
-                        await Task.Delay(1);
+                        OrderModel.Comment = CommentValue;
+                        OrderModel.Address = new(CityValue, StreetValue, HouseValue, FlatValue, EntranceValue, FloorValue);
                     }
+
                     await SendChangedOrderModelToServerAsync();
                     await CreateInvoiceLinkAsync();
                 }

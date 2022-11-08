@@ -5,26 +5,12 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
 {
     public class Modifier
     {
-        public Modifier(Guid productId, string name, Guid? productGroupId = default, double? minAmount = default, double? maxAmount = default, double defaultAmount = 0,
-            double? price = null)
-        {
-            ProductId = productId;
-            ProductGroupId = productGroupId;
-            MinAmount = minAmount;
-            MaxAmount = maxAmount;
-            Amount = defaultAmount;
-            Price = price;
-            Name = name;
-        }
-
         // Modifier item ID
         // Can be obtained by /api/1/nomenclature operation
-        [JsonRequired]
         [JsonProperty("productId")]
         [JsonPropertyName("productId")]
         public Guid ProductId { get; set; }
         // Quantity
-        [JsonRequired]
         [JsonProperty("amount")]
         [JsonPropertyName("amount")]
         public double Amount { get; set; } = 0;
@@ -50,6 +36,6 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
         public double? MaxAmount { get; set; }
         [JsonProperty("name")]
         [JsonPropertyName("name")]
-        public string Name { get; set; }
+        public string? Name { get; set; }
     }
 }

@@ -1,0 +1,8 @@
+version: '3.4'
+
+services:
+  webappassembly.server:
+    image: ${DOCKER_REGISTRY-}webappassemblyserver
+    build:
+      context: .
+      dockerfile: Server/Dockerfile

@@ -3,10 +3,11 @@ using Newtonsoft.Json;
 using System.Data;
 using System.Text.Json.Serialization;
 
+
 namespace WebAppAssembly.Shared.Entities.CreateDelivery
 {
     public class Item : ICloneable
-    { 
+    {
         public Item() { }
         public Item(Guid productId, string productName, string type, double amount, double? price = default, Guid? productSizeId = default,
             ComboInformation? comboInformation = default, Guid? positionId = default, IEnumerable<Modifier>? modifiers = default,
@@ -54,8 +55,16 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
                             int defaultAmount = childModifier.DefaultAmount != null ? (int)childModifier.DefaultAmount : 0;
                             totalDefaultAmount += defaultAmount;
                             string modifierName = products?.FirstOrDefault(x => x.Id == childModifier.Id)?.Name ?? string.Empty;
-                            modifierList.Add(new Modifier(childModifier.Id, modifierName, groupModifier.Id, childModifier.MinAmount, childModifier.MaxAmount, defaultAmount,
-                                price: products?.First(x => x.Id == childModifier.Id).Price()));
+                            modifierList.Add(new Modifier()
+                            {
+                                ProductId = childModifier.Id,
+                                Name = modifierName,
+                                ProductGroupId = groupModifier.Id,
+                                MinAmount = childModifier.MinAmount,
+                                MaxAmount = childModifier.MaxAmount,
+                                Amount = defaultAmount,
+                                Price = products?.First(x => x.Id == childModifier.Id).Price()
+                            });
                         }
                     }
                     string name = groups?.FirstOrDefault(x => x.Id == groupModifier.Id)?.Name ?? string.Empty;
@@ -335,8 +344,15 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
         {
             int defaultAmount = modifier.DefaultAmount != null ? (int)modifier.DefaultAmount : 0;
             string name = products?.FirstOrDefault(x => x.Id == modifier.Id)?.Name ?? string.Empty;
-            modifiers.Add(new Modifier(modifier.Id, name, minAmount: modifier.MinAmount, maxAmount: modifier.MaxAmount,
-                defaultAmount: defaultAmount, price: products?.First(x => x.Id == modifier.Id).Price()));
+            modifiers.Add(new Modifier()
+            {
+                ProductId = modifier.Id,
+                Name = name,
+                MinAmount = modifier.MinAmount,
+                MaxAmount = modifier.MaxAmount,
+                Amount = defaultAmount,
+                Price = products?.First(x => x.Id == modifier.Id).Price()
+            });
             simpleModifiers.Add(new SimpleModifier(modifier.Id, name, modifier.MinAmount - defaultAmount, modifier.MaxAmount - defaultAmount));
         }
         public object Clone() => new Item(ProductName ?? string.Empty, ProductId, Modifiers, Price, PositionId, Type ?? string.Empty, Amount, ProductSizeId, ComboInformation, Comment,
