@@ -20,8 +20,8 @@ namespace WebAppAssembly.Shared.Entities.IikoCloudApi
         /// <summary>
         /// Discount operations applied to order items
         /// </summary>
-        [JsonProperty("discount")]
-        [JsonPropertyName("discount")]
+        [JsonProperty("discounts")]
+        [JsonPropertyName("discounts")]
         public IEnumerable<Discount>? Discounts { get; set; }
         /// <summary>
         /// Suggested items to add or advices for customer

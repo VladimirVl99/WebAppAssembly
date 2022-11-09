@@ -10,8 +10,30 @@ using WebAppAssembly.Shared.Entities.Telegram;
 
 namespace WebAppAssembly.Shared.Models.Order
 {
-    public class OrderClientModel
+    public class OrderClientModel : ICloneable
     {
+        public OrderClientModel() { }
+
+        public OrderClientModel(Guid operationId, long chatId, List<Item> items, double totalSum, double totalAmount, double bonusSum, bool byCourier, Guid? terminalId, double discountSum, List<Guid> freePriceItems, List<Item> freeItems, string? comment, string? createdDate, DeliveryTerminal? deliveryTerminal, DeliveryPoint? address, string? coupon)
+        {
+            OperationId = operationId;
+            ChatId = chatId;
+            Items = items;
+            TotalSum = totalSum;
+            TotalAmount = totalAmount;
+            BonusSum = bonusSum;
+            ByCourier = byCourier;
+            TerminalId = terminalId;
+            DiscountSum = discountSum;
+            FreePriceItems = freePriceItems;
+            FreeItems = freeItems;
+            Comment = comment;
+            CreatedDate = createdDate;
+            DeliveryTerminal = deliveryTerminal;
+            Address = address;
+            Coupon = coupon;
+        }
+
         [JsonProperty("operationId")]
         [JsonPropertyName("operationId")]
         public Guid OperationId { get; set; }
@@ -126,7 +148,7 @@ namespace WebAppAssembly.Shared.Models.Order
             else foreach (var item in Items)
                     items.Add((Item)item.Clone());
 
-            return new OrderModel(OperationId, ChatId, items, TotalSum, TotalAmount, BonusSum, ByCourier, TerminalId, DiscountSum, FreePriceItems, FreeItems, Comment, CreatedDate,
+            return new OrderClientModel(OperationId, ChatId, items, TotalSum, TotalAmount, BonusSum, ByCourier, TerminalId, DiscountSum, FreePriceItems, FreeItems, Comment, CreatedDate,
                 DeliveryTerminal, Address, Coupon);
         }
     }

@@ -663,7 +663,7 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         /// Process total sum of order
         /// </summary>
         /// <returns></returns>
-        public void OrderModelWithPrices(ref OrderModel order)
+        public void OrderModelWithPrices(ref OrderClientModel order)
         {
             if (order.Items is not null) foreach (var item in order.Items)
             {
@@ -684,7 +684,7 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         {
             if (OrderModel is null) throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(CalculateCheckinAsync)}.{nameof(Exception)}: " +
                 $"{nameof(OrderModel)} can't be null");
-            var orderModel = (OrderModel)OrderModel.Clone();
+            var orderModel = (OrderClientModel)OrderModel.Clone();
             OrderModelWithPrices(ref orderModel);
             using var httpClient = new HttpClient();
             try
@@ -726,17 +726,19 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         {
             if (OrderModel is null) throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(CalculateCheckinAsync)}.{nameof(Exception)}: " +
                 $"{nameof(OrderModel)} can't be null");
-            var orderModel = (OrderModel)OrderModel.Clone();
+            //var orderModel = (OrderClientModel)OrderModel.Clone();
 
-            using var client = new HttpClient();
+            string responseBody = string.Empty;
+            using (var client = new HttpClient())
+            {
+                var body = JsonConvert.SerializeObject(OrderModel);
+                var data = new StringContent(body, Encoding.UTF8, "application/json");
+                var response = await client.PostAsync(Url.Checkin, data);
 
-            var body = JsonConvert.SerializeObject(orderModel);
-            var data = new StringContent(body, Encoding.UTF8, "application/json");
-            var response = await client.PostAsync(Url.Checkin, data);
-
-            string responseBody = await response.Content.ReadAsStringAsync();
-            if (response.StatusCode != HttpStatusCode.OK)
-                throw new HttpProcessException(response.StatusCode, responseBody);
+                responseBody = await response.Content.ReadAsStringAsync();
+                if (response.StatusCode != HttpStatusCode.OK)
+                    throw new HttpProcessException(response.StatusCode, responseBody);
+            }
 
             return JsonConvert.DeserializeObject<Checkin>(responseBody) ?? throw new Exception("Received checkin result is empty");
         }
