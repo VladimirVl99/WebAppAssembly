@@ -718,15 +718,20 @@
                     <button type="button" @onclick="(e => ChangeDeliveryTypeFlagAsync(false))" data-toggle="modal" data-target="#productModal" class="btn btn-secondary"
                         style="background-color:#c2c9cf;border-color: #c2c9cf;">Самовывоз</button>
                 </div>
-                <input class="comment" type="text" name="City" placeholder="Город" @bind="@CityValue" />
-                <input class="comment" type="text" name="Street" placeholder="Улица" @bind="@StreetValue" />
+                <input class="comment" type="text" name="City" placeholder="Город" value="@CityValue" @oninput="(e => { var res = e.Value.ToString(); CityValue = res is null ? CityValue : res; })"/>
+                <input class="comment" type="text" name="Street" placeholder="Улица" value="@StreetValue"
+                @oninput="(e => { var res = e.Value.ToString(); StreetValue = res is null ? StreetValue : res; })" />
                 <div style="display: flex;">
-                    <input class="comment" style="width:49%;" type="text" name="House" placeholder="Дом" @bind="@HouseValue" />
-                    <input class="comment" style="width:49%;margin-left:auto;margin-right:0em;" type="text" name="Flat" placeholder="Квартира" @bind="@FlatValue" />
+                    <input class="comment" style="width:49%;" type="text" name="House" placeholder="Дом" value="@HouseValue"
+                    @oninput="(e => { var res = e.Value.ToString(); HouseValue = res is null ? HouseValue : res; })" />
+                    <input class="comment" style="width:49%;margin-left:auto;margin-right:0em;" type="text" name="Flat" placeholder="Квартира" value="@FlatValue"
+                    @oninput="(e => { var res = e.Value.ToString(); FlatValue = res is null ? FlatValue : res; })" />
                 </div>
                 <div style="display: flex;">
-                    <input class="comment" style="width:49%;" type="text" name="Entrance" placeholder="Подъезд" @bind="@EntranceValue" />
-                    <input class="comment" style="width:49%;margin-left:auto;margin-right:0em;" type="text" name="Floor" placeholder="Этаж" @bind="@FloorValue" />
+                    <input class="comment" style="width:49%;" type="text" name="Entrance" placeholder="Подъезд" value="@EntranceValue"
+                    @oninput="(e => { var res = e.Value.ToString(); EntranceValue = res is null ? EntranceValue : res; })"/>
+                    <input class="comment" style="width:49%;margin-left:auto;margin-right:0em;" type="text" name="Floor" placeholder="Этаж" value="@FloorValue"
+                    @oninput="(e => { var res = e.Value.ToString(); FloorValue = res is null ? FloorValue : res; })" />
                 </div>
             }
             else
@@ -820,6 +825,20 @@
             <p>@InfoAboutCreatedOrder()</p>
         }
     }
+}
+else {
+    <div class="preloader_s" id="container">
+      <div class="divider" aria-hidden="true"></div>
+      <p class="loading-text" aria-label="Loading">
+        <span class="letter" aria-hidden="true">L</span>
+        <span class="letter" aria-hidden="true">o</span>
+        <span class="letter" aria-hidden="true">a</span>
+        <span class="letter" aria-hidden="true">d</span>
+        <span class="letter" aria-hidden="true">i</span>
+        <span class="letter" aria-hidden="true">n</span>
+        <span class="letter" aria-hidden="true">g</span>
+      </p>
+    </div>
 }
 
 @code {
@@ -1785,7 +1804,6 @@
                         await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", "Укажите пожалуйста номер дома", HapticFeedBackNotificationType.warning.ToString());
                         continue;
                     }
-                    else StateHasChanged();
                     // End the order
 
                     if (OrderModel is not null)
