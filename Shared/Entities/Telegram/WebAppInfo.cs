@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExternalMenuByID;
+using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 using WebAppAssembly.Shared.Models.Order;
 
@@ -6,9 +7,12 @@ namespace WebAppAssembly.Shared.Entities.Telegram
 {
     public class WebAppInfo
     {
-        [JsonProperty("webAppMenu")]
-        [JsonPropertyName("webAppMenu")]
-        public WebAppMenu? WebAppMenu { get; set; }
+        [JsonProperty("itemCategories")]
+        [JsonPropertyName("itemCategories")]
+        public IEnumerable<TransportMenuCategoryDto>? ItemCategories { get; set; }
+        [JsonProperty("productItems")]
+        [JsonPropertyName("productItems")]
+        public IEnumerable<TransportItemDto>? TransportItemDtos { get; set; }
         [JsonProperty("deliveryTerminals")]
         [JsonPropertyName("deliveryTerminals")]
         public IEnumerable<DeliveryTerminal>? DeliveryTerminals { get; set; }

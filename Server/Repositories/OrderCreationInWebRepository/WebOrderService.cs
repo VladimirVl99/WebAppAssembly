@@ -7,6 +7,7 @@ using WebAppAssembly.Shared.Entities.Exceptions;
 using WebAppAssembly.Shared.Entities.Telegram;
 using WebAppAssembly.Shared.LogRepository;
 using WebAppAssembly.Shared.Models.Order;
+using ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExternalMenuByID;
 
 namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
 {
@@ -25,8 +26,6 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
                 webAppInfoTask.Wait();
 
                 WebAppInfo = webAppInfoTask.Result;
-                WebAppMenu = webAppInfoTask.Result.WebAppMenu ?? throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(Exception)}: " +
-                        $"{nameof(WebAppMenu)} can't be null");
                 DeliveryTerminals = webAppInfoTask.Result.DeliveryTerminals ?? throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(Exception)}: " +
                         $"{nameof(DeliveryTerminals)} can't be null");
 
@@ -43,7 +42,6 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         private readonly IConfiguration Configuration;
         public OrderClientModel? OrderModel { get; set; }
         public IEnumerable<DeliveryTerminal> DeliveryTerminals { get; private set; }
-        public WebAppMenu WebAppMenu { get; }
         public double DiscountBalance =>
             discountBalance == null ? GetCustomerBalanceAsync(Configuration["TelegramBotProperties:customerBalance"]).Result : (double)discountBalance;
 
@@ -194,12 +192,12 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
             {
                 foreach (var item in items)
                 {
-                    var product = WebAppMenu.NecessaryProducts?.FirstOrDefault(x => x.Id == item.ProductId)
+                    var product = WebAppInfo.TransportItemDtos?.FirstOrDefault(x => x.ItemId == item.ProductId)
                     ?? throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(UpdateTotalSumOfOrder)}.{nameof(Exception)}: " +
                         $"{nameof(Product)} can't be null");
 
                     if (item.HaveModifiers()) total += TotalSumOfSelectedProductWithModifiers(product, item);
-                    else total += item.Amount * product.Price() ?? throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(UpdateTotalSumOfOrder)}.{nameof(Exception)}: " +
+                    else total += item.Amount * product.ItemSizes?.LastOrDefault()?.Prices?.LastOrDefault()?.Price ?? throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(UpdateTotalSumOfOrder)}.{nameof(Exception)}: " +
                         $"Price of product can't be null");
                 }
             }
@@ -212,10 +210,10 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        public List<Product>? GetListOfProductsByGroupId(Guid id)
+        public IEnumerable<TransportItemDto>? GetListOfProductsByGroupId(Guid id)
         {
-            var productsByGroup = WebAppMenu.GroupsWithProducts?.FirstOrDefault(x => x.GroupId == id)?.Products;
-            return productsByGroup != null ? WebAppMenu.NecessaryProducts?.AsParallel().Where(x => productsByGroup.Any(y => y.Id == x.Id)).ToList() : null;
+            var productsByGroup = WebAppInfo.ItemCategories?.FirstOrDefault(x => x.Id == id)?.Items;
+            return productsByGroup;
         }
 
         /// <summary>
@@ -238,8 +236,8 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
                     OrderModel.Items.First(x => x.ProductId == productId).IncrementAmount();
                 OrderModel.IncrementTotalAmount();
 
-                var product = WebAppMenu?.NecessaryProducts?.FirstOrDefault(x => x.Id == productId);
-                if (product != null)
+                var product = WebAppInfo.TransportItemDtos?.FirstOrDefault(x => x.ItemId == productId);
+                if (product is not null)
                     product.IncrementAmount();
             }
         }
@@ -280,7 +278,7 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
                     OrderModel.Items.First(x => x.ProductId == productId).DecrementAmount();
                 OrderModel.DecrementTotalAmount();
 
-                var product = WebAppMenu?.NecessaryProducts?.FirstOrDefault(x => x.Id == productId);
+                var product = WebAppInfo.TransportItemDtos?.FirstOrDefault(x => x.ItemId == productId);
                 if (product != null) product.DecrementAmount();
             }
         }
@@ -373,7 +371,7 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
             if (OrderModel is null) throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(TotalSumOfSelectedProductWithModifiers)}.{nameof(Exception)}: " +
                 $"{nameof(OrderModel)} can't be null");
 
-            var product = WebAppMenu?.NecessaryProducts?.FirstOrDefault(x => x.Id == productId);
+            var product = WebAppInfo.TransportItemDtos?.FirstOrDefault(x => x.ItemId == productId);
             if (OrderModel.Items is not null)
             {
                 var item = OrderModel.Items.First(x => x.ProductId == productId && x.PositionId == positionId);
@@ -381,7 +379,7 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
                 if (product != null)
                 {
                     var productPrice = product.Price() ?? throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(TotalSumOfSelectedProductWithModifiers)}.{nameof(Exception)}: " +
-                        $"Price of product by ID - '{product.Id}' can't be null");
+                        $"Price of product by ID - '{product.ItemId}' can't be null");
                     return (productPrice + PriceWithModifiersByProductId(item)) * item.Amount;
                 }
                 throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(TotalSumOfSelectedProductWithModifiers)}.{nameof(Exception)}: " +
@@ -397,10 +395,11 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         /// <param name="item"></param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public double TotalSumOfSelectedProductWithModifiers(Product product, Item item)
+        public double TotalSumOfSelectedProductWithModifiers(TransportItemDto product, Item item)
         {
-            var productPrice = product.Price() ?? throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(TotalSumOfSelectedProductWithModifiers)}.{nameof(Exception)}: " +
-                $"Price of product by ID - '{product.Id}' can't be null");
+            var productPrice = product.ItemSizes?.LastOrDefault()?.Prices?.LastOrDefault()?.Price
+                ?? throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(TotalSumOfSelectedProductWithModifiers)}.{nameof(Exception)}: " +
+                $"Price of product by ID - '{product.ItemId}' can't be null");
             return (productPrice + PriceWithModifiersByProductId(item)) * item.Amount;
         }
 
@@ -410,17 +409,16 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         /// <param name="productId"></param>
         /// <param name="product"></param>
         /// <returns></returns>
-        public Guid AddItemToOrderWithNewPosition(Guid productId, Product? product = null)
+        public Guid AddItemToOrderWithNewPosition(Guid productId, TransportItemDto? product = null)
         {
             if (OrderModel is null) throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(AddItemToOrderWithNewPosition)}.{nameof(Exception)}: " +
                 $"{nameof(OrderModel)} can't be null");
 
             var newId = Guid.NewGuid();
-            product ??= WebAppMenu?.NecessaryProducts?.FirstOrDefault(x => x.Id == productId);
+            product ??= WebAppInfo.TransportItemDtos?.FirstOrDefault(x => x.ItemId == productId);
             if (product is not null && OrderModel.Items is not null)
             {
-                OrderModel.Items.Add(new Item(productId, product.Name ?? string.Empty, positionId: newId, modifiers: product.Modifiers, product.GroupModifiers,
-                    product.Price(), WebAppMenu?.Menu?.Products, WebAppMenu?.Menu?.Groups));
+                OrderModel.Items.Add(new Item(product,  newId));
             }
             return newId; // ???
         }
@@ -430,22 +428,15 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         /// </summary>
         /// <param name="productId"></param>
         /// <param name="product"></param>
-        public void AddItemToOrder(Guid productId, Product? product = null)
+        public void AddItemToOrder(Guid productId, TransportItemDto? product = null)
         {
             if (OrderModel is null) throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(AddItemToOrder)}.{nameof(Exception)}: " +
-                $"{nameof(OrderModel)} can't be null");
+                $"{nameof(OrderClientModel)} can't be null");
 
-            product ??= WebAppMenu?.NecessaryProducts?.FirstOrDefault(x => x.Id == productId);
+            product ??= WebAppInfo.TransportItemDtos?.FirstOrDefault(x => x.ItemId == productId);
             if (product is not null && OrderModel.Items is not null)
             {
-                OrderModel.Items.Add(new Item(
-                    productId: productId,
-                    productName: product.Name ?? string.Empty,
-                    modifiers: product.Modifiers,
-                    groupModifiers: product.GroupModifiers,
-                    price: product.Price(),
-                    products: WebAppMenu?.NecessaryProducts,
-                    groups: WebAppMenu?.Menu?.Groups));
+                OrderModel.Items.Add(new Item(product));
             }
         }
 
@@ -583,9 +574,9 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         /// <param name="id"></param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public double PriceByProductId(Guid id) => WebAppMenu.Menu?.Products?.FirstOrDefault(x => x.Id == id)?.Price()
+        public double PriceByProductId(Guid id) => WebAppInfo.TransportItemDtos?.FirstOrDefault(x => x.ItemId == id)?.Price()
             ?? throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(PriceByProductId)}.{nameof(Exception)}: " +
-                $"{nameof(WebAppMenu.Menu)} can't be null");
+                $"{nameof(WebAppInfo.TransportItemDtos)} can't be null");
 
         /// <summary>
         /// Price of the product with modifiers by ID
@@ -631,8 +622,8 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         /// <returns></returns>
         public string ImageLinkByProductId(Guid id)
         {
-            var imageLinks = WebAppMenu.NecessaryProducts?.First(x => x.Id == id).ImageLinks;
-            return imageLinks != null && imageLinks.Any() ? imageLinks.Last() : string.Empty;
+            var imageLink = WebAppInfo.TransportItemDtos?.FirstOrDefault(x => x.ItemId == id)?.ImageLink();
+            return imageLink ?? string.Empty;
         }
 
         /// <summary>

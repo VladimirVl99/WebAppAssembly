@@ -2,7 +2,10 @@
 using Newtonsoft.Json;
 using System.Data;
 using System.Text.Json.Serialization;
-
+using ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExternalMenuByID;
+using ApiServerForTelegram.Entities.EExceptions;
+using WebAppAssembly.Shared.Entities.IikoCloudApi;
+using System.Text.RegularExpressions;
 
 namespace WebAppAssembly.Shared.Entities.CreateDelivery
 {
@@ -25,55 +28,44 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
             Price = price;
         }
 
-        public Item(Guid productId, string productName, Guid? positionId = default, IEnumerable<EMenu.Modifier>? modifiers = null,
-            IEnumerable<GroupModifier>? groupModifiers = default, double? price = null, IEnumerable<Product>? products = null,
-            IEnumerable<Group>? groups = null)
+        public Item(TransportItemDto product, Guid? positionId = default)
         {
-            ProductId = productId;
-            ProductName = productName;
-            Type = "Product";
+            ProductId = product.ItemId ?? throw new InfoException(typeof(Item).FullName!,
+                    nameof(Exception), $"{typeof(TransportItemDto).FullName!}.{nameof(TransportItemDto.ItemId)}", ExceptionType.Null);
+            ProductName = product.Name ?? throw new InfoException(typeof(Item).FullName!,
+                    nameof(Exception), $"{typeof(TransportItemDto).FullName!}.{nameof(TransportItemDto.Name)}", ExceptionType.Null);
+            Type = product.OrderItemType;
             PositionId = positionId != default && positionId != Guid.Empty ? positionId : Guid.NewGuid();
-            Price = price;
+            Price = product.Price();
 
             var modifierList = new List<Modifier>();
-            if (modifiers != null && modifiers.Any())
+            var simpleGroups = new List<SimpleGroupModifier>();
+
+            if (product.ItemSizes is not null)
             {
                 var simpleModifiers = new List<SimpleModifier>();
-                foreach (var modifier in modifiers) AddSimpleModifier(ref modifierList, ref simpleModifiers, modifier, products);
-                SimpleModifiers = simpleModifiers;
-            }
-            if(groupModifiers != null && groupModifiers.Any())
-            {
-                var simpleGroups = new List<SimpleGroupModifier>();
-                foreach (var groupModifier in groupModifiers)
+                foreach (var size in product.ItemSizes)
                 {
-                    int totalDefaultAmount = 0;
-                    if (groupModifier.ChildModifiers is not null && groupModifier.ChildModifiers.Any())
+                    if (size.ItemModifierGroups is not null)
                     {
-                        foreach (var childModifier in groupModifier.ChildModifiers)
+                        foreach (var modifierGroup in size.ItemModifierGroups)
                         {
-                            int defaultAmount = childModifier.DefaultAmount != null ? (int)childModifier.DefaultAmount : 0;
-                            totalDefaultAmount += defaultAmount;
-                            string modifierName = products?.FirstOrDefault(x => x.Id == childModifier.Id)?.Name ?? string.Empty;
-                            modifierList.Add(new Modifier()
+                            if (modifierGroup.Items is not null)
                             {
-                                ProductId = childModifier.Id,
-                                Name = modifierName,
-                                ProductGroupId = groupModifier.Id,
-                                MinAmount = childModifier.MinAmount,
-                                MaxAmount = childModifier.MaxAmount,
-                                Amount = defaultAmount,
-                                Price = products?.First(x => x.Id == childModifier.Id).Price()
-                            });
-                        }
+                                int totalDefault = 0;
+                                foreach (var item in modifierGroup.Items)
+                                {
+                                    AddSimpleModifier(ref modifierList, ref simpleModifiers, item);
+                                    totalDefault += item.Restrictions?.ByDefault ?? 0;
+                                }
+                                AddSimpleGroupModifier(ref simpleGroups, modifierGroup, totalDefault);
+                            }
+                        }    
                     }
-                    string name = groups?.FirstOrDefault(x => x.Id == groupModifier.Id)?.Name ?? string.Empty;
-                    simpleGroups.Add(new SimpleGroupModifier(groupModifier.Id, name, groupModifier.MinAmount - totalDefaultAmount,
-                        groupModifier.MaxAmount - totalDefaultAmount));
                 }
                 SimpleGroupModifiers = simpleGroups;
+                Modifiers = modifierList.Any() ? modifierList : null;
             }
-            Modifiers = modifierList.Count != 0 ? modifierList : null;
         }
 
         public Item(string productName, Guid productId, IEnumerable<Modifier>? modifiers, double? price, Guid? positionId, string type, double amount,
@@ -92,6 +84,12 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
             Comment = comment;
             SimpleGroupModifiers = simpleGroupModifiers;
             SimpleModifiers = simpleModifiers;
+        }
+
+        public Item(Guid productId, string productName)
+        {
+            ProductId = productId;
+            ProductName = productName;
         }
 
         [JsonProperty("productName")]
@@ -339,21 +337,39 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
         public Item WithSelectedModifiers() => new(ProductId, ProductName ?? string.Empty, Type ?? string.Empty, Amount, Price, ProductSizeId, ComboInformation, PositionId,
             GetModifiers().Where(x => x.Amount != 0), Comment);
         public bool HaveItems() => Amount > 0;
-        private static void AddSimpleModifier(ref List<Modifier> modifiers, ref List<SimpleModifier> simpleModifiers, EMenu.Modifier modifier,
-            IEnumerable<Product>? products = null)
+        private static void AddSimpleModifier(ref List<Modifier> modifiers, ref List<SimpleModifier> simpleModifiers, TransportModifierItemDto modifier)
         {
-            int defaultAmount = modifier.DefaultAmount != null ? (int)modifier.DefaultAmount : 0;
-            string name = products?.FirstOrDefault(x => x.Id == modifier.Id)?.Name ?? string.Empty;
+            var modifierName = modifier.Name ?? string.Empty;
+            var modifierId = modifier.ItemId ?? throw new InfoException(typeof(Item).FullName!, nameof(AddSimpleModifier),
+                nameof(Exception), $"{typeof(TransportModifierItemDto).FullName!}.{nameof(TransportModifierItemDto.ItemId)}", ExceptionType.Null);
+            var modifierRestriction = modifier.Restrictions;
+
             modifiers.Add(new Modifier()
             {
-                ProductId = modifier.Id,
-                Name = name,
-                MinAmount = modifier.MinAmount,
-                MaxAmount = modifier.MaxAmount,
-                Amount = defaultAmount,
-                Price = products?.First(x => x.Id == modifier.Id).Price()
+                ProductId = modifierId,
+                Name = modifierName,
+                MinAmount = modifierRestriction?.MinQuantity,
+                MaxAmount = modifierRestriction?.MaxQuantity,
+                Amount = modifierRestriction?.ByDefault ?? 0,
+                Price = modifier.Price()
             });
-            simpleModifiers.Add(new SimpleModifier(modifier.Id, name, modifier.MinAmount - defaultAmount, modifier.MaxAmount - defaultAmount));
+
+            int default_ = modifierRestriction?.ByDefault ?? 0;
+            int min = modifierRestriction?.MinQuantity is not null ? (int)modifierRestriction.MinQuantity - default_ : 0;
+            int max = modifierRestriction?.MaxQuantity is not null ? (int)modifierRestriction.MaxQuantity - default_ : 0;
+
+            simpleModifiers.Add(new SimpleModifier(modifierId, modifierName, min, max));
+        }
+        private static void AddSimpleGroupModifier(ref List<SimpleGroupModifier> simpleGroupModifiers, TransportModifierGroupDto groupModifier, int default_)
+        {
+            var groupModifierName = groupModifier.Name ?? string.Empty;
+            var groupModifierId = groupModifier.ItemGroupId ?? throw new InfoException(typeof(Item).FullName!, nameof(AddSimpleGroupModifier),
+                nameof(Exception), $"{typeof(TransportModifierGroupDto).FullName!}.{nameof(TransportModifierGroupDto.ItemGroupId)}", ExceptionType.Null);
+
+            int min = groupModifier.Restrictions?.MinQuantity is not null ? (int)groupModifier.Restrictions.MinQuantity - default_ : 0;
+            int max = groupModifier.Restrictions?.MaxQuantity is not null ? (int)groupModifier.Restrictions.MaxQuantity - default_ : 0;
+
+            simpleGroupModifiers.Add(new SimpleGroupModifier(groupModifierId, groupModifierName, min, max));
         }
         public object Clone() => new Item(ProductName ?? string.Empty, ProductId, Modifiers, Price, PositionId, Type ?? string.Empty, Amount, ProductSizeId, ComboInformation, Comment,
             SimpleGroupModifiers, SimpleModifiers);

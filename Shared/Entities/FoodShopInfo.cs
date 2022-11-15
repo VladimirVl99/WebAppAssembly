@@ -14,10 +14,9 @@ namespace WebAppAssembly.Shared.Entities
     {
         public FoodShopInfo() { }
 
-        public FoodShopInfo(IEnumerable<DeliveryTerminal>? deliveryTerminals, WebAppMenu? webAppMenu, bool? isTestMode, WebAppInfo? webAppInfo)
+        public FoodShopInfo(IEnumerable<DeliveryTerminal>? deliveryTerminals, bool? isTestMode, WebAppInfo? webAppInfo)
         {
             DeliveryTerminals = deliveryTerminals;
-            WebAppMenu = webAppMenu;
             IsTestMode = isTestMode;
             WebAppInfo = webAppInfo;
         }
@@ -25,9 +24,6 @@ namespace WebAppAssembly.Shared.Entities
         [JsonProperty("deliveryTerminals")]
         [JsonPropertyName("deliveryTerminals")]
         public IEnumerable<DeliveryTerminal>? DeliveryTerminals { get; set; }
-        [JsonProperty("webAppMenu")]
-        [JsonPropertyName("webAppMenu")]
-        public WebAppMenu? WebAppMenu { get; set; }
         [JsonProperty("isTestMode")]
         [JsonPropertyName("isTestMode")]
         public bool? IsTestMode { get; set; }

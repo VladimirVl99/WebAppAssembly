@@ -27,7 +27,7 @@ namespace WebAppAssembly.Server.Controllers
         {
             try
             {
-                return Ok(new FoodShopInfo(_orderService.DeliveryTerminals, _orderService.WebAppMenu, _orderService.IsTestMode,
+                return Ok(new FoodShopInfo(_orderService.DeliveryTerminals, _orderService.IsTestMode,
                     _orderService.WebAppInfo));         
             }
             catch (Exception ex)
