@@ -7,7 +7,7 @@ namespace ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExtern
     {
         [JsonProperty("organizationId")]
         [JsonPropertyName("organizationId")]
-        public IEnumerable<Guid>? Organizations { get; set; }
+        public Guid? Organizations { get; set; }
         [JsonProperty("price")]
         [JsonPropertyName("price")]
         public float Price { get; set; }

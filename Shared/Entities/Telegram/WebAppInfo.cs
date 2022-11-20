@@ -1,5 +1,6 @@
 ﻿using ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExternalMenuByID;
 using Newtonsoft.Json;
+using System.Net.Http.Headers;
 using System.Text.Json.Serialization;
 using WebAppAssembly.Shared.Models.Order;
 
@@ -12,7 +13,20 @@ namespace WebAppAssembly.Shared.Entities.Telegram
         public IEnumerable<TransportMenuCategoryDto>? ItemCategories { get; set; }
         [JsonProperty("productItems")]
         [JsonPropertyName("productItems")]
-        public IEnumerable<TransportItemDto>? TransportItemDtos { get; set; }
+        public IEnumerable<TransportItemDto>? TransportItemDtos
+        { 
+            get
+            {
+                if (ItemCategories is not null)
+                {
+                    var items = new List<TransportItemDto>();
+                    foreach (var item in ItemCategories)
+                        if (item.Items is not null) items.AddRange(item.Items.ToList());
+                    return items.ToArray();
+                }
+                return null;
+            }
+        }
         [JsonProperty("deliveryTerminals")]
         [JsonPropertyName("deliveryTerminals")]
         public IEnumerable<DeliveryTerminal>? DeliveryTerminals { get; set; }
@@ -28,5 +42,14 @@ namespace WebAppAssembly.Shared.Entities.Telegram
         [JsonProperty("useDiscountBalance")]
         [JsonPropertyName("useDiscountBalance")]
         public bool UseDiscountBalance { get; set; }
+
+        public TransportItemDto? ProductById(Guid groupId, Guid productId)
+        {
+            if (groupId == Guid.Empty) return ProductById(productId);
+            return ItemCategories?.FirstOrDefault(x => x.Id == groupId)?.Items?.FirstOrDefault(x => x.ItemId == productId);
+        }
+
+        public TransportItemDto? ProductById(Guid productId) =>
+            TransportItemDtos?.FirstOrDefault(x => x.ItemId == productId);
     }
 }

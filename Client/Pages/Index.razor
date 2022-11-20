@@ -95,13 +95,13 @@
 
                                 <div class="col">
                                     <center>
-                                        <img class="img-fluid rounded"
-                                        @onclick="(e => product.HaveModifiers() ? AddProductInMainMenuAsync(product.ItemId ?? Guid.Empty) : AddProductForOtherMenuAsync(product.ItemId ?? Guid.Empty))"
-            src="@product.ImageLink()" alt="@product.Name" />
+                                        <img class="img-fluid rounded" src="@product.ImageLink()" alt="@product.Name"
+                                            @onclick="(e => (product.HaveModifiers() || product.HaveSizesMoreThanOne())
+                                            ? AddProductInMainMenuAsync(product.ItemId ?? Guid.Empty) : AddProductForOtherMenuAsync(product.ItemId ?? Guid.Empty))"/>
                                     </center>
                                     <h6 style="line-height:0.5;margin-top: 5px;">@($"₽{(product.Price().ToString() ?? "?")}")</h6>
                                     <p style="line-height:1;" id="@product.ItemId">@product.Name</p>
-                                    <p style="line-height:0.5;color:lightgrey;margin-top:0px;" id="@product.ItemId">@(product.Weight()) г</p>
+                                        <p style="line-height:0.5;color:lightgrey;margin-top:0px;" id="@product.ItemId">@(product.WeightAsString()) г</p>
                                 </div>
                             }
                             else
@@ -191,11 +191,11 @@
         alt="@product.Name" />
             </div>
 
-            <h5>@product.Name</h5> <h6 style="color:lightgrey;">@(product.Weight()) г</h6>
+            <h5>@product.Name</h5> <h6 style="color:lightgrey;">@(product.WeightAsString()) г</h6>
             <div class="row">
                 <div class="col">
                     <h5>В 100 граммах</h5>
-                    <p>@(product.Energy()) Ккал · @(product.Carbs()) Углеводы</p>
+                        <p>@(product.EnergyAsString()) Ккал · @(product.CarbsAsString()) Углеводы</p>
                 </div>
                 <div class="col">
                     <div class="TlBlr_div TlBlrCounter_x TlBlrDesctopProductCard TlBlrCounter_y" style="height:48px;">
@@ -220,6 +220,33 @@
             {
                 <h4>Описание</h4>
                 <p>@product.Description</p>
+            }
+
+            @if (product.HaveSizesMoreThanOne())
+            {
+                <div style="padding-bottom: 3px;">
+                    <h5>Размеры</h5>
+                    @{
+                        bool isFirst = true;
+                    }
+                    @foreach (var size in product.ItemSizes!)
+                    {
+                        <div class="form-check form-check-inline">
+                            @if (isFirst)
+                            {
+                                <input class="form-check-input" type="radio" name="inlineRadioOptions" style="box-shadow:none;"
+                                id="@size.SizeId" value="@size.SizeId" @onchange="OnChangingProductSizeAsync" checked>
+                                isFirst = false;
+                            }
+                            else
+                            {
+                                <input class="form-check-input" type="radio" name="inlineRadioOptions" style="box-shadow:none;"
+                                id="@size.SizeId" value="@size.SizeId" @onchange="OnChangingProductSizeAsync">
+                            }
+                            <label class="form-check-label" for="inlineRadio1">@size.SizeName</label>
+                        </div>
+                    }
+                </div>
             }
 
             @{
@@ -256,7 +283,7 @@
                                         </button>
                                     }
 
-                                    @if (!item.IsReachedMaxAmountOfGroupModifier(groupModifier.ItemGroupId ?? Guid.Empty))
+                                    @if (!item.IsReachedMaxAmountOfGroupModifier(groupModifier.ItemGroupId ?? Guid.Empty, modifier.ItemId ?? Guid.Empty))
                                     {
                                         <button @onclick="(e => AddModifierAsync(SelectedProductId, modifier.ItemId ?? Guid.Empty, ProductPositionId, groupModifier.ItemGroupId))"
                                             id="@modifier.ItemId" data-toggle="modal" data-target="#productModal" class="btn btn-light full-width-right TlBlrModifierCounter" style="box-shadow:none;">
@@ -286,7 +313,7 @@
                                     </div>
                                     <div align="right" class="col">
                                     @{
-                                        var price = PriceByProductId(modifier.ItemId ?? Guid.Empty);
+                                        var price = modifier.Price();
                                     }
                                     <p>@(price == 0 ? "Бесплатно" : $"₽{price}")</p>
                                 </div>
@@ -324,7 +351,7 @@
                 @if (IsTestMode)
                 {
                     <div align="right">
-                        <button @onclick="(e => CancelSelectedProductAsync(SelectedProductId))" 
+                        <button @onclick="(e => CancelSelectedProduct(SelectedProductId))" 
             data-toggle="modal" data-target="#productModal" class="btn btn-link btn-sm btn-text-green">Отмена</button>
                     </div>
                 }
@@ -333,11 +360,11 @@
             alt="@product.Name" />
                 </div>
 
-                <h5>@product.Name</h5> <h6 style="color:lightgrey;">@(product.Weight()) г</h6>
+                <h5>@product.Name</h5> <h6 style="color:lightgrey;">@(product.WeightAsString()) г</h6>
                 <div class="row">
                     <div class="col">
                         <h5>В 100 граммах</h5>
-                        <p>@(product.Energy()) Ккал · @(product.Carbs()) Углеводы</p>
+                        <p>@(product.EnergyAsString()) Ккал · @(product.CarbsAsString()) Углеводы</p>
                     </div>
                     <div class="col">
                         <div class="TlBlr_div TlBlrCounter_x TlBlrDesctopProductCard TlBlrCounter_y" style="height:48px;">
@@ -357,7 +384,7 @@
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>     
 
                 @if (!string.IsNullOrEmpty(product.Description))
                 {
@@ -645,6 +672,35 @@
                 </div>
             }
 
+            if (OrderModel.BonusSum > 0)
+            {
+                <h5>Бонусные баллы</h5>
+                <h6>У Вас накоплено @(OrderModel.BonusSum) баллов</h6>
+                <div class="row">
+                    <div class="col-6">
+                        <input type="range" class="form-range" style="padding-top:21px;" min="0" max="@(OrderModel.AllowedBonusSum)" id="customRangeForWalletBalance" value="@OrderModel.SelectedBonusSum"
+                            @oninput="OnChangeAllowedBonusSum">
+                    </div>
+                    <div class="col-2">
+                        <h5>@(OrderModel.SelectedBonusSum)</h5>
+                    </div>
+                    <div class="col-4">
+                        @if (!ConfirmDiscountBonus)
+                        {
+                            <button @onclick="(e => ConfirmDiscountBonus = true)" class="btn btn-light TlBlrCouponApply" style="box-shadow:none;background-color:#F5F4F2;height:100%;">
+                                <span>Применить</span>
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-light TlBlrCouponApply" style="box-shadow:none;background-color:#F5F4F2;height:100%;" disabled>
+                                <span>Применено</span>
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+
             <div>
                 <h5>Способ доставки</h5>
             </div>
@@ -718,24 +774,6 @@
 
             @*Comment field*@
             <input class="comment" type="text" name="Comment" placeholder="Ваш комментарий..." @bind="@CommentValue"/>
-@*            if (DiscountBalance != 0)
-            {
-                <div class="row">
-                    <div class="col">
-                        <h6>У Вас @OrderService.DiscountBalance @((0 < OrderService.DiscountBalance && OrderService.DiscountBalance < 5) || ((0 < OrderService.DiscountBalance % 10 && OrderService.DiscountBalance % 10 < 5) && !(10 < OrderService.DiscountBalance && OrderService.DiscountBalance < 20)) ? "балла" : "баллов")</h6>
-                    </div>
-                    <div class="col">
-                        @if (!ConfirmDiscountBonus)
-                        {
-                            <button @onclick="(e => ConfirmDiscountBonus = true)" data-toggle="modal" data-target="#productModal" class="btn btn-success">Применить</button>
-                        }
-                        else
-                        {
-                            <button data-toggle="modal" data-target="#productModal" class="btn btn-secondary" disabled>Применить</button>
-                        }
-                    </div>
-                </div>
-            }*@
 
             <div>
                 <br/>
@@ -770,6 +808,7 @@ else {
 }
 
 @code {
+    #region
     // Parameters for state of page
     public RazorOrderInfo RazorOrderInfo = new RazorOrderInfo();
     // Comment for order
@@ -798,6 +837,8 @@ else {
     public IEnumerable<DeliveryTerminal>? DeliveryTerminals { get; set; }
     public bool IsTestMode { get; set; }
     public WebAppInfo? WebAppInfo { get; set; }
+
+    private readonly int minCurrent = 80;
 
     //
     protected override async Task OnInitializedAsync()
@@ -975,9 +1016,8 @@ else {
     // 
     private double TotalSumOfSelectedProductWithModifiers(TransportItemDto product, Item item)
     {
-        var productPrice = product.ItemSizes?.LastOrDefault()?.Prices?.LastOrDefault()?.Price
-            ?? throw new Exception($"{typeof(Index).FullName}.{nameof(TotalSumOfSelectedProductWithModifiers)}.{nameof(Exception)}: " +
-            $"Price of product by ID - '{product.ItemId}' can't be null");
+        var productPrice = product.Price(item.ProductSizeId) ?? throw new Exception($"{typeof(Index).FullName}.{nameof(TotalSumOfSelectedProductWithModifiers)}." +
+            $"{nameof(Exception)}: Price of product by ID - '{product.ItemId}' can't be null");
         return (productPrice + PriceWithModifiersByProductId(item)) * item.Amount;
     }
 
@@ -1023,13 +1063,13 @@ else {
                 throw new Exception("!!!");
             }
 
-            var product = WebAppInfo.TransportItemDtos.FirstOrDefault(x => x.ItemId == productId);
-            if (product != null)
+            var product = WebAppInfo.ProductById(CurrentGroupId, productId);
+            if (product is not null)
             {
                 Item item;
                 var items = OrderModel?.Items ?? throw new Exception($"{nameof(OrderModel)} can't be null");
 
-                if (product.HaveModifiers())
+                if (product.HaveModifiers() || product.HaveSizesMoreThanOne())
                 {
                     RazorOrderInfo.OrderStatusType = OrderStatusType.OrderProductWithModifiersSelect;
                     SelectedProductId = productId;
@@ -1039,7 +1079,7 @@ else {
                 else
                 {
                     var itm = items.FirstOrDefault(x => x.ProductId == productId);
-                    if (itm == null)
+                    if (itm is null)
                     {
                         AddItemToOrderWithNewPosition(productId, product);
                         item = items.Last(x => x.ProductId == productId);
@@ -1052,13 +1092,13 @@ else {
                 {
                     await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
                     await JsRuntime.InvokeVoidAsync("SetViewOrderButton");
-                    if (product.HaveModifiers())
+                    if (product.HaveModifiers() || product.HaveSizesMoreThanOne())
                     {
                         await JsRuntime.InvokeVoidAsync("BackButtonShow");
                         await JsRuntime.InvokeVoidAsync("SetSelectProductWithModifiersButton", TotalSumOfSelectedProductWithModifiers(product, item));
                     }
                 }
-                if (!product.HaveModifiers()) await SendChangedOrderModelToServerAsync();
+                if (!(product.HaveModifiers() || product.HaveSizesMoreThanOne())) await SendChangedOrderModelToServerAsync();
             }
         }
         catch (Exception ex)
@@ -1080,11 +1120,11 @@ else {
                 throw new Exception("!!!");
             }
 
-            var product = WebAppInfo.TransportItemDtos.FirstOrDefault(x => x.ItemId == productId);
-            if (product != null)
+            var product = WebAppInfo.ProductById(CurrentGroupId, productId);
+            if (product is not null)
             {
                 var order = OrderModel ?? throw new Exception($"{nameof(OrderModel)} can't be null");
-                if (product.HaveModifiers())
+                if (product.HaveModifiers() || product.HaveSizesMoreThanOne())
                 {
                     product.TotalAmount = 0;
                     await CancelSelectedProductsWithModifiersAsync(productId);
@@ -1130,12 +1170,11 @@ else {
 
             foreach (var item in items)
             {
-                var product = WebAppInfo.TransportItemDtos.FirstOrDefault(x => x.ItemId == item.ProductId)
-                ?? throw new Exception($"{typeof(Index).FullName}.{nameof(UpdateTotalSumOfOrder)}.{nameof(Exception)}: " +
+                var product = WebAppInfo.ProductById(item.ProductId) ?? throw new Exception($"{typeof(Index).FullName}.{nameof(UpdateTotalSumOfOrder)}.{nameof(Exception)}: " +
                     $"{nameof(Product)} can't be null");
 
                 if (item.HaveModifiers()) total += TotalSumOfSelectedProductWithModifiers(product, item);
-                else total += item.Amount * product.Price() ?? throw new Exception($"{typeof(Index).FullName}.{nameof(UpdateTotalSumOfOrder)}.{nameof(Exception)}: " +
+                else total += item.Amount * product.Price(item.ProductSizeId) ?? throw new Exception($"{typeof(Index).FullName}.{nameof(UpdateTotalSumOfOrder)}.{nameof(Exception)}: " +
                     $"Price of product can't be null");
             }
         }
@@ -1168,10 +1207,18 @@ else {
                 if (!IsTestMode)
                 {                 
                     await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
-                    if (WebAppInfo.UseIikoBizProgram) await CalculateLoyaltyProgramAsync();
+                    if (WebAppInfo.UseIikoBizProgram)
+                    {
+                        await CalculateLoyaltyProgramAsync();
+                        CalculateAllowedBonusSum(OrderModel.BonusSum);
+                    }
                     await JsRuntime.InvokeVoidAsync("SetPayOrderButton", WebAppInfo.UseIikoBizProgram ? OrderModel.FinalSum : OrderModel.TotalSum);
                 }
-                else if (WebAppInfo.UseIikoBizProgram) await CalculateLoyaltyProgramAsync();
+                else if (WebAppInfo.UseIikoBizProgram)
+                {
+                    await CalculateLoyaltyProgramAsync();
+                    CalculateAllowedBonusSum(OrderModel.BonusSum);
+                }
                 await SendChangedOrderModelToServerAsync();
             }
         }
@@ -1210,7 +1257,11 @@ else {
                     await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
                     if (order.HaveSelectedProducts())
                     {
-                        if (WebAppInfo.UseIikoBizProgram) await CalculateLoyaltyProgramAsync();
+                        if (WebAppInfo.UseIikoBizProgram)
+                        {
+                            await CalculateLoyaltyProgramAsync();
+                            CalculateAllowedBonusSum(OrderModel.BonusSum);
+                        }
                         await JsRuntime.InvokeVoidAsync("SetPayOrderButton", WebAppInfo.UseIikoBizProgram ? OrderModel.FinalSum
                         : OrderModel.TotalSum);
                     }
@@ -1221,7 +1272,11 @@ else {
                         await JsRuntime.InvokeVoidAsync("BackButtonHide");
                     }
                 }
-                else if (WebAppInfo.UseIikoBizProgram) await CalculateLoyaltyProgramAsync();
+                else if (WebAppInfo.UseIikoBizProgram)
+                {
+                    await CalculateLoyaltyProgramAsync();
+                    CalculateAllowedBonusSum(OrderModel.BonusSum);
+                }
                 await SendChangedOrderModelToServerAsync();
             }
         }
@@ -1367,8 +1422,9 @@ else {
         {
             Console.WriteLine(typeof(Index).FullName!, nameof(AddModifierAsync), "Increase an amount of modifier");
 
-            var product = WebAppInfo?.TransportItemDtos?.FirstOrDefault(x => x.ItemId == productId);
-            if (product != null)
+            var product = WebAppInfo?.ProductById(CurrentGroupId, productId);
+
+            if (product is not null)
             {
                 var order = OrderModel ?? throw new Exception($"{nameof(OrderModel)} can't be null");
                 if (order.Items is null) return;
@@ -1396,7 +1452,10 @@ else {
         {
             Console.WriteLine(typeof(Index).FullName!, nameof(RemoveModifierAsync), "Increase an amount of modifier");
 
-            var product = WebAppInfo?.TransportItemDtos?.FirstOrDefault(x => x.ItemId == productId);
+            var product = CurrentGroupId != Guid.Empty
+            ? WebAppInfo?.ItemCategories?.FirstOrDefault(x => x.Id == CurrentGroupId)?.Items?.FirstOrDefault(y => y.ItemId == productId)
+            : WebAppInfo?.TransportItemDtos?.FirstOrDefault(x => x.ItemId == productId);
+
             if (product is not null)
             {
                 var order = OrderModel ?? throw new Exception($"{nameof(OrderModel)} can't be null");
@@ -1616,6 +1675,18 @@ else {
         }
     }
 
+    //
+    private async Task<WalletBalance> RetrieveWalletBalanceAsync()
+    {
+        var json = JsonConvert.SerializeObject(new { chatId = ChatId });
+        var data = new StringContent(json, Encoding.UTF8, "application/json");
+        var response = await Http.PostAsync(OrderControllerPath + "walletBalance", data) ?? throw new Exception($"!!!");
+        string responseBody = await response.Content.ReadAsStringAsync();
+        if (!response.StatusCode.Equals(HttpStatusCode.OK))
+            throw new HttpProcessException(response.StatusCode, responseBody);
+        return JsonConvert.DeserializeObject<WalletBalance>(responseBody) ?? throw new Exception("Json the wallet balance result is empty");
+    }
+
     // Set the order to view status (use only in web mode)
     private async Task ViewOrder()
     {
@@ -1625,6 +1696,9 @@ else {
             RazorOrderInfo.OrderStatusType = OrderStatusType.OrderView;
             UpdateTotalSumOfOrder();
             await CalculateLoyaltyProgramAsync();
+            var walletBalance = await RetrieveWalletBalanceAsync();
+            CalculateAllowedBonusSum(walletBalance.Balance);
+            StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -1632,6 +1706,12 @@ else {
                 $"{ex.Message}");
         }
     }
+
+    private string IntOrSomeNumberOfDigitsFromCurrentCulture(double number, int numberOfDigitsFromCurrentCulture)
+    => ((int)(number * 100) % 100) != 0 ? string.Format($"{{0:F{numberOfDigitsFromCurrentCulture}}}", number) : ((int)number).ToString();
+
+    private string IntOrSomeNumberOfDigitsFromCurrentCulture(float number, int numberOfDigitsFromCurrentCulture)
+    => ((int)(number * 100) % 100) != 0 ? string.Format($"{{0:F{numberOfDigitsFromCurrentCulture}}}", number) : ((int)number).ToString();
 
     // Tracking the click of the main telegram button
     private async Task TelegramHandlerMainButtonAsync()
@@ -1656,18 +1736,41 @@ else {
                     Console.WriteLine(typeof(Index).FullName!, nameof(TelegramHandlerMainButtonAsync), "Show the preview selected products in order");
 
                     var totalSum = UpdateTotalSumOfOrder();
-                    if (OrderModel != null) OrderModel.FinalSum = totalSum;
-                    if (totalSum < 80)
-                    {
-                        await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", "Сумма заказа слишком мала", HapticFeedBackNotificationType.warning.ToString());
-                        continue;
-                    }
+
+                    if (OrderModel is null) continue;
 
                     if (WebAppInfo.UseIikoBizProgram)
                     {
                         // Show the telegram button for to pay the order
                         await CalculateLoyaltyProgramAsync();
+                        if (OrderModel.DiscountProcent > 0)
+                        {
+                            var necessarySum = (100 * minCurrent) / (100 - OrderModel.DiscountProcent);
+                            var differenceSum = necessarySum - totalSum;
+                            if (differenceSum > 0)
+                            {
+                                string necessarySumAsString = IntOrSomeNumberOfDigitsFromCurrentCulture(necessarySum, 2);
+                                string differenceSumAsString = IntOrSomeNumberOfDigitsFromCurrentCulture(differenceSum, 2);
+                                await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", $"Минимальная сумма заказа со скидкой должна состовлять ₽{necessarySumAsString}." +
+                                $"Закажите еще на ₽{differenceSumAsString}",
+                                HapticFeedBackNotificationType.warning.ToString());
+                                continue;
+                            }
+                        }
+                        var walletBalance = await RetrieveWalletBalanceAsync();
+                        CalculateAllowedBonusSum(walletBalance.Balance);
                     }
+                    else if (OrderModel is not null)
+                    {
+                        OrderModel.FinalSum = totalSum;
+                        if (totalSum < minCurrent)
+                        {
+                            await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", $"Минимальная сумма заказа не может быть меньше ₽{minCurrent}",
+                            HapticFeedBackNotificationType.warning.ToString());
+                            continue;
+                        }
+                    }
+
                     // Transition page to order view state
                     RazorOrderInfo.OrderStatusType = OrderStatusType.OrderView;
                     await JsRuntime.InvokeVoidAsync("ScrollToTop");
@@ -1681,7 +1784,7 @@ else {
                     Console.WriteLine(typeof(Index).FullName!, nameof(TelegramHandlerMainButtonAsync), "Show the preview selected modifiers in order");
 
                     var item = OrderModel?.Items?.FirstOrDefault(x => x.ProductId == SelectedProductId && x.PositionId == ProductPositionId);
-                    if (item == null || !item.IsReachedMinAmountOfGroupModifiers() || !item.IsReachedMinAmountOfModifiers())
+                    if (item is null || !item.IsReachedMinAmountOfGroupModifiers() || !item.IsReachedMinAmountOfModifiers())
                     {
                         await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", "Не выбран обязательный модификатор", HapticFeedBackNotificationType.warning.ToString());
                         continue;
@@ -1716,7 +1819,9 @@ else {
                     Console.WriteLine(typeof(Index).FullName!, nameof(TelegramHandlerMainButtonAsync), "Save the created order in db and send it to server");
                     FinishedRender = false;
 
-                    if (OrderModel != null && OrderModel.FinalSum < 80)
+                    await JsRuntime.InvokeVoidAsync("ShowProgress");
+
+                    if (OrderModel != null && OrderModel.FinalSum < minCurrent)
                     {
                         await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", "Сумма заказа слишком мала", HapticFeedBackNotificationType.warning.ToString());
                         continue;
@@ -1746,6 +1851,7 @@ else {
 
                     await SendChangedOrderModelToServerAsync();
                     await CreateInvoiceLinkAsync();
+                    await JsRuntime.InvokeVoidAsync("HideProgress");
                 }
             }
             catch (Exception ex)
@@ -1913,7 +2019,21 @@ else {
     }
 
     // Cancel the selected product
-    private void CancelSelectedProductAsync(Guid productId)
+    //private void CancelSelectedProductFromTlgHandlerBack(Guid productId)
+    //{
+    //    try
+    //    {
+    //        RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        Console.WriteLine($"{typeof(Index).FullName}.{nameof(CancelSelectedProduct)}.{nameof(Exception)}: " +
+    //            $"{ex.Message}");
+    //    }
+    //}
+
+    // Cancel the selected product
+    private void CancelSelectedProduct(Guid productId)
     {
         try
         {
@@ -1921,7 +2041,7 @@ else {
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"{typeof(Index).FullName}.{nameof(CancelSelectedProductAsync)}.{nameof(Exception)}: " +
+            Console.WriteLine($"{typeof(Index).FullName}.{nameof(CancelSelectedProduct)}.{nameof(Exception)}: " +
                 $"{ex.Message}");
         }
     }
@@ -2320,9 +2440,14 @@ else {
                                     foreach (var product in freeProduct.Products)
                                     {
                                         if (products is not null && products.Any())
+                                        {
+                                            var sourceProduct = products.FirstOrDefault(x => x.ItemId == product.Id);
                                             OrderModel.FreeItems.Add(new Item(
                                                 productId: product.Id,
-                                                productName: products.FirstOrDefault(x => x.ItemId == product.Id)?.Name ?? string.Empty));
+                                                productName: sourceProduct?.Name ?? string.Empty,
+                                                amount: 1,
+                                                type: sourceProduct?.OrderItemType ?? "Product"));
+                                        }
                                     }
                                 }
                             }
@@ -2428,24 +2553,19 @@ else {
     }
 
     //
-    public double PriceByProductId(Guid id) => WebAppInfo?.TransportItemDtos?.FirstOrDefault(x => x.ItemId == id)?.Price()
-        ?? throw new Exception($"{typeof(Index).FullName}.{nameof(PriceByProductId)}.{nameof(Exception)}: " +
-            $"{nameof(WebAppInfo.TransportItemDtos)} can't be null");
-
-    //
     private double TotalSumOfSelectedProductWithModifiers(Guid productId, Guid positionId)
     {
         if (OrderModel is null) throw new Exception($"{typeof(Index).FullName}.{nameof(TotalSumOfSelectedProductWithModifiers)}.{nameof(Exception)}: " +
             $"{nameof(OrderModel)} can't be null");
 
-        var product = WebAppInfo?.TransportItemDtos?.FirstOrDefault(x => x.ItemId == productId);
         if (OrderModel.Items is not null)
         {
+            var product = WebAppInfo?.ProductById(CurrentGroupId, productId);
             var item = OrderModel.Items.First(x => x.ProductId == productId && x.PositionId == positionId);
 
-            if (product != null)
+            if (product is not null)
             {
-                var productPrice = product.Price() ?? throw new Exception($"{typeof(Index).FullName}.{nameof(TotalSumOfSelectedProductWithModifiers)}.{nameof(Exception)}: " +
+                var productPrice = product.Price(item.ProductSizeId) ?? throw new Exception($"{typeof(Index).FullName}.{nameof(TotalSumOfSelectedProductWithModifiers)}.{nameof(Exception)}: " +
                     $"Price of product by ID - '{product.ItemId}' can't be null");
                 return (productPrice + PriceWithModifiersByProductId(item)) * item.Amount;
             }
@@ -2491,4 +2611,71 @@ else {
             return "Database Error";
         }
     }
+
+    //
+    private async Task OnChangingProductSizeAsync(ChangeEventArgs arg)
+    {
+        var value = arg.Value?.ToString();
+        if (value is not null && Guid.TryParse(value, out Guid sizeId))
+        {
+            try
+            {
+                var product = WebAppInfo?.ProductById(CurrentGroupId, SelectedProductId);
+
+                if (product is not null)
+                {
+                    var order = OrderModel ?? throw new Exception($"{nameof(OrderModel)} can't be null");
+                    if (order.Items is null) return;
+                    var item = order.Items.FirstOrDefault(x => x.ProductId == SelectedProductId && x.PositionId == ProductPositionId);
+                    if (item is null) return;
+                    item.ProductSizeId = sizeId;
+                    if (!IsTestMode)
+                    {
+                        await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+                        await JsRuntime.InvokeVoidAsync("SetSelectProductWithModifiersButton", TotalSumOfSelectedProductWithModifiers(product, item));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"{typeof(Index).FullName}.{nameof(AddModifierAsync)}.{nameof(Exception)}: " +
+                    $"{ex.Message}");
+            }
+        }
+    }
+
+    //
+    private void CalculateAllowedBonusSum(double bonusSum)
+    {
+        if (OrderModel is not null)
+        {
+            OrderModel.BonusSum = bonusSum;
+            var perhapsBonusSum = OrderModel.FinalSum - minCurrent;
+            if (perhapsBonusSum <= 0) OrderModel.AllowedBonusSum = 0;
+            else OrderModel.AllowedBonusSum = perhapsBonusSum > OrderModel.BonusSum ? (int)OrderModel.BonusSum : (int)perhapsBonusSum;
+            OrderModel.SelectedBonusSum = OrderModel.AllowedBonusSum;
+        }
+    }
+
+    //
+    private void OnChangeAllowedBonusSum(ChangeEventArgs arg)
+    {
+        var value = arg.Value?.ToString();
+        if (value is not null && OrderModel is not null && Int32.TryParse(value, out var bonusSum))
+        {
+            var finalSumWithBonus = OrderModel.FinalSum - bonusSum;
+            if (minCurrent <= finalSumWithBonus)
+            {
+                OrderModel.SelectedBonusSum = bonusSum;
+            }
+            else
+            {
+                var perhapsBonusSum = OrderModel.FinalSum - minCurrent;
+                if (perhapsBonusSum <= 0) OrderModel.SelectedBonusSum = 0;
+                else OrderModel.SelectedBonusSum = perhapsBonusSum > OrderModel.BonusSum ? (int)OrderModel.BonusSum : (int)perhapsBonusSum;
+            }
+        }
+    }
+
+    #endregion
 }

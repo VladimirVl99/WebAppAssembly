@@ -40,10 +40,10 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
 
             var modifierList = new List<Modifier>();
             var simpleGroups = new List<SimpleGroupModifier>();
+            var simpleModifiers = new List<SimpleModifier>();
 
             if (product.ItemSizes is not null)
             {
-                var simpleModifiers = new List<SimpleModifier>();
                 foreach (var size in product.ItemSizes)
                 {
                     if (size.ItemModifierGroups is not null)
@@ -55,16 +55,17 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
                                 int totalDefault = 0;
                                 foreach (var item in modifierGroup.Items)
                                 {
-                                    AddSimpleModifier(ref modifierList, ref simpleModifiers, item);
+                                    AddSimpleModifier(ref modifierList, ref simpleModifiers, item, modifierGroup.ItemGroupId);
                                     totalDefault += item.Restrictions?.ByDefault ?? 0;
                                 }
-                                AddSimpleGroupModifier(ref simpleGroups, modifierGroup, totalDefault);
+                                AddSimpleGroupModifier(ref simpleGroups, modifierGroup, totalDefault);      
                             }
                         }    
                     }
                 }
                 SimpleGroupModifiers = simpleGroups;
                 Modifiers = modifierList.Any() ? modifierList : null;
+                SimpleModifiers = simpleModifiers;
             }
         }
 
@@ -145,36 +146,37 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
 
         public void IncrementAmount() => Amount++;
         public void DecrementAmount() => Amount = Amount == 0 ? Amount : --Amount;
-        public IEnumerable<Modifier> GetModifiers() => Modifiers != null && Modifiers.Any() ? Modifiers : Enumerable.Empty<Modifier>();
-        public bool IsSelectedModifier(Guid ModifierId, Guid? productGroupId = default, int? trying = null)
+        public IEnumerable<Modifier> GetModifiers() => Modifiers is not null ? Modifiers : Enumerable.Empty<Modifier>();
+        public bool IsSelectedModifier(Guid modifierId, Guid? productGroupId = null, int? trying = null)
         {
             try
             {
-                return productGroupId != null
-                    ? (int)GetModifiers().First(x => x.ProductId == ModifierId && x.ProductGroupId == productGroupId).Amount != 0
-                    : (int)GetModifiers().First(x => x.ProductId == ModifierId).Amount != 0;
+                return productGroupId is not null && productGroupId != Guid.Empty
+                    ? (int)GetModifiers().First(x => x.ProductId == modifierId && x.ProductGroupId == productGroupId).Amount != 0
+                    : (int)GetModifiers().First(x => x.ProductId == modifierId).Amount != 0;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"{typeof(Item).FullName}.{nameof(IsSelectedModifier)}.{nameof(Exception)}: " +
                     $"{ex.Message}");
-                if (trying != null)
-                {
-                    if (trying < 50) ++trying;
-                    else return false; // ???
-                }
-                else trying = 0;
-                Task.Delay(1);
-                return IsSelectedModifier(ModifierId, productGroupId, trying);
+                return false;
+                //if (trying != null)
+                //{
+                //    if (trying < 50) ++trying;
+                //    else return false; // ???
+                //}
+                //else trying = 0;
+                //Task.Delay(1);
+                //return IsSelectedModifier(ModifierId, productGroupId, trying);
             }
         }
         public void IncreaseAmountOfModifier(Guid id, Guid? productGroupId = null)
         {
-            if (Modifiers != null && Modifiers.Any())
+            if (Modifiers is not null)
             {
-                if (productGroupId != null && productGroupId != Guid.Empty && SimpleGroupModifiers != null && SimpleGroupModifiers.Any())
+                if (productGroupId is not null && productGroupId != Guid.Empty && SimpleGroupModifiers is not null)
                 {
-                    Modifiers.First(x => x.ProductId == id && x.ProductGroupId == productGroupId).Amount++;
+                    Modifiers.First(x => x.ProductId == id).Amount++;
                     var groupModifier = SimpleGroupModifiers.First(x => x.Id == productGroupId);
                     groupModifier.MaxAmount--;
                     groupModifier.MinAmount--;
@@ -182,7 +184,7 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
                 else
                 {
                     Modifiers.First(x => x.ProductId == id).Amount++;
-                    if (SimpleModifiers != null && SimpleModifiers.Any())
+                    if (SimpleModifiers is not null)
                     {
                         var modifier = SimpleModifiers.First(x => x.Id == id);
                         modifier.MaxAmount--;
@@ -193,11 +195,11 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
         }
         public void DecreaseAmountOfModifier(Guid id, Guid? productGroupId = default)
         {
-            if (Modifiers != null && Modifiers.Any() && !Modifiers.First(x => x.ProductId == id).Amount.Equals(0))
+            if (Modifiers is not null && Modifiers.First(x => x.ProductId == id).Amount != 0)
             {
-                if (productGroupId != null && productGroupId != Guid.Empty && SimpleGroupModifiers != null && SimpleGroupModifiers.Any())
+                if (productGroupId is not null && productGroupId != Guid.Empty && SimpleGroupModifiers is not null)
                 {
-                    Modifiers.First(x => x.ProductId == id && x.ProductGroupId == productGroupId).Amount--;
+                    Modifiers.First(x => x.ProductId == id).Amount--;
                     var groupModifier = SimpleGroupModifiers.First(x => x.Id == productGroupId);
                     groupModifier.MaxAmount++;
                     groupModifier.MinAmount++;
@@ -205,49 +207,42 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
                 else
                 {
                     Modifiers.First(x => x.ProductId == id).Amount--;
-                    if (SimpleModifiers != null && SimpleModifiers.Any())
+                    if (SimpleModifiers is not null)
                     {
                         var modifier = SimpleModifiers.First(x => x.Id == id);
                         modifier.MaxAmount++;
                         modifier.MinAmount++;
                     }
                 }
-            }       
-            
+            }                 
         }
         public double AmountOfModifier(Guid id, Guid? productGroupId = default) => productGroupId != null
             ? GetModifiers().First(x => x.ProductId == id && x.ProductGroupId == productGroupId).Amount
             : GetModifiers().First(x => x.ProductId == id).Amount;
-        public IEnumerable<Modifier> SelectedModifiers() => GetModifiers().Where(x => !x.Amount.Equals(0));
+        public IEnumerable<Modifier> SelectedModifiers() => GetModifiers().Where(x => x.Amount != 0);
         public bool HaveModifiers() => GetModifiers().Any();
-        public bool IsReachedMaxAmountOfGroupModifier(Guid id, int? trying = null)
+        public bool IsReachedMaxAmountOfGroupModifier(Guid groupModifierId, Guid modifierId)
         {
             try
             {
+                if (groupModifierId == Guid.Empty) return IsReachedMaxAmountOfModifier(modifierId);
                 return SimpleGroupModifiers != null && SimpleGroupModifiers.Any()
-                    ? SimpleGroupModifiers.First(x => x.Id == id).MaxAmount <= 0
+                    ? SimpleGroupModifiers.First(x => x.Id == groupModifierId).MaxAmount <= 0
                     : throw new Exception($"{typeof(Item).FullName}.{nameof(IsReachedMaxAmountOfGroupModifier)}.{nameof(Exception)}: " +
-                        $"No found a group modifier by ID - '{id}'");
+                        $"No found a group modifier by ID - '{groupModifierId}'");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"{typeof(Item).FullName}.{nameof(IsReachedMaxAmountOfGroupModifier)}.{nameof(Exception)}: " +
                     $"{ex.Message}");
-                if (trying != null)
-                {
-                    if (trying < 50) ++trying;
-                    else throw;
-                }
-                else trying = 0;
-                Task.Delay(1);
-                return IsReachedMaxAmountOfGroupModifier(id, trying);
+                return false;
             }
         }
-        public bool IsReachedMinAmountOfGroupModifier(Guid id, int? trying = null)
+        public bool IsReachedMinAmountOfGroupModifier(Guid id)
         {
             try
             {
-                return SimpleGroupModifiers != null && SimpleGroupModifiers.Any()
+                return SimpleGroupModifiers is not null
                     ? SimpleGroupModifiers.First(x => x.Id == id).MinAmount <= 0
                     : throw new Exception($"{typeof(Item).FullName}.{nameof(IsReachedMinAmountOfGroupModifier)}.{nameof(Exception)}: " +
                         $"No found a group modifier by ID - '{id}'");
@@ -256,21 +251,14 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
             {
                 Console.WriteLine($"{typeof(Item).FullName}.{nameof(IsReachedMinAmountOfGroupModifier)}.{nameof(Exception)}: " +
                     $"{ex.Message}");
-                if (trying != null)
-                {
-                    if (trying < 50) ++trying;
-                    else throw;
-                }
-                else trying = 0;
-                Task.Delay(1);
-                return IsReachedMinAmountOfGroupModifier(id, trying);
+                return false;
             }
         }
-        public bool IsReachedMaxAmountOfModifier(Guid id, int? trying = null)
+        public bool IsReachedMaxAmountOfModifier(Guid id)
         {
             try
             {
-                return SimpleModifiers != null && SimpleModifiers.Any()
+                return SimpleModifiers is not null
                     ? SimpleModifiers.First(x => x.Id == id).MaxAmount <= 0
                     : throw new Exception($"{typeof(Item).FullName}.{nameof(IsReachedMaxAmountOfModifier)}.{nameof(Exception)}: " +
                         $"No found a modifier by ID - '{id}'");
@@ -279,21 +267,14 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
             {
                 Console.WriteLine($"{typeof(Item).FullName}.{nameof(IsReachedMaxAmountOfModifier)}.{nameof(Exception)}: " +
                     $"{ex.Message}");
-                if (trying != null)
-                {
-                    if (trying < 50) ++trying;
-                    else throw;
-                }
-                else trying = 0;
-                Task.Delay(1);
-                return IsReachedMaxAmountOfModifier(id, trying);
+                return false;
             }
         }
-        public bool IsReachedMinAmountOfModifier(Guid id, int? trying = null)
+        public bool IsReachedMinAmountOfModifier(Guid id)
         {
             try
             {
-                return SimpleModifiers != null && SimpleModifiers.Any()
+                return SimpleModifiers is not null
                     ? SimpleModifiers.First(x => x.Id == id).MinAmount <= 0
                     : throw new Exception($"{typeof(Item).FullName}.{nameof(IsReachedMinAmountOfModifier)}.{nameof(Exception)}: " +
                         $"No found a modifier by ID - '{id}'");
@@ -302,14 +283,7 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
             {
                 Console.WriteLine($"{typeof(Item).FullName}.{nameof(IsReachedMinAmountOfModifier)}.{nameof(Exception)}: " +
                     $"{ex.Message}");
-                if (trying != null)
-                {
-                    if (trying < 50) ++trying;
-                    else throw;
-                }
-                else trying = 0;
-                Task.Delay(1);
-                return IsReachedMinAmountOfModifier(id, trying);
+                return false;
             }
         }
         public bool IsReachedMinAmountOfGroupModifiers()
@@ -337,7 +311,8 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
         public Item WithSelectedModifiers() => new(ProductId, ProductName ?? string.Empty, Type ?? string.Empty, Amount, Price, ProductSizeId, ComboInformation, PositionId,
             GetModifiers().Where(x => x.Amount != 0), Comment);
         public bool HaveItems() => Amount > 0;
-        private static void AddSimpleModifier(ref List<Modifier> modifiers, ref List<SimpleModifier> simpleModifiers, TransportModifierItemDto modifier)
+        private static void AddSimpleModifier(ref List<Modifier> modifiers, ref List<SimpleModifier> simpleModifiers, TransportModifierItemDto modifier,
+            Guid? modifierGroupId = null)
         {
             var modifierName = modifier.Name ?? string.Empty;
             var modifierId = modifier.ItemId ?? throw new InfoException(typeof(Item).FullName!, nameof(AddSimpleModifier),
@@ -351,7 +326,8 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
                 MinAmount = modifierRestriction?.MinQuantity,
                 MaxAmount = modifierRestriction?.MaxQuantity,
                 Amount = modifierRestriction?.ByDefault ?? 0,
-                Price = modifier.Price()
+                Price = modifier.Price(),
+                ProductGroupId = modifierGroupId
             });
 
             int default_ = modifierRestriction?.ByDefault ?? 0;

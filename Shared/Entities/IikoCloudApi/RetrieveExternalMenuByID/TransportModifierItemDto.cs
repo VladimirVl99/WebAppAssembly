@@ -31,7 +31,7 @@ namespace ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExtern
         public NutritionInfoDto? NutritionPerHundredGrams { get; set; }
         [JsonProperty("nutritions")]
         [JsonPropertyName("nutritions")]
-        public NutritionInfoDto? Nutritions { get; set; }
+        public IEnumerable<NutritionInfoDto>? Nutritions { get; set; }
         [JsonProperty("portionWeightGrams")]
         [JsonPropertyName("portionWeightGrams")]
         public float? PortionWeightGrams { get; set; }
@@ -41,10 +41,10 @@ namespace ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExtern
         [JsonProperty("labels")]
         [JsonPropertyName("labels")]
         public IEnumerable<ExternalTag>? ExternalTags { get; set; }
-        [JsonProperty("iikoItemId")]
-        [JsonPropertyName("iikoItemId")]
+        [JsonProperty("itemId")]
+        [JsonPropertyName("itemId")]
         public Guid? ItemId { get; set; }
 
-        public double? Price() => Prices?.LastOrDefault()?.Price;
+        public double? Price() => Prices?.FirstOrDefault()?.Price;
     }
 }

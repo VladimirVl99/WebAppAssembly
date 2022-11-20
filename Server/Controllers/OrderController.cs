@@ -52,6 +52,26 @@ namespace WebAppAssembly.Server.Controllers
             }
         }
 
+        /// <summary>
+        /// Receive the wallet balance by chat ID
+        /// </summary>
+        /// <param name="chatInfo"></param>
+        /// <returns></returns>
+        [HttpPost("walletBalance")]
+        public async Task<ActionResult<WalletBalance>> WalletBalanceAsync(ChatInfo chatInfo)
+        {
+            try
+            {
+                _orderService.ChatId = chatInfo.ChatId;
+                return Ok(await _orderService.WalletBalanceAsync());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return StatusCode((int)HttpStatusCode.InternalServerError, ex.Message);
+            }
+        }
+
         [HttpPost("saveChangedOrder")]
         public async Task<IActionResult> SaveChangedOrderAsync(OrderClientModel order)
         {

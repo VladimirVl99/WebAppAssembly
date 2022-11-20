@@ -16,6 +16,7 @@ namespace WebAppAssembly.Shared.Entities.Telegram
             WebAppDeliveryTerminals = configuration["TelegramBotProperties:webAppDeliveryTerminals"];
             WebAppInfo = configuration["TelegramBotProperties:webAppInfo"];
             Checkin = configuration["TelegramBotProperties:checkin"];
+            WalletBalance = configuration["TelegramBotProperties:walletBalance"];
         }
 
         public string SendOrder { get; }
@@ -28,5 +29,6 @@ namespace WebAppAssembly.Shared.Entities.Telegram
         public string WebAppDeliveryTerminals { get; }
         public string WebAppInfo { get; }
         public string Checkin { get; }
+        public string WalletBalance { get; }
     }
 }

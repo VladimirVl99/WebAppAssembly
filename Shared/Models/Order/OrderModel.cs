@@ -3,6 +3,7 @@ using Newtonsoft.Json.Serialization;
 using System.Text.Json.Serialization;
 using WebAppAssembly.Shared.Entities.CreateDelivery;
 using WebAppAssembly.Shared.Entities.Telegram;
+using JsonIgnoreAttribute = Newtonsoft.Json.JsonIgnoreAttribute;
 
 namespace WebAppAssembly.Shared.Models.Order
 {
@@ -112,6 +113,10 @@ namespace WebAppAssembly.Shared.Models.Order
         [JsonProperty("bonusSum")]
         [JsonPropertyName("bonusSum")]
         public double BonusSum { get; set; } = 0;
+        [JsonIgnore]
+        public int AllowedBonusSum { get; set; } = 0;
+        [JsonIgnore]
+        public int SelectedBonusSum { get; set; } = 0;
         [JsonProperty("byCourier")]
         [JsonPropertyName("byCourier")]
         public bool ByCourier { get; set; } = true;

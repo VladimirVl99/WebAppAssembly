@@ -20,8 +20,8 @@ namespace ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExtern
         [JsonProperty("canBeDivided")]
         [JsonPropertyName("canBeDivided")]
         public bool CanBeDivided { get; set; }
-        [JsonProperty("iikoItemGroupId")]
-        [JsonPropertyName("iikoItemGroupId")]
+        [JsonProperty("itemGroupId")]
+        [JsonPropertyName("itemGroupId")]
         public Guid? ItemGroupId { get; set; }
         [JsonProperty("childModifiersHaveMinMaxRestrictions")]
         [JsonPropertyName("childModifiersHaveMinMaxRestrictions")]

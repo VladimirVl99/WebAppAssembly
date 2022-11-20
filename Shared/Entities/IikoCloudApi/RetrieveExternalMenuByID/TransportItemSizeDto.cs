@@ -26,15 +26,15 @@ namespace ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExtern
         [JsonProperty("portionWeightGrams")]
         [JsonPropertyName("portionWeightGrams")]
         public float? PortionWeightGrams { get; set; }
-        [JsonProperty("iikoSizeId")]
-        [JsonPropertyName("iikoSizeId")]
+        [JsonProperty("sizeId")]
+        [JsonPropertyName("sizeId")]
         public Guid? SizeId { get; set; }
         [JsonProperty("nutritionPerHundredGrams")]
         [JsonPropertyName("nutritionPerHundredGrams")]
         public NutritionInfoDto? NutritionPerHundredGrams { get; set; }
         [JsonProperty("nutritions")]
         [JsonPropertyName("nutritions")]
-        public NutritionInfoDto? Nutritions { get; set; }
+        public IEnumerable<NutritionInfoDto>? Nutritions { get; set; }
         [JsonProperty("buttonImageUrl")]
         [JsonPropertyName("buttonImageUrl")]
         public string? ButtonImageUrl { get; set; }

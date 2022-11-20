@@ -1,4 +1,5 @@
-﻿using WebAppAssembly.Shared.Entities.EMenu;
+﻿#region
+using WebAppAssembly.Shared.Entities.EMenu;
 using Newtonsoft.Json;
 using System.Net;
 using System.Text;
@@ -378,7 +379,8 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
 
                 if (product != null)
                 {
-                    var productPrice = product.Price() ?? throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(TotalSumOfSelectedProductWithModifiers)}.{nameof(Exception)}: " +
+                    var productPrice = (item.ProductSizeId is not null ? product.Price((Guid)item.ProductSizeId) : product.Price())
+                        ?? throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(TotalSumOfSelectedProductWithModifiers)}.{nameof(Exception)}: " +
                         $"Price of product by ID - '{product.ItemId}' can't be null");
                     return (productPrice + PriceWithModifiersByProductId(item)) * item.Amount;
                 }
@@ -574,9 +576,12 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         /// <param name="id"></param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public double PriceByProductId(Guid id) => WebAppInfo.TransportItemDtos?.FirstOrDefault(x => x.ItemId == id)?.Price()
-            ?? throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(PriceByProductId)}.{nameof(Exception)}: " +
-                $"{nameof(WebAppInfo.TransportItemDtos)} can't be null");
+        public double PriceByProductId(Guid id, Guid? productSizeId = null)
+        {
+            var product = WebAppInfo.TransportItemDtos?.FirstOrDefault(x => x.ItemId == id);
+            return product?.Price(productSizeId) ?? throw new Exception($"{typeof(WebOrderService).FullName}." +
+                $"{nameof(PriceByProductId)}.{nameof(Exception)}: {nameof(WebAppInfo.TransportItemDtos)} can't be null");
+        }
 
         /// <summary>
         /// Price of the product with modifiers by ID
@@ -654,16 +659,29 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         /// Process total sum of order
         /// </summary>
         /// <returns></returns>
-        public void OrderModelWithPrices(ref OrderClientModel order)
+        public void OrderModelForInvoice(ref OrderClientModel order)
         {
-            if (order.Items is not null) foreach (var item in order.Items)
+            if (order.Items is not null)
             {
-                if (item.Amount != 0)
+                foreach (var item in order.Items)
                 {
-                    if (item.HaveModifiers())
-                        item.Price = TotalSumOfSelectedProductWithModifiers(item.ProductId, item.PositionId ?? Guid.Empty);
-                    else
-                        item.Price = item.Amount * PriceByProductId(item.ProductId);
+                    if (item.Amount > 0)
+                    {
+                        if (item.HaveModifiers())
+                        {
+                            item.Modifiers = item.Modifiers?.Where(x => x.Amount > 0);
+                            if (item.Modifiers is not null)
+                            {
+                                foreach (var modifier in item.Modifiers)
+                                {
+                                    modifier.ProductGroupId = modifier.ProductGroupId == Guid.Empty ? null : modifier.ProductGroupId;
+                                }
+                            }
+
+                            item.Price = TotalSumOfSelectedProductWithModifiers(item.ProductId, item.PositionId ?? Guid.Empty);
+                        }
+                        else item.Price = item.Amount * PriceByProductId(item.ProductId, item.ProductSizeId);
+                    }
                 }
             }
         }
@@ -676,7 +694,7 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
             if (OrderModel is null) throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(CalculateCheckinAsync)}.{nameof(Exception)}: " +
                 $"{nameof(OrderModel)} can't be null");
             var orderModel = (OrderClientModel)OrderModel.Clone();
-            OrderModelWithPrices(ref orderModel);
+            OrderModelForInvoice(ref orderModel);
             using var httpClient = new HttpClient();
             try
             {
@@ -717,7 +735,6 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         {
             if (OrderModel is null) throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(CalculateCheckinAsync)}.{nameof(Exception)}: " +
                 $"{nameof(OrderModel)} can't be null");
-            //var orderModel = (OrderClientModel)OrderModel.Clone();
 
             string responseBody = string.Empty;
             using (var client = new HttpClient())
@@ -733,5 +750,29 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
 
             return JsonConvert.DeserializeObject<Checkin>(responseBody) ?? throw new Exception("Received checkin result is empty");
         }
+
+        /// <summary>
+        /// Receive the wallet balance by chat ID
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        /// <exception cref="HttpProcessException"></exception>
+        public async Task<WalletBalance> WalletBalanceAsync()
+        {
+            string responseBody = string.Empty;
+            using (var client = new HttpClient())
+            {
+                var body = JsonConvert.SerializeObject(new { chatId = ChatId });
+                var data = new StringContent(body, Encoding.UTF8, "application/json");
+                var response = await client.PostAsync(Url.WalletBalance, data);
+
+                responseBody = await response.Content.ReadAsStringAsync();
+                if (response.StatusCode != HttpStatusCode.OK)
+                    throw new HttpProcessException(response.StatusCode, responseBody);
+            }
+
+            return JsonConvert.DeserializeObject<WalletBalance>(responseBody) ?? throw new Exception("Received the wallet balance result is empty");
+        }
     }
 }
+#endregion
