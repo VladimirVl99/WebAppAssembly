@@ -14,7 +14,9 @@ namespace WebAppAssembly.Shared.Models.Order
     {
         public OrderClientModel() { }
 
-        public OrderClientModel(Guid operationId, long chatId, List<Item> items, double totalSum, double totalAmount, double bonusSum, bool byCourier, Guid? terminalId, double discountSum, List<Guid> freePriceItems, List<Item> freeItems, string? comment, string? createdDate, DeliveryTerminal? deliveryTerminal, DeliveryPoint? address, string? coupon)
+        public OrderClientModel(Guid operationId, long chatId, List<Item> items, double totalSum, double totalAmount, double bonusSum,
+            bool byCourier, Guid? terminalId, double discountSum, List<Guid> freePriceItems, List<Item> freeItems, string? comment,
+            string? createdDate, DeliveryTerminal? deliveryTerminal, DeliveryPoint? address, string? coupon, int selectedBonusSum)
         {
             OperationId = operationId;
             ChatId = chatId;
@@ -32,6 +34,7 @@ namespace WebAppAssembly.Shared.Models.Order
             DeliveryTerminal = deliveryTerminal;
             Address = address;
             Coupon = coupon;
+            SelectedBonusSum = selectedBonusSum;
         }
 
         [JsonProperty("operationId")]
@@ -61,6 +64,9 @@ namespace WebAppAssembly.Shared.Models.Order
         [JsonProperty("bonusSum")]
         [JsonPropertyName("bonusSum")]
         public double BonusSum { get; set; } = 0;
+        [JsonProperty("selectedBonusSum")]
+        [JsonPropertyName("selectedBonusSum")]
+        public int SelectedBonusSum { get; set; }
         [JsonProperty("byCourier")]
         [JsonPropertyName("byCourier")]
         public bool ByCourier { get; set; } = true;
@@ -149,7 +155,7 @@ namespace WebAppAssembly.Shared.Models.Order
                     items.Add((Item)item.Clone());
 
             return new OrderClientModel(OperationId, ChatId, items, TotalSum, TotalAmount, BonusSum, ByCourier, TerminalId, DiscountSum, FreePriceItems, FreeItems, Comment, CreatedDate,
-                DeliveryTerminal, Address, Coupon);
+                DeliveryTerminal, Address, Coupon, SelectedBonusSum);
         }
     }
 }

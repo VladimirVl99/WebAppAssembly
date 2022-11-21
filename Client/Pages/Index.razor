@@ -677,12 +677,14 @@
                 <h5>Бонусные баллы</h5>
                 <h6>У Вас накоплено @(OrderModel.BonusSum) баллов</h6>
                 <div class="row">
-                    <div class="col-6">
-                        <input type="range" class="form-range" style="padding-top:21px;" min="0" max="@(OrderModel.AllowedBonusSum)" id="customRangeForWalletBalance" value="@OrderModel.SelectedBonusSum"
+                    <div class="col-6" style="position:relative;">
+                        <input type="range" class="form-range" style="margin:0;position:absolute;top:50%;left:50%;margin-right:-50%;transform:translate(-50%,-50%);
+padding-left:10px;padding-right:10px;"
+                        min="0" max="@(OrderModel.AllowedBonusSum)" id="customRangeForWalletBalance" value="@OrderModel.SelectedBonusSum"
                             @oninput="OnChangeAllowedBonusSum">
                     </div>
-                    <div class="col-2">
-                        <h5>@(OrderModel.SelectedBonusSum)</h5>
+                    <div class="col-2" style="position:relative;">
+                        <h5 style="margin:0;position:absolute;top:50%;left:50%;margin-right:-50%;transform:translate(-50%,-50%);">@(OrderModel.SelectedBonusSum)</h5>
                     </div>
                     <div class="col-4">
                         @if (!ConfirmDiscountBonus)
@@ -1027,8 +1029,8 @@ else {
         var modifiers = item.SelectedModifiers();
         double total = 0;
         foreach (var modifier in modifiers)
-            total += modifier.Price ?? throw new Exception($"{typeof(Index).FullName}.{nameof(PriceWithModifiersByProductId)}.{nameof(Exception)}: " +
-                $"Price of modifier by ID - '{modifier.ProductId}' can't be null");
+            total += (modifier.Price ?? throw new Exception($"{typeof(Index).FullName}.{nameof(PriceWithModifiersByProductId)}.{nameof(Exception)}: " +
+                $"Price of modifier by ID - '{modifier.ProductId}' can't be null")) * modifier.Amount;
         return total;
     }
 
