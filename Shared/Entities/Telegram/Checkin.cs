@@ -9,6 +9,9 @@ namespace WebAppAssembly.Shared.Entities.Telegram
         [JsonProperty("loyaltyProgramResults")]
         [JsonPropertyName("loyaltyProgramResults")]
         public IEnumerable<LoyaltyProgramResult>? LoyaltyProgramResults { get; set; }
+        [JsonProperty("availablePayments")]
+        [JsonPropertyName("availablePayments")]
+        public IEnumerable<AvailablePayment>? AvailablePayments { get; set; }
         [JsonProperty("warningMessage")]
         [JsonPropertyName("warningMessage")]
         public string? WarningMessage { get; set; }

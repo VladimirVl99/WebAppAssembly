@@ -130,8 +130,9 @@
                                         else
                                         {
                                             <div class="TlBlr_div TlBlrCounter_x TlBlrDesctopProductCard TlBlrCounter_y">
-                                                <button @onclick="(e => product.HaveModifiers() ? ChangeProductsWithModifiersForChangingMenuAsync(product.ItemId ?? Guid.Empty)
-                    : RemoveProductInMainMenuAsync(product.ItemId ?? Guid.Empty))" class="TlBlrCounter_btn TlBlrCounter_decrement"
+                                                <button @onclick="(e => (product.HaveModifiers() || product.HaveSizesMoreThanOne())
+                                                    ? ChangeProductsWithModifiersForChangingMenuAsync(product.ItemId ?? Guid.Empty)
+                                                    : RemoveProductInMainMenuAsync(product.ItemId ?? Guid.Empty))" class="TlBlrCounter_btn TlBlrCounter_decrement"
                     data-testid="amount-select-decrement">
                                                     <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
                                                         <path fill-rule="evenodd" clip-rule="evenodd" d="M6 12a1 1 0 0 0 1 1h10a1 1 0 1 0 0-2H7a1 1 0 0 0-1 1Z" fill="currentColor"></path>
@@ -407,10 +408,11 @@
         {
             bool hr = false;
             var items = OrderModel.Items?.Where(item => item.ProductId == SelectedProductId);
+            var product = WebAppInfo.ProductById(CurrentGroupId, SelectedProductId);
             double totalSumOfSelectedProducts = 0;
             <br />
 
-            @if (items is not null)
+            @if (items is not null && product is not null)
             {
                 foreach (var item in items)
                 {
@@ -428,7 +430,11 @@
                             <img class="img-fluid rounded" src="@ImageLinkByProductId(item.ProductId)" alt="@item.ProductName" />
                         </div>
                         <div class="col-6">
-                            <p>@item.ProductName</p>
+                            @{
+                                var sizeName = item.ProductSizeId is not null ? product!.ItemSizes?.FirstOrDefault(x => x.SizeId == item.ProductSizeId)?.SizeName
+                                    : product!.HaveSizesMoreThanOne() ? product.ItemSizes?.FirstOrDefault()?.SizeName : null;
+                            }
+                            <p>@item.ProductName @sizeName</p>
                             @foreach (var modifier in item.SelectedModifiers())
                             {
                                 <p> • @modifier.Name x@(modifier.Amount)</p>
@@ -446,9 +452,8 @@
                             </div>
                         </div>
                         <div align="right" class="col-2">
-                            @{
-                                var product = WebAppInfo.TransportItemDtos?.FirstOrDefault(x => x.ItemId == item.ProductId);    
-                                var totalSum = product != null ? TotalSumOfSelectedProductWithModifiers(product, item)
+                            @{    
+                                var totalSum = product is not null ? TotalSumOfSelectedProductWithModifiers(product, item)
                                 : TotalSumOfSelectedProductWithModifiers(item.ProductId, item.PositionId ?? Guid.Empty);
                                 totalSumOfSelectedProducts += totalSum;
                                     
@@ -516,6 +521,12 @@
                 {
                     foreach (var item in OrderModel.Items)
                     {
+                        var product = WebAppInfo.ProductById(item.ProductId);
+                        if (product is null)
+                        {
+                            continue;
+                        }
+
                         if (hr)
                         {
                             <hr style="color:lightgrey;" />
@@ -524,6 +535,8 @@
                         {
                             hr = true;
                         }
+                        var sizeName = item.ProductSizeId is not null ? product.ItemSizes?.FirstOrDefault(x => x.SizeId == item.ProductSizeId)?.SizeName
+                        : product.HaveSizesMoreThanOne() ? product.ItemSizes?.FirstOrDefault()?.SizeName : null;
                         if (item.HaveModifiers())
                         {
                             <div class="row">
@@ -531,7 +544,7 @@
                                     <img class="img-fluid rounded" src="@ImageLinkByProductId(item.ProductId)" alt="@item.ProductName" />
                                 </div>
                                 <div class="col-6">
-                                    <p>@item.ProductName</p>
+                                    <p>@item.ProductName @sizeName</p>
                                     @foreach (var modifier in item.SelectedModifiers())
                                     {
                                         <p> • @modifier.Name x@(modifier.Amount)</p>
@@ -551,7 +564,6 @@
 
                                 <div align="right" class="col-2">
                                     @{
-                                        var product = WebAppInfo.TransportItemDtos?.FirstOrDefault(x => x.ItemId == item.ProductId);
                                         var totalSum = product != null ? TotalSumOfSelectedProductWithModifiers(product, item)
                                         : TotalSumOfSelectedProductWithModifiers(item.ProductId, item.PositionId ?? Guid.Empty);
                                         var freeItems = OrderModel?.FreePriceItems?.Where(id => id == item.PositionId);
@@ -581,7 +593,7 @@
                                     <img class="img-fluid rounded" src="@ImageLinkByProductId(item.ProductId)" alt="@item.ProductName" />
                                 </div>
                                 <div class="col-6">
-                                    <p>@item.ProductName</p>
+                                    <p>@item.ProductName @sizeName</p>
                                     <div style="display: flex;">
                                         <button @onclick="(e => RemoveProductInShoppingCartAsync(item.ProductId, item.PositionId))" data-toggle="modal" data-target="#productModal" class="btn btn-light"
                                             style="box-shadow:none;width:35px;border-radius:50%;background-color: #F5F4F2;">
@@ -1211,15 +1223,15 @@ else {
                     await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
                     if (WebAppInfo.UseIikoBizProgram)
                     {
-                        await CalculateLoyaltyProgramAsync();
-                        CalculateAllowedBonusSum(OrderModel.BonusSum);
+                        var res = await CalculateLoyaltyProgramAsync();
+                        CalculateAllowedBonusSum(OrderModel.BonusSum, res);
                     }
                     await JsRuntime.InvokeVoidAsync("SetPayOrderButton", WebAppInfo.UseIikoBizProgram ? OrderModel.FinalSum : OrderModel.TotalSum);
                 }
                 else if (WebAppInfo.UseIikoBizProgram)
                 {
-                    await CalculateLoyaltyProgramAsync();
-                    CalculateAllowedBonusSum(OrderModel.BonusSum);
+                    var res = await CalculateLoyaltyProgramAsync();
+                    CalculateAllowedBonusSum(OrderModel.BonusSum, res);
                 }
                 await SendChangedOrderModelToServerAsync();
             }
@@ -1261,8 +1273,8 @@ else {
                     {
                         if (WebAppInfo.UseIikoBizProgram)
                         {
-                            await CalculateLoyaltyProgramAsync();
-                            CalculateAllowedBonusSum(OrderModel.BonusSum);
+                            var res = await CalculateLoyaltyProgramAsync();
+                            CalculateAllowedBonusSum(OrderModel.BonusSum, res);
                         }
                         await JsRuntime.InvokeVoidAsync("SetPayOrderButton", WebAppInfo.UseIikoBizProgram ? OrderModel.FinalSum
                         : OrderModel.TotalSum);
@@ -1276,8 +1288,8 @@ else {
                 }
                 else if (WebAppInfo.UseIikoBizProgram)
                 {
-                    await CalculateLoyaltyProgramAsync();
-                    CalculateAllowedBonusSum(OrderModel.BonusSum);
+                    var res = await CalculateLoyaltyProgramAsync();
+                    CalculateAllowedBonusSum(OrderModel.BonusSum, res);
                 }
                 await SendChangedOrderModelToServerAsync();
             }
@@ -1697,9 +1709,9 @@ else {
             Console.WriteLine(typeof(Index).FullName!, nameof(ViewOrder), "Show the preview selected products in order");
             RazorOrderInfo.OrderStatusType = OrderStatusType.OrderView;
             UpdateTotalSumOfOrder();
-            await CalculateLoyaltyProgramAsync();
+            var res = await CalculateLoyaltyProgramAsync();
             var walletBalance = await RetrieveWalletBalanceAsync();
-            CalculateAllowedBonusSum(walletBalance.Balance);
+            CalculateAllowedBonusSum(walletBalance.Balance, res);
             StateHasChanged();
         }
         catch (Exception ex)
@@ -1744,7 +1756,7 @@ else {
                     if (WebAppInfo.UseIikoBizProgram)
                     {
                         // Show the telegram button for to pay the order
-                        await CalculateLoyaltyProgramAsync();
+                        var res = await CalculateLoyaltyProgramAsync();
                         if (OrderModel.DiscountProcent > 0)
                         {
                             var necessarySum = (100 * minCurrent) / (100 - OrderModel.DiscountProcent);
@@ -1760,7 +1772,7 @@ else {
                             }
                         }
                         var walletBalance = await RetrieveWalletBalanceAsync();
-                        CalculateAllowedBonusSum(walletBalance.Balance);
+                        CalculateAllowedBonusSum(walletBalance.Balance, res);
                     }
                     else if (OrderModel is not null)
                     {
@@ -2101,7 +2113,7 @@ else {
             if (OrderModel is null) return;
             OrderModel.RemoveItemsById(productId);
             var product = WebAppInfo.TransportItemDtos.FirstOrDefault(x => x.ItemId == productId);
-            if (product != null) product.TotalAmount = 0;
+            if (product is not null) product.TotalAmount = 0;
             RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
             if (!IsTestMode && !OrderModel.HaveSelectedProducts())
                 await JsRuntime.InvokeVoidAsync("HideViewOrderButton");
@@ -2394,7 +2406,7 @@ else {
     }
 
     // Calculate discount program
-    private async Task CalculateLoyaltyProgramAsync()
+    private async Task<Checkin?> CalculateLoyaltyProgramAsync()
     {
         IsPageBlocked = true;
 
@@ -2413,7 +2425,7 @@ else {
                     if (!IsTestMode) await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", result.WarningMessage, HapticFeedBackNotificationType.warning.ToString());
                     OrderModel.Coupon = string.Empty;
                     IsPageBlocked = false;
-                    return;
+                    return null;
                 }
                 else if (result.LoyaltyProgramResults != null && result.LoyaltyProgramResults.Any())
                 {
@@ -2459,9 +2471,12 @@ else {
                     OrderModel.FinalSum = OrderModel.TotalSum - OrderModel.DiscountSum;
                     OrderModel.DiscountProcent = OrderModel.DiscountSum * 100 / OrderModel.TotalSum;
                 }
+
+                IsPageBlocked = false;
+                await JsRuntime.InvokeVoidAsync("HideProgress");
+                return result;
             }
-            IsPageBlocked = false;
-            await JsRuntime.InvokeVoidAsync("HideProgress");
+            return null;
         }
         catch (Exception ex)
         {
@@ -2469,6 +2484,7 @@ else {
             IsPageBlocked = false;
             await JsRuntime.InvokeVoidAsync("HideProgress");
             if (!IsTestMode) await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", ex.Message, HapticFeedBackNotificationType.error.ToString());
+            return null;
         }
     }
 
@@ -2631,6 +2647,7 @@ else {
                     var item = order.Items.FirstOrDefault(x => x.ProductId == SelectedProductId && x.PositionId == ProductPositionId);
                     if (item is null) return;
                     item.ProductSizeId = sizeId;
+                    item.Price = product.Price(sizeId);
                     if (!IsTestMode)
                     {
                         await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
@@ -2647,14 +2664,34 @@ else {
     }
 
     //
-    private void CalculateAllowedBonusSum(double bonusSum)
+    private void CalculateAllowedBonusSum(double bonusSum, Checkin? checkin = null)
     {
         if (OrderModel is not null)
         {
+            OrderModel.AvailableWalletSum = null;
+            if (checkin?.AvailablePayments is not null && checkin.AvailablePayments.Any())
+            {
+                double minAvailableSum = double.MaxValue;
+                foreach (var availablePayment in checkin.AvailablePayments)
+                {
+                    if (availablePayment.MaxSum == 0)
+                    {
+                        minAvailableSum = 0;
+                        break;
+                    }
+                    minAvailableSum = availablePayment.MaxSum <= minAvailableSum ? availablePayment.MaxSum : minAvailableSum;
+                }
+                if (minAvailableSum != double.MaxValue) OrderModel!.AvailableWalletSum = minAvailableSum;
+            }
             OrderModel.BonusSum = bonusSum;
             var perhapsBonusSum = OrderModel.FinalSum - minCurrent;
             if (perhapsBonusSum <= 0) OrderModel.AllowedBonusSum = 0;
             else OrderModel.AllowedBonusSum = perhapsBonusSum > OrderModel.BonusSum ? (int)OrderModel.BonusSum : (int)perhapsBonusSum;
+            if (OrderModel.AvailableWalletSum is not null)
+            {
+                var value = (int)Math.Floor((double)OrderModel.AvailableWalletSum);
+                OrderModel.AllowedBonusSum = OrderModel.AllowedBonusSum > value ? value : OrderModel.AllowedBonusSum;
+            }
             OrderModel.SelectedBonusSum = OrderModel.AllowedBonusSum;
         }
     }

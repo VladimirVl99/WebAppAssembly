@@ -115,6 +115,8 @@ namespace WebAppAssembly.Shared.Models.Order
         public double BonusSum { get; set; } = 0;
         [JsonIgnore]
         public int AllowedBonusSum { get; set; } = 0;
+        [JsonIgnore]
+        public double? AvailableWalletSum { get; set; }
         [JsonProperty("selectedBonusSum")]
         [JsonPropertyName("selectedBonusSum")]
         public int SelectedBonusSum { get; set; } = 0;
