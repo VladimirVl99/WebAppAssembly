@@ -10,6 +10,8 @@
 
   <ItemGroup>
     <Content Remove="compilerconfig.json" />
+    <Content Remove="wwwroot\tlg-web-app-relationship-copy.js" />
+    <Content Remove="wwwroot\tlg-web-app-relationship.js" />
   </ItemGroup>
 
   <ItemGroup>
@@ -32,6 +34,12 @@
 
   <ItemGroup>
     <None Include="compilerconfig.json" />
+    <None Include="wwwroot\tlg-web-app-relationship-copy.js">
+      <SubType>Code</SubType>
+    </None>
+    <None Include="wwwroot\tlg-web-app-relationship.js">
+      <SubType>Code</SubType>
+    </None>
   </ItemGroup>
 
 </Project>

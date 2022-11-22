@@ -5,6 +5,7 @@
         paid,
         cancelled,
         failed,
-        pending
+        pending,
+        error
     }
 }
