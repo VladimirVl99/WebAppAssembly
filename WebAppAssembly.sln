@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.3.32901.215
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebAppAssembly.Server", "Server\WebAppAssembly.Server.csproj", "{198470BE-E96C-4958-958F-5A0CF0776F78}"
+	ProjectSection(ProjectDependencies) = postProject
+		{7A700D38-48DC-4F1E-B5F9-0BF3BE2EFE20} = {7A700D38-48DC-4F1E-B5F9-0BF3BE2EFE20}
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebAppAssembly.Client", "Client\WebAppAssembly.Client.csproj", "{F27F8343-2C44-4F85-9A80-711ED3239253}"
 EndProject

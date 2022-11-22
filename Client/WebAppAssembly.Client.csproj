@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\TelegramWebAppNet\TelegramWebAppNet.csproj" />
     <ProjectReference Include="..\Shared\WebAppAssembly.Shared.csproj" />
   </ItemGroup>
 
