@@ -42,7 +42,7 @@
             var groups = WebAppInfo.ItemCategories;
             if (groups is not null && groups.Any())
             {
-                <h1 style="padding-top: 5px;margin-bottom: 0px;">
+                <h1 style="padding-top: 5px;margin-bottom: 0px;text-align: center;">
                     Категории
                 </h1>
                 <hr style="color:grey;margin-bottom:0px;margin-top:10px;"/>
@@ -66,13 +66,13 @@
             var products = (CurrentGroupId == Guid.Empty ? WebAppInfo.TransportItemDtos : GetListOfProductsByGroupId(CurrentGroupId))?.ToArray();
             if (CurrentGroupId != Guid.Empty)
             {
-                <h1 style="padding-top: 0px;margin-bottom: 0px;">
+                <h1 style="padding-top: 0px;margin-bottom: 0px;text-align:center;">
                     @groups?.FirstOrDefault(x => x.Id == CurrentGroupId)?.Name
                 </h1>
             }
             else
             {
-                <h1 style="padding-top: 0px;margin-bottom: 0px;">
+                <h1 style="padding-top: 0px;margin-bottom: 0px;text-align:center;">
                     Меню
                 </h1>
             }
@@ -267,50 +267,69 @@
                     {
                         foreach (var modifier in groupModifier.Items)
                         {
-                            <div class="row">
+                            <div class="row mb-1">
                                 <div class="col-5">
-                                    @if (item.IsSelectedModifier(modifier.ItemId ?? Guid.Empty, groupModifier.ItemGroupId))
+
+                                    @if (!item.IsSelectedModifier(modifier.ItemId ?? Guid.Empty, groupModifier.ItemGroupId))
                                     {
-                                        <button @onclick="(e => RemoveModifierAsync(SelectedProductId, modifier.ItemId ?? Guid.Empty, ProductPositionId, groupModifier.ItemGroupId))"
-                                            id="@modifier.ItemId" data-toggle="modal" data-target="#productModal" class="btn btn-light full-width-left TlBlrModifierCounter" style="box-shadow:none;">
-                                            -
-                                        </button>
+                                        <div class="TlBlr_div TlBlrCounter_x TlBlrDesktopProductCard_footer TlBlrCounter_y">
+                                            @if (!item.IsReachedMaxAmountOfGroupModifier(groupModifier.ItemGroupId ?? Guid.Empty, modifier.ItemId ?? Guid.Empty))
+                                            {
+                                                <button @onclick="(e => AddModifierAsync(SelectedProductId, modifier.ItemId ?? Guid.Empty, ProductPositionId, groupModifier.ItemGroupId))"
+                                                    class="TlBlrCounter_btn TlBlrCounter_onlyIncrement" data-testid="amount-select-increment">
+                                                    <span>Добавить</span>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button data-testid="amount-select-increment" class="TlBlrCounter_btn TlBlrCounter_onlyIncrement" disabled>
+                                                    <span>Добавить</span>
+                                                </button>
+                                            }
+                                        </div>
                                     }
                                     else
                                     {
-                                        <button @onclick="(e => RemoveModifierAsync(SelectedProductId, modifier.ItemId ?? Guid.Empty, ProductPositionId, groupModifier.ItemGroupId))"
-                                            id="@modifier.ItemId" data-toggle="modal" data-target="#productModal" class="btn btn-light full-width-left TlBlrModifierCounter" style="box-shadow:none;" disabled>
-                                            -
-                                        </button>
+                                        <div class="TlBlr_div TlBlrCounter_x TlBlrDesctopProductCard TlBlrCounter_y">
+                                            <button @onclick="(e => RemoveModifierAsync(SelectedProductId, modifier.ItemId ?? Guid.Empty, ProductPositionId, groupModifier.ItemGroupId))"
+                                                class="TlBlrCounter_btn TlBlrCounter_decrement" data-testid="amount-select-decrement">
+                                                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
+                                                    <path fill-rule="evenodd" clip-rule="evenodd" d="M6 12a1 1 0 0 0 1 1h10a1 1 0 1 0 0-2H7a1 1 0 0 0-1 1Z" fill="currentColor"></path>
+                                                </svg>
+                                            </button>
+                                            
+                                            @if (!item.IsReachedMaxAmountOfGroupModifier(groupModifier.ItemGroupId ?? Guid.Empty, modifier.ItemId ?? Guid.Empty))
+                                            {
+                                                <span>@(item.AmountOfModifier(modifier.ItemId ?? Guid.Empty, groupModifier.ItemGroupId))</span>
+                                                <button @onclick="(e => AddModifierAsync(SelectedProductId, modifier.ItemId ?? Guid.Empty, ProductPositionId, groupModifier.ItemGroupId))"
+                                                class="TlBlrCounter_btn TlBlrCounter_increment" data-testid="amount-select-increment">
+                                                    <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
+                                                        <path fill-rule="evenodd" clip-rule="evenodd" d="M12 6a1 1 0 0 0-1 1v4H7a1 1 0 1 0 0 2h4v4a1 1 0 1 0 2 0v-4h4a1 1 0 1 0 0-2h-4V7a1 1 0 0 0-1-1Z"
+                                fill="currentColor"></path>
+                                                    </svg>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <span style="color:red;">@(item.AmountOfModifier(modifier.ItemId ?? Guid.Empty, groupModifier.ItemGroupId))</span>
+                                                    <button data-testid="amount-select-increment" class="TlBlrCounter_btn TlBlrCounter_increment" disabled>
+                                                    <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
+                                                        <path fill-rule="evenodd" clip-rule="evenodd" d="M12 6a1 1 0 0 0-1 1v4H7a1 1 0 1 0 0 2h4v4a1 1 0 1 0 2 0v-4h4a1 1 0 1 0 0-2h-4V7a1 1 0 0 0-1-1Z"
+                                fill="currentColor"></path>
+                                                    </svg>
+                                                </button>  
+                                            }
+                                        </div>
                                     }
 
-                                    @if (!item.IsReachedMaxAmountOfGroupModifier(groupModifier.ItemGroupId ?? Guid.Empty, modifier.ItemId ?? Guid.Empty))
-                                    {
-                                        <button @onclick="(e => AddModifierAsync(SelectedProductId, modifier.ItemId ?? Guid.Empty, ProductPositionId, groupModifier.ItemGroupId))"
-                                            id="@modifier.ItemId" data-toggle="modal" data-target="#productModal" class="btn btn-light full-width-right TlBlrModifierCounter" style="box-shadow:none;">
-                                            +
-                                        </button>
-                                    }
-                                    else
-                                    {
-                                        <button @onclick="(e => AddModifierAsync(SelectedProductId, modifier.ItemId ?? Guid.Empty, ProductPositionId, groupModifier.ItemGroupId))"
-                                            id="@modifier.ItemId" data-toggle="modal" data-target="#productModal" class="btn btn-light full-width-right TlBlrModifierCounter" style="box-shadow:none;" disabled>
-                                            +
-                                        </button>
-                                    }
-                                    </div>
 
-                                    <div class="col">
-                                    @if (item.IsSelectedModifier(modifier.ItemId ?? Guid.Empty, groupModifier.ItemGroupId))
-                                    {
+                                </div>
+
+                                <div class="col">
+                                    @{
                                         var modifierD = item.Modifiers?.FirstOrDefault(x => x.ProductId == modifier.ItemId);
-                                        <p>@modifierD?.Name x@(item.AmountOfModifier(modifier.ItemId ?? Guid.Empty, groupModifier.ItemGroupId))</p>
                                     }
-                                    else
-                                    {
-                                        var modifierD = item.Modifiers?.FirstOrDefault(x => x.ProductId == modifier.ItemId);
-                                        <p>@modifierD?.Name</p>
-                                    }
+                                    <p>@modifierD?.Name</p>
                                     </div>
                                     <div align="right" class="col">
                                     @{
@@ -1861,6 +1880,16 @@ else {
                     {
                         OrderModel.Comment = CommentValue;
                         OrderModel.Address = new(CityValue, StreetValue, HouseValue, FlatValue, EntranceValue, FloorValue);
+
+                        var walletBalance = await RetrieveWalletBalanceAsync();
+                        if (walletBalance?.Balance is not null && OrderModel.BonusSum != walletBalance.Balance)
+                        {
+
+                            CalculateAllowedBonusSum(walletBalance.Balance);
+                            await JsRuntime.InvokeVoidAsync("SetOkPopupMessage", "", "Ваш остаток бонусов изменился в процессе выполнения операции оплаты",
+                            HapticFeedBackNotificationType.warning.ToString());
+                            continue;
+                        }
                     }
 
                     await SendChangedOrderModelToServerAsync();
