@@ -2,6 +2,7 @@
 using System.Net;
 using WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository;
 using WebAppAssembly.Shared.Entities;
+using WebAppAssembly.Shared.Entities.OfServerSide;
 using WebAppAssembly.Shared.Entities.Telegram;
 using WebAppAssembly.Shared.Models.Order;
 
@@ -22,7 +23,7 @@ namespace WebAppAssembly.Server.Controllers
             _orderService = new WebOrderService(configuration);
         }
 
-        [HttpGet(nameof(FoodShopInfo))]
+        [HttpGet("mainInfoForWebAppOrder")]
         public ActionResult<FoodShopInfo> GetFoodShopAsync()
         {
             try

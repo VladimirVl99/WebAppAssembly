@@ -9,12 +9,20 @@ using WebAppAssembly.Shared.Entities.Telegram;
 
 namespace TlgWebAppNet
 {
-    public class TwaNet
+    public class TwaNet : ITwaNet
     {
-        public TwaNet(ref IJSRuntime JsRuntime, string buttonColor)
+        public TwaNet(IJSRuntime JsRuntime, string buttonColor)
         {
             this.JsRuntime = JsRuntime;
             var initTask = TlgWebAppInitAsync(buttonColor);
+            initTask.Wait();
+            ChatId = initTask.Result;
+        }
+
+        public TwaNet(IJSRuntime JsRuntime)
+        {
+            this.JsRuntime = JsRuntime;
+            var initTask = TlgWebAppInitAsync();
             initTask.Wait();
             ChatId = initTask.Result;
         }
@@ -30,6 +38,18 @@ namespace TlgWebAppNet
         private async Task<long> TlgWebAppInitAsync(string buttonColor)
         {
             await JsRuntime.InvokeVoidAsync(TwaMethodNames.SetMainButtonColor.ToString(), buttonColor);
+            var chatId = await JsRuntime.InvokeAsync<long>(TwaMethodNames.TelegramWebAppInit.ToString());
+            if (chatId != 0) return chatId;
+            throw new Exception($"Incorrect format of chat_id - '{chatId}'");
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        private async Task<long> TlgWebAppInitAsync()
+        {
             var chatId = await JsRuntime.InvokeAsync<long>(TwaMethodNames.TelegramWebAppInit.ToString());
             if (chatId != 0) return chatId;
             throw new Exception($"Incorrect format of chat_id - '{chatId}'");
@@ -173,5 +193,11 @@ namespace TlgWebAppNet
             if (style is not null) await SetHapticFeedbackImpactOccurredAsync((HapticFeedbackImpactOccurredType)style);
             return res;
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public long GetChatId() => ChatId;
     }
 }

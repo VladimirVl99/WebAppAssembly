@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
 using System.Text.Json.Serialization;
+using WebAppAssembly.Shared.Entities.WebApp;
 using WebAppAssembly.Shared.Models.Order;
 
 namespace WebAppAssembly.Shared.Entities.Telegram
@@ -14,7 +15,7 @@ namespace WebAppAssembly.Shared.Entities.Telegram
         [JsonProperty("productItems")]
         [JsonPropertyName("productItems")]
         public IEnumerable<TransportItemDto>? TransportItemDtos
-        { 
+        {
             get
             {
                 if (ItemCategories is not null)
@@ -42,13 +43,12 @@ namespace WebAppAssembly.Shared.Entities.Telegram
         [JsonProperty("useDiscountBalance")]
         [JsonPropertyName("useDiscountBalance")]
         public bool UseDiscountBalance { get; set; }
-        [JsonProperty("CurrentOfRub")]
-        [JsonPropertyName("CurrentOfRub")]
+        [JsonProperty("currentOfRub")]
+        [JsonPropertyName("currentOfRub")]
         public float CurrentOfRub { get; set; }
-        [System.Text.Json.Serialization.JsonIgnore]
-        public bool IsTestMode { get; set; }
-        [System.Text.Json.Serialization.JsonIgnore]
-        public long TestChatId { get; set; }
+        [JsonProperty("currTlgWebAppBtnTxt")]
+        [JsonPropertyName("currTlgWebAppBtnTxt")]
+        public CurrTlgWebAppBtnTxt? CurrTlgWebAppBtnTxt { get; set; }
 
         public TransportItemDto? ProductById(Guid groupId, Guid productId)
         {
