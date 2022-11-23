@@ -42,6 +42,13 @@ namespace WebAppAssembly.Shared.Entities.Telegram
         [JsonProperty("useDiscountBalance")]
         [JsonPropertyName("useDiscountBalance")]
         public bool UseDiscountBalance { get; set; }
+        [JsonProperty("CurrentOfRub")]
+        [JsonPropertyName("CurrentOfRub")]
+        public float CurrentOfRub { get; set; }
+        [System.Text.Json.Serialization.JsonIgnore]
+        public bool IsTestMode { get; set; }
+        [System.Text.Json.Serialization.JsonIgnore]
+        public long TestChatId { get; set; }
 
         public TransportItemDto? ProductById(Guid groupId, Guid productId)
         {

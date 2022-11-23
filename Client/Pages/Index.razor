@@ -844,15 +844,7 @@ else {
     #region
     // Parameters for state of page
     public RazorOrderInfo RazorOrderInfo = new RazorOrderInfo();
-    // Comment for order
-    public string CommentValue { get; set; } = string.Empty;
-    public string StreetValue { get; set; } = string.Empty;
-    public string CityValue { get; set; } = string.Empty;
-    public string HouseValue { get; set; } = string.Empty;
-    public string FlatValue { get; set; } = string.Empty;
-    public string EntranceValue { get; set; } = string.Empty;
-    public string FloorValue { get; set; } = string.Empty;
-    public string CouponValue { get; set; } = string.Empty;
+
     // Selected product in order
     public Guid SelectedProductId { get; set; }
     public Guid ProductPositionId { get; set; }
@@ -865,11 +857,6 @@ else {
     public int ChatIdForTestMode { get; } = 2098619539;
     public string OrderControllerPath { get; } = "Order/";
 
-    public OrderModel? OrderModel { get; set; }
-    public long ChatId { get; set; } = 0;
-    public IEnumerable<DeliveryTerminal>? DeliveryTerminals { get; set; }
-    public bool IsTestMode { get; set; }
-    public WebAppInfo? WebAppInfo { get; set; }
 
     private readonly int minCurrent = 80;
 
@@ -1108,6 +1095,7 @@ else {
                     SelectedProductId = productId;
                     ProductPositionId = AddItemToOrderWithNewPosition(productId, product);
                     item = items.Last(x => x.ProductId == productId && x.PositionId == ProductPositionId);
+                    if (product.HaveSizesMoreThanOne()) item.ProductSizeId = product.ItemSizes?.FirstOrDefault()?.SizeId;
                 }
                 else
                 {
