@@ -1,9 +1,11 @@
-﻿using ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExternalMenuByID;
+﻿using ApiServerForTelegram.Entities.EExceptions;
+using ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExternalMenuByID;
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
 using System.Text.Json.Serialization;
 using WebAppAssembly.Shared.Entities.WebApp;
 using WebAppAssembly.Shared.Models.Order;
+using WebAppAssembly.Shared.Models.Order.Service;
 
 namespace WebAppAssembly.Shared.Entities.Telegram
 {
@@ -50,13 +52,57 @@ namespace WebAppAssembly.Shared.Entities.Telegram
         [JsonPropertyName("currTlgWebAppBtnTxt")]
         public CurrTlgWebAppBtnTxt? CurrTlgWebAppBtnTxt { get; set; }
 
-        public TransportItemDto? ProductById(Guid groupId, Guid productId)
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="groupId"></param>
+        /// <param name="productId"></param>
+        /// <returns></returns>
+        public TransportItemDto? ProductByIdOrDefault(Guid productId, Guid? groupId = null)
+            => groupId is null ? ProductByIdOrDefault(productId) : ItemCategories?.FirstOrDefault(x => x.Id == groupId)?.Items?.FirstOrDefault(x => x.ItemId == productId);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="productId"></param>
+        /// <returns></returns>
+        public TransportItemDto? ProductByIdOrDefault(Guid productId)
+            => TransportItemDtos?.FirstOrDefault(x => x.ItemId == productId);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="groupId"></param>
+        /// <param name="productId"></param>
+        /// <returns></returns>
+        /// <exception cref="InfoException"></exception>
+        public TransportItemDto ProductById(Guid productId, Guid? groupId = null)
         {
-            if (groupId == Guid.Empty) return ProductById(productId);
-            return ItemCategories?.FirstOrDefault(x => x.Id == groupId)?.Items?.FirstOrDefault(x => x.ItemId == productId);
+            if (groupId is null)
+                return ProductById(productId);
+            var itemCategories = ItemCategories ?? throw new InfoException(typeof(WebAppInfo).FullName!, nameof(ProductById),
+                nameof(Exception), $"{nameof(Enumerable)}<{typeof(TransportMenuCategoryDto).FullName!}>", ExceptionType.Null);
+            var itemCategory = itemCategories.FirstOrDefault(x => x.Id == groupId) ?? throw new InfoException(typeof(WebAppInfo).FullName!,
+                nameof(ProductById), nameof(Exception), $"No found the menu category by GroupId - '{groupId}'");
+            var itemProducts = itemCategory.Items ?? throw new InfoException(typeof(WebAppInfo).FullName!,
+                nameof(ProductById), nameof(Exception), $"{nameof(Enumerable)}<{typeof(TransportItemDto).FullName!}>", ExceptionType.Null);
+            return itemProducts.FirstOrDefault(x => x.ItemId == productId) ?? throw new InfoException(typeof(WebAppInfo).FullName!,
+                nameof(ProductById), nameof(Exception), $"No found the product item by ProductId - '{productId}'");
         }
 
-        public TransportItemDto? ProductById(Guid productId) =>
-            TransportItemDtos?.FirstOrDefault(x => x.ItemId == productId);
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="productId"></param>
+        /// <returns></returns>
+        /// <exception cref="InfoException"></exception>
+        public TransportItemDto ProductById(Guid productId)
+        {
+            var itemProducts = TransportItemDtos ?? throw new InfoException(typeof(WebAppInfo).FullName!,
+                nameof(ProductById), nameof(Exception), $"{nameof(Enumerable)}<{typeof(TransportItemDto).FullName!}>", ExceptionType.Null);
+            return itemProducts.FirstOrDefault(x => x.ItemId == productId) ?? throw new InfoException(typeof(WebAppInfo).FullName!,
+                nameof(ProductById), nameof(Exception), $"No found the product item by ProductId - '{productId}'");
+        }
     }
 }

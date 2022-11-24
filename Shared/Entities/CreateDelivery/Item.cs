@@ -6,6 +6,7 @@ using ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExternalMe
 using ApiServerForTelegram.Entities.EExceptions;
 using WebAppAssembly.Shared.Entities.IikoCloudApi;
 using System.Text.RegularExpressions;
+using WebAppAssembly.Shared.Entities.Telegram;
 
 namespace WebAppAssembly.Shared.Entities.CreateDelivery
 {
@@ -110,6 +111,9 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
         [JsonProperty("price")]
         [JsonPropertyName("price")]
         public double? Price { get; set; }
+        [JsonProperty("totalPrice")]
+        [JsonPropertyName("totalPrice")]
+        public double? TotalPrice { get; set; }
         // Unique identifier of the item in the order. MUST be unique for the whole system. Therefore it must be generated with Guid.NewGuid()
         // If sent null, it generates automatically on iikoTransport side
         [JsonProperty("positionId")]
@@ -144,8 +148,48 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
         [JsonPropertyName("simpleModifiers")]
         public IEnumerable<SimpleModifier>? SimpleModifiers { get; set; }
 
-        public void IncrementAmount() => Amount++;
-        public void DecrementAmount() => Amount = Amount == 0 ? Amount : --Amount;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="InfoException"></exception>
+        private double IncrementTotalPrice()
+        {
+            TotalPrice ??= 0;
+            var price = PriceBy();
+            TotalPrice += price;
+            return price;
+        }
+
+        private double DecrementTotalPrice()
+        {
+            TotalPrice ??= 0;
+            var price = PriceBy();
+            TotalPrice = Amount == 0 ? 0 : TotalPrice -= price;
+            return price;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public double IncrementAmount()
+        {
+            Amount++;
+            return IncrementTotalPrice();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public double DecrementAmount()
+        {
+            if (Amount <= 0) return 0;
+            --Amount;
+            return DecrementTotalPrice();
+        }
         public IEnumerable<Modifier> GetModifiers() => Modifiers is not null ? Modifiers : Enumerable.Empty<Modifier>();
         public bool IsSelectedModifier(Guid modifierId, Guid? productGroupId = null, int? trying = null)
         {
@@ -170,51 +214,78 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
                 //return IsSelectedModifier(ModifierId, productGroupId, trying);
             }
         }
-        public void IncreaseAmountOfModifier(Guid id, Guid? productGroupId = null)
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="modifier"></param>
+        /// <returns></returns>
+        /// <exception cref="InfoException"></exception>
+        private double IncrementTotalPriceByModifierPrice(Modifier modifier)
         {
-            if (Modifiers is not null)
-            {
-                if (productGroupId is not null && productGroupId != Guid.Empty && SimpleGroupModifiers is not null)
-                {
-                    Modifiers.First(x => x.ProductId == id).Amount++;
-                    var groupModifier = SimpleGroupModifiers.First(x => x.Id == productGroupId);
-                    groupModifier.MaxAmount--;
-                    groupModifier.MinAmount--;
-                }
-                else
-                {
-                    Modifiers.First(x => x.ProductId == id).Amount++;
-                    if (SimpleModifiers is not null)
-                    {
-                        var modifier = SimpleModifiers.First(x => x.Id == id);
-                        modifier.MaxAmount--;
-                        modifier.MinAmount--;
-                    }
-                }
-            }
+            TotalPrice ??= 0;
+            return (double)(TotalPrice += modifier.Price ?? throw new InfoException(typeof(Item).FullName!, nameof(IncrementTotalPriceByModifierPrice),
+                nameof(Exception), $"Price of an modifier by ID - '{modifier.ProductId}' can't be null"));
         }
-        public void DecreaseAmountOfModifier(Guid id, Guid? productGroupId = default)
+
+        private double DecrementTotalPriceByModifierPrice(Modifier modifier)
         {
-            if (Modifiers is not null && Modifiers.First(x => x.ProductId == id).Amount != 0)
+            TotalPrice ??= 0;
+            return (double)(TotalPrice -= modifier.Price ?? throw new InfoException(typeof(Item).FullName!, nameof(DecrementTotalPriceByModifierPrice),
+                nameof(Exception), $"Price by an modifier ID - '{ProductId}' can't be null"));
+        }
+
+        /// <summary>
+        /// !!! Need to save it from crash !!!
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="productGroupId"></param>
+        /// <returns></returns>
+        public double IncreaseAmountOfModifier(Guid id, Guid? productGroupId = null)
+        {
+            var modifier = ModifierById(id);
+            modifier.Amount++;
+
+            if (productGroupId is not null && productGroupId != Guid.Empty && SimpleGroupModifiers is not null)
             {
-                if (productGroupId is not null && productGroupId != Guid.Empty && SimpleGroupModifiers is not null)
-                {
-                    Modifiers.First(x => x.ProductId == id).Amount--;
-                    var groupModifier = SimpleGroupModifiers.First(x => x.Id == productGroupId);
-                    groupModifier.MaxAmount++;
-                    groupModifier.MinAmount++;
-                }
-                else
-                {
-                    Modifiers.First(x => x.ProductId == id).Amount--;
-                    if (SimpleModifiers is not null)
-                    {
-                        var modifier = SimpleModifiers.First(x => x.Id == id);
-                        modifier.MaxAmount++;
-                        modifier.MinAmount++;
-                    }
-                }
-            }                 
+                var groupModifier = SimpleGroupModifiers.First(x => x.Id == productGroupId);
+                groupModifier.MaxAmount--;
+                groupModifier.MinAmount--;
+            }
+            else if (SimpleModifiers is not null)
+            {
+                var simpleModifier = SimpleModifiers.First(x => x.Id == id);
+                simpleModifier.MaxAmount--;
+                simpleModifier.MinAmount--;
+            }
+            return IncrementTotalPriceByModifierPrice(modifier);
+        }
+
+        /// <summary>
+        /// !!! Need to save it from crash !!!
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="productGroupId"></param> 
+        /// <returns></returns>
+        public double DecreaseAmountOfModifier(Guid id, Guid? productGroupId = default)
+        {
+            var modifier = ModifierById(id);
+            if (modifier.Amount <= 0) return (double)TotalPrice!;
+            modifier.Amount--;
+
+            if (productGroupId is not null && productGroupId != Guid.Empty && SimpleGroupModifiers is not null)
+            {
+                var groupModifier = SimpleGroupModifiers.First(x => x.Id == productGroupId);
+                groupModifier.MaxAmount++;
+                groupModifier.MinAmount++;
+            }
+            else if (SimpleModifiers is not null)
+            {
+                var simpleModifier = SimpleModifiers.First(x => x.Id == id);
+                simpleModifier.MaxAmount++;
+                simpleModifier.MinAmount++;
+            }
+            return DecrementTotalPriceByModifierPrice(modifier);
         }
         public double AmountOfModifier(Guid id, Guid? productGroupId = default) => productGroupId != null
             ? GetModifiers().First(x => x.ProductId == id && x.ProductGroupId == productGroupId).Amount
@@ -311,6 +382,22 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
         public Item WithSelectedModifiers() => new(ProductId, ProductName ?? string.Empty, Type ?? string.Empty, Amount, Price, ProductSizeId, ComboInformation, PositionId,
             GetModifiers().Where(x => x.Amount != 0), Comment);
         public bool HaveItems() => Amount > 0;
+        public double PriceBy() => Price ?? throw new InfoException(typeof(Item).FullName!, nameof(PriceBy),
+                nameof(Exception), $"Price of an item by ID - '{ProductId}' can't be null");
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        /// <exception cref="InfoException"></exception>
+        public Modifier ModifierById(Guid id)
+        {
+            var modifiers = Modifiers ?? throw new InfoException(typeof(Item).FullName!,
+                nameof(ModifierById), nameof(Exception), $"{nameof(Enumerable)}<{typeof(Modifier).FullName}>", ExceptionType.Null);
+            return Modifiers.FirstOrDefault(x => x.ProductId == id) ?? throw new InfoException(typeof(Item).FullName!,
+                nameof(ModifierById), nameof(Exception), $"No found a modifier by ID - '{id}'");
+        }
         private static void AddSimpleModifier(ref List<Modifier> modifiers, ref List<SimpleModifier> simpleModifiers, TransportModifierItemDto modifier,
             Guid? modifierGroupId = null)
         {

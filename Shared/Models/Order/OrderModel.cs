@@ -1,5 +1,8 @@
-﻿using Newtonsoft.Json;
+﻿using ApiServerForTelegram.Entities.EExceptions;
+using ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExternalMenuByID;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using System.Reflection.Metadata.Ecma335;
 using System.Text.Json.Serialization;
 using WebAppAssembly.Shared.Entities.CreateDelivery;
 using WebAppAssembly.Shared.Entities.Telegram;
@@ -200,6 +203,48 @@ namespace WebAppAssembly.Shared.Models.Order
             TotalAmount = 0;
             Items ??= new List<Item>();
         }
+
+        public double IncreaseTotalSum()
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="InfoException"></exception>
+        public IEnumerable<Item> CurrItems()
+            => Items ?? throw new InfoException(typeof(OrderModel).FullName!, nameof(CurrItems),
+                nameof(Exception), $"{nameof(Enumerable)}<{typeof(Item).FullName!}>", ExceptionType.Null);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="productId"></param>
+        /// <returns></returns>
+        /// <exception cref="InfoException"></exception>
+        public Item ItemById(Guid productId)
+            => CurrItems().FirstOrDefault(item => item.ProductId == productId) ?? throw new InfoException(typeof(OrderModel).FullName!,
+                nameof(ItemById), nameof(Exception), $"No found an item ({typeof(Item).FullName}) by ProductId - '{productId}'");
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="productId"></param>
+        /// <returns></returns>
+        public Item? ItemByIdOrDefault(Guid productId)
+            => CurrItems().FirstOrDefault(item => item.ProductId == productId);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="productId"></param>
+        /// <param name="positionId"></param>
+        /// <returns></returns>
+        /// <exception cref="InfoException"></exception>
+        public Item ItemById(Guid productId, Guid? positionId = null)
+            => positionId is null ? ItemById(productId) : CurrItems().FirstOrDefault(item => item.ProductId == productId && item.PositionId == positionId)
+            ?? throw new InfoException(typeof(OrderModel).FullName!, nameof(ItemById), nameof(Exception),
+                $"No found an item ({typeof(Item).FullName}) by ProductId - '{productId}' and PositionId - '{positionId}'");
+
         public object Clone()
         {
             var items = new List<Item>();

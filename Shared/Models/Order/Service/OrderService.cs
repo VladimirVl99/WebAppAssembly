@@ -36,7 +36,7 @@ namespace WebAppAssembly.Shared.Models.Order.Service
             var mainInfo = mainInfoTask.Result;
 
             OrderInfo = OrderInfoInit(mainInfo.OrderInfo);
-            if (OrderInfo.ChatId == 0) SetTestChatIdToOrder(chatId);
+            if (OrderInfo.ChatId == 0) OrderInfo.ChatId = chatId;
             DeliveryGeneralInfo = mainInfo.DeliveryGeneralInfo ?? throw new InfoException(typeof(OrderService).FullName!,
                 nameof(Exception), typeof(WebAppInfo).FullName!, ExceptionType.Null);
             IsDiscountBalanceConfirmed = false;
@@ -128,24 +128,12 @@ namespace WebAppAssembly.Shared.Models.Order.Service
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="chatId"></param>
-        private void SetTestChatIdToOrder(long chatId) => OrderInfo.ChatId = chatId;
-
-        /// <summary>
-        /// 
-        /// </summary>
         /// <param name="productId"></param>
-        /// <param name="groupId"></param>
         /// <returns></returns>
-        /// <exception cref="InfoException"></exception>
         public async Task<ProductInfo> AddProductItemInSelectingProductPageAsync(Guid productId)
         {
-            var product = (CurrentGroupId is not null ? DeliveryGeneralInfo.ProductById((Guid)CurrentGroupId, productId) : DeliveryGeneralInfo.ProductById(productId))
-                ?? throw new InfoException(typeof(OrderService).FullName!, nameof(AddProductItemInSelectingProductPageAsync), nameof(Exception), typeof(TransportItemDto).FullName!,
-                ExceptionType.Null);
-
-            var items = OrderInfo.Items ?? throw new InfoException(typeof(OrderService).FullName!, nameof(AddProductItemInSelectingProductPageAsync), nameof(Exception),
-                $"{nameof(Enumerable)}<{typeof(Item).FullName!}>", ExceptionType.Null);
+            var product = DeliveryGeneralInfo.ProductById(productId, CurrentGroupId);
+            var items = OrderInfo.CurrItems();
 
             if (product.HaveModifiers() || product.HaveSizesMoreThanOne())
             {
@@ -173,28 +161,50 @@ namespace WebAppAssembly.Shared.Models.Order.Service
         /// </summary>
         /// <param name="productId"></param>
         /// <returns></returns>
-        /// <exception cref="InfoException"></exception>
         public async Task<ProductInfo?> RemoveProductItemInSelectingProductPageAsync(Guid productId)
         {
-            var product = (CurrentGroupId is not null ? DeliveryGeneralInfo.ProductById((Guid)CurrentGroupId, productId) : DeliveryGeneralInfo.ProductById(productId))
-                ?? throw new InfoException(typeof(OrderService).FullName!, nameof(AddProductItemInSelectingProductPageAsync), nameof(Exception), typeof(TransportItemDto).FullName!,
-                ExceptionType.Null);
-
-            var items = OrderInfo.Items ?? throw new InfoException(typeof(OrderService).FullName!, nameof(AddProductItemInSelectingProductPageAsync), nameof(Exception),
-                $"{nameof(Enumerable)}<{typeof(Item).FullName!}>", ExceptionType.Null);
-
-
-            var item = items.FirstOrDefault(x => x.ProductId == productId);
-            if (item is null)
-            {
-                HaveSelectedItemsInOrder = OrderInfo.HaveSelectedProducts();
-                return null;
-            }
+            var product = DeliveryGeneralInfo.ProductById(productId, CurrentGroupId);
+            var item = OrderInfo.ItemByIdOrDefault(productId);
+            if (item is null) return null;
 
             RemoveProduct(product, item);
-            if (!item.HaveItems()) OrderInfo.ZeroAmountOfItem(item);
+
+            if (!item.HaveItems())
+            {
+                OrderInfo.ZeroAmountOfItem(item);
+                HaveSelectedItemsInOrder = OrderInfo.HaveSelectedProducts();
+                await SendChangedOrderModelToServerAsync();
+                return null;
+            }
             await SendChangedOrderModelToServerAsync();
             return new(product, item, !HaveSelectedProductsAtFirst());
+        }
+
+
+        public async Task<ProductInfo> AddProductItemInShoppingCartPageAsync(Guid productId, Guid? positionId = null)
+        {
+            var product = DeliveryGeneralInfo.ProductById(productId, CurrentGroupId);
+            var item = OrderInfo.ItemById(productId, positionId);
+
+            AddProduct(product, item);
+
+            UpdateTotalSumOfOrder();
+            if (!IsTestMode)
+            {
+                await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
+                if (WebAppInfo.UseIikoBizProgram)
+                {
+                    var res = await CalculateLoyaltyProgramAsync();
+                    CalculateAllowedBonusSum(OrderModel.BonusSum, res);
+                }
+                await JsRuntime.InvokeVoidAsync("SetPayOrderButton", WebAppInfo.UseIikoBizProgram ? OrderModel.FinalSum : OrderModel.TotalSum);
+            }
+            else if (WebAppInfo.UseIikoBizProgram)
+            {
+                var res = await CalculateLoyaltyProgramAsync();
+                CalculateAllowedBonusSum(OrderModel.BonusSum, res);
+            }
+            await SendChangedOrderModelToServerAsync();
         }
 
         /// <summary>
