@@ -11,5 +11,7 @@ namespace TlgWebAppNet
         Task SetMainButtonTextAsync(string txt);
         Task SetHapticFeedbackSelectionChangedAsync();
         long GetChatId();
+        Task ShowBackButtonAsync();
+        Task HideMainButtonAsync();
     }
 }

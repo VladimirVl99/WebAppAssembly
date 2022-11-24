@@ -1,4 +1,5 @@
 ﻿using ApiServerForTelegram.Entities.EExceptions;
+using ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExternalMenuByID;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -10,8 +11,11 @@ using System.Threading.Tasks;
 using WebAppAssembly.Shared.Entities;
 using WebAppAssembly.Shared.Entities.CreateDelivery;
 using WebAppAssembly.Shared.Entities.Exceptions;
+using WebAppAssembly.Shared.Entities.OfServerSide;
 using WebAppAssembly.Shared.Entities.Telegram;
+using WebAppAssembly.Shared.Entities.WebApp;
 using static System.Net.WebRequestMethods;
+using OrderControllerPathsOfClientSide = WebAppAssembly.Shared.Entities.WebApp.OrderControllerPaths;
 
 namespace WebAppAssembly.Shared.Models.Order.Service
 {
@@ -25,6 +29,8 @@ namespace WebAppAssembly.Shared.Models.Order.Service
         /// <exception cref="InfoException"></exception>
         public OrderService(HttpClient client, long chatId, string urlPathOfMainInfo)
         {
+            Http = client;
+
             var mainInfoTask = RetrieveMainInfoForWebAppOrderAsync(client, urlPathOfMainInfo);
             mainInfoTask.Wait();
             var mainInfo = mainInfoTask.Result;
@@ -40,28 +46,10 @@ namespace WebAppAssembly.Shared.Models.Order.Service
                 nameof(Exception), $"{typeof(MainInfoForWebAppOrder).FullName!}.{nameof(MainInfoForWebAppOrder.TlgMainBtnColor)}", ExceptionType.NullOrEmpty);
             TlgMainBtnColor = IsRgbColorFormat(tlgMainBtnClr) ? mainInfo.TlgMainBtnColor : throw new InfoException(typeof(OrderService).FullName!,
                 nameof(Exception), $"Incorrect formant of rgb (#rrggbb) color for the main button of the Telegram. Current value is '{tlgMainBtnClr}'");
+            HaveSelectedItemsInOrder = OrderInfo.HaveSelectedProducts();
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="mainInfo"></param>
-        /// <exception cref="InfoException"></exception>
-        public OrderService(MainInfoForWebAppOrder mainInfo, long chatId)
-        {
-            OrderInfo = OrderInfoInit(mainInfo.OrderInfo);
-            if (OrderInfo.ChatId == 0) SetTestChatIdToOrder(chatId);
-            DeliveryGeneralInfo = mainInfo.DeliveryGeneralInfo ?? throw new InfoException(typeof(OrderService).FullName!,
-                    nameof(Exception), typeof(WebAppInfo).FullName!, ExceptionType.Null);
-            IsDiscountBalanceConfirmed = false;
-            IsReleaseMode = mainInfo.IsReleaseMode;
-            var tlgMainBtnClr = !string.IsNullOrEmpty(mainInfo.TlgMainBtnColor)
-                ? mainInfo.TlgMainBtnColor : mainInfo.TlgMainBtnColor ?? throw new InfoException(typeof(OrderService).FullName!,
-                nameof(Exception), $"{typeof(MainInfoForWebAppOrder).FullName!}.{nameof(MainInfoForWebAppOrder.TlgMainBtnColor)}", ExceptionType.NullOrEmpty);
-            TlgMainBtnColor = IsRgbColorFormat(tlgMainBtnClr) ? mainInfo.TlgMainBtnColor : throw new InfoException(typeof(OrderService).FullName!,
-                nameof(Exception), $"Incorrect formant of rgb (#rrggbb) color for the main button of the Telegram. Current value is '{tlgMainBtnClr}'");
-        }
-
+        private HttpClient Http { get; set; }
         public OrderModel OrderInfo { get; set; }
         public WebAppInfo DeliveryGeneralInfo { get; set; }
         public bool IsDiscountBalanceConfirmed { get; set; }
@@ -69,6 +57,7 @@ namespace WebAppAssembly.Shared.Models.Order.Service
         public Guid? CurrentGroupId { get; set; }
         public bool IsReleaseMode { get; set; }
         public string TlgMainBtnColor { get; set; }
+        private bool HaveSelectedItemsInOrder { get; set; }
 
 
         /// <summary>
@@ -141,5 +130,140 @@ namespace WebAppAssembly.Shared.Models.Order.Service
         /// </summary>
         /// <param name="chatId"></param>
         private void SetTestChatIdToOrder(long chatId) => OrderInfo.ChatId = chatId;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="productId"></param>
+        /// <param name="groupId"></param>
+        /// <returns></returns>
+        /// <exception cref="InfoException"></exception>
+        public async Task<ProductInfo> AddProductItemInSelectingProductPageAsync(Guid productId)
+        {
+            var product = (CurrentGroupId is not null ? DeliveryGeneralInfo.ProductById((Guid)CurrentGroupId, productId) : DeliveryGeneralInfo.ProductById(productId))
+                ?? throw new InfoException(typeof(OrderService).FullName!, nameof(AddProductItemInSelectingProductPageAsync), nameof(Exception), typeof(TransportItemDto).FullName!,
+                ExceptionType.Null);
+
+            var items = OrderInfo.Items ?? throw new InfoException(typeof(OrderService).FullName!, nameof(AddProductItemInSelectingProductPageAsync), nameof(Exception),
+                $"{nameof(Enumerable)}<{typeof(Item).FullName!}>", ExceptionType.Null);
+
+            if (product.HaveModifiers() || product.HaveSizesMoreThanOne())
+            {
+                var positionId = AddItemToOrderWithNewPosition(product);
+                var item = items.Last(x => x.ProductId == productId && x.PositionId == positionId);
+                if (product.HaveSizesMoreThanOne()) item.ProductSizeId = product.ItemSizes?.FirstOrDefault()?.SizeId;
+                CurrentProduct = new CurrentProduct(productId, positionId);
+                return new(product, item, !HaveSelectedProductsAtFirst());
+            }
+            else
+            {
+                var item = items.FirstOrDefault(x => x.ProductId == productId);
+                if (item is null)
+                {
+                    AddItemToOrderWithNewPosition(product);
+                    item = items.Last(x => x.ProductId == productId);
+                }
+                await SendChangedOrderModelToServerAsync();
+                return new(product, item, !HaveSelectedProductsAtFirst());
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="productId"></param>
+        /// <returns></returns>
+        /// <exception cref="InfoException"></exception>
+        public async Task<ProductInfo?> RemoveProductItemInSelectingProductPageAsync(Guid productId)
+        {
+            var product = (CurrentGroupId is not null ? DeliveryGeneralInfo.ProductById((Guid)CurrentGroupId, productId) : DeliveryGeneralInfo.ProductById(productId))
+                ?? throw new InfoException(typeof(OrderService).FullName!, nameof(AddProductItemInSelectingProductPageAsync), nameof(Exception), typeof(TransportItemDto).FullName!,
+                ExceptionType.Null);
+
+            var items = OrderInfo.Items ?? throw new InfoException(typeof(OrderService).FullName!, nameof(AddProductItemInSelectingProductPageAsync), nameof(Exception),
+                $"{nameof(Enumerable)}<{typeof(Item).FullName!}>", ExceptionType.Null);
+
+
+            var item = items.FirstOrDefault(x => x.ProductId == productId);
+            if (item is null)
+            {
+                HaveSelectedItemsInOrder = OrderInfo.HaveSelectedProducts();
+                return null;
+            }
+
+            RemoveProduct(product, item);
+            if (!item.HaveItems()) OrderInfo.ZeroAmountOfItem(item);
+            await SendChangedOrderModelToServerAsync();
+            return new(product, item, !HaveSelectedProductsAtFirst());
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="product"></param>
+        /// <returns></returns>
+        private Guid AddItemToOrderWithNewPosition(TransportItemDto product)
+        {
+            var newId = Guid.NewGuid();
+            OrderInfo.Items!.Add(new Item(product, newId));
+            return newId;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="product"></param>
+        /// <param name="item"></param>
+        private void AddProduct(TransportItemDto product, Item item)
+        {
+            item.IncrementAmount();
+            OrderInfo.IncrementTotalAmount();
+            product.IncrementAmount();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="product"></param>
+        /// <param name="item"></param>
+        public void RemoveProduct(TransportItemDto product, Item item)
+        {
+            item.DecrementAmount();
+            OrderInfo.DecrementTotalAmount();
+            product.DecrementAmount();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        private async Task SendChangedOrderModelToServerAsync()
+        {
+            try
+            {
+                var body = JsonConvert.SerializeObject(OrderInfo);
+                var data = new StringContent(body, Encoding.UTF8, "application/json");
+                var response = await Http.PostAsync(OrderControllerPathsOfClientSide.SendChangedOrderModelToServer, data);
+
+                string responseBody = await response.Content.ReadAsStringAsync();
+                if (!response.StatusCode.Equals(HttpStatusCode.OK))
+                    throw new HttpProcessException(response.StatusCode, responseBody);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public bool HaveSelectedProductsAtFirst()
+        {
+            bool val = HaveSelectedItemsInOrder;
+            HaveSelectedItemsInOrder = OrderInfo.HaveSelectedProducts();
+            return val;
+        }
     }
 }

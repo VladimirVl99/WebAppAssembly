@@ -23,20 +23,20 @@ namespace WebAppAssembly.Server.Controllers
             _orderService = new WebOrderService(configuration);
         }
 
-        [HttpGet("mainInfoForWebAppOrder")]
-        public ActionResult<FoodShopInfo> GetFoodShopAsync()
-        {
-            try
-            {
-                return Ok(new FoodShopInfo(_orderService.DeliveryTerminals, _orderService.IsTestMode,
-                    _orderService.WebAppInfo));         
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-                return StatusCode((int)HttpStatusCode.InternalServerError, ex.Message);
-            }
-        }
+        //[HttpGet("mainInfoForWebAppOrder")]
+        //public ActionResult<FoodShopInfo> GetFoodShopAsync()
+        //{
+        //    try
+        //    {
+        //        return Ok(new FoodShopInfo(_orderService.DeliveryTerminals, _orderService.IsTestMode,
+        //            _orderService.WebAppInfo));         
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine(ex.Message);
+        //        return StatusCode((int)HttpStatusCode.InternalServerError, ex.Message);
+        //    }
+        //}
 
         [HttpPost(nameof(OrderClientModel))]
         public async Task<ActionResult<OrderClientModel?>> GetOrderModelAsync(ChatInfo chatInfo)
