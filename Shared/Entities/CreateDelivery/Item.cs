@@ -174,7 +174,7 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
         /// 
         /// </summary>
         /// <returns></returns>
-        public double IncrementAmount()
+        public double IncrementAmountWithPrice()
         {
             Amount++;
             return IncrementTotalPrice();
@@ -184,7 +184,7 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
         /// 
         /// </summary>
         /// <returns></returns>
-        public double DecrementAmount()
+        public double DecrementAmountWithPrice()
         {
             if (Amount <= 0) return 0;
             --Amount;
@@ -206,7 +206,7 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
                 return false;
                 //if (trying != null)
                 //{
-                //    if (trying < 50) ++trying;
+                //    if (trying < 50) + +trying;
                 //    else return false; // ???
                 //}
                 //else trying = 0;
@@ -224,15 +224,17 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
         private double IncrementTotalPriceByModifierPrice(Modifier modifier)
         {
             TotalPrice ??= 0;
-            return (double)(TotalPrice += modifier.Price ?? throw new InfoException(typeof(Item).FullName!, nameof(IncrementTotalPriceByModifierPrice),
-                nameof(Exception), $"Price of an modifier by ID - '{modifier.ProductId}' can't be null"));
+            var price = modifier.PriceBy();
+            TotalPrice += price;
+            return price;
         }
 
         private double DecrementTotalPriceByModifierPrice(Modifier modifier)
         {
             TotalPrice ??= 0;
-            return (double)(TotalPrice -= modifier.Price ?? throw new InfoException(typeof(Item).FullName!, nameof(DecrementTotalPriceByModifierPrice),
-                nameof(Exception), $"Price by an modifier ID - '{ProductId}' can't be null"));
+            var price = modifier.PriceBy();
+            TotalPrice -= price;
+            return price;
         }
 
         /// <summary>

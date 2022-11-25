@@ -21,7 +21,7 @@
 @using WebAppAssembly.Shared.Models.Order
 @using WebAppAssembly.Shared.Entities
 @using Product = WebAppAssembly.Shared.Entities.EMenu.Product
-@using WebAppAssembly.Shared.Models.Order.Service
+@using WebAppAssembly.Client.Service
 @inject IJSRuntime JsRuntime
 @inject HttpClient Http
 
@@ -872,8 +872,8 @@ else {
             StateHasChanged();
             if (OrderService.HaveSelectedProductsAtFirst())
             {
-                var btnText = OrderService.DeliveryGeneralInfo.CurrTlgWebAppBtnTxt?.SelectingProducts ?? throw new InfoException(typeof(Index).FullName!,
-                    nameof(Exception), typeof(CurrTlgWebAppBtnTxt).FullName!, ExceptionType.Null);
+                var btnText = OrderService.DeliveryGeneralInfo.TlgWebAppBtnTxts?.SelectingProducts ?? throw new InfoException(typeof(Index).FullName!,
+                    nameof(Exception), typeof(TlgWebAppBtnTxts).FullName!, ExceptionType.Null);
                 await TwaNet.SetMainButtonTextAsync(btnText);
             }
             //await ListenTlgMainButtonAsync();
@@ -932,16 +932,16 @@ else {
                 if (productInfo.GeneralProductInfo.HaveModifiers() || productInfo.GeneralProductInfo.HaveSizesMoreThanOne())
                 {
                     StateOfPage.PageTypeOfOrder = PageTypeOfOrder.SelectingModifiersAndAmountsForProduct;
-                    var btnText = OrderService.DeliveryGeneralInfo.CurrTlgWebAppBtnTxt?.SelectingModifiersAndAmountsForProduct ?? throw new InfoException(typeof(Index).FullName!,
-                        nameof(AddProductInMainMenuAsync), nameof(Exception), typeof(CurrTlgWebAppBtnTxt).FullName!, ExceptionType.Null);
+                    var btnText = OrderService.DeliveryGeneralInfo.TlgWebAppBtnTxts?.SelectingModifiersAndAmountsForProduct ?? throw new InfoException(typeof(Index).FullName!,
+                        nameof(AddProductInMainMenuAsync), nameof(Exception), typeof(TlgWebAppBtnTxts).FullName!, ExceptionType.Null);
                     btnText = string.Format(btnText, productInfo.TotalSumOfSelectedProductWithModifiers());
                     await TwaNet.SetMainButtonTextAsync(btnText);
                     await TwaNet.ShowBackButtonAsync();
                 }
                 else if (productInfo.IsFirstSelected)
                 {
-                    var btnText = OrderService.DeliveryGeneralInfo.CurrTlgWebAppBtnTxt?.SelectingProducts ?? throw new InfoException(typeof(Index).FullName!,
-                        nameof(AddProductInMainMenuAsync), nameof(Exception), typeof(CurrTlgWebAppBtnTxt).FullName!, ExceptionType.Null);
+                    var btnText = OrderService.DeliveryGeneralInfo.TlgWebAppBtnTxts?.SelectingProducts ?? throw new InfoException(typeof(Index).FullName!,
+                        nameof(AddProductInMainMenuAsync), nameof(Exception), typeof(TlgWebAppBtnTxts).FullName!, ExceptionType.Null);
                     await TwaNet.SetMainButtonTextAsync(btnText);
                 }
             }

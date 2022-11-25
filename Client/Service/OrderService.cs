@@ -8,16 +8,19 @@ using System.Net;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using TlgWebAppNet;
 using WebAppAssembly.Shared.Entities;
 using WebAppAssembly.Shared.Entities.CreateDelivery;
 using WebAppAssembly.Shared.Entities.Exceptions;
+using WebAppAssembly.Shared.Entities.IikoCloudApi;
 using WebAppAssembly.Shared.Entities.OfServerSide;
 using WebAppAssembly.Shared.Entities.Telegram;
 using WebAppAssembly.Shared.Entities.WebApp;
+using WebAppAssembly.Shared.Models.Order;
 using static System.Net.WebRequestMethods;
 using OrderControllerPathsOfClientSide = WebAppAssembly.Shared.Entities.WebApp.OrderControllerPaths;
 
-namespace WebAppAssembly.Shared.Models.Order.Service
+namespace WebAppAssembly.Client.Service
 {
     public class OrderService : IOrderService
     {
@@ -141,6 +144,7 @@ namespace WebAppAssembly.Shared.Models.Order.Service
                 var item = items.Last(x => x.ProductId == productId && x.PositionId == positionId);
                 if (product.HaveSizesMoreThanOne()) item.ProductSizeId = product.ItemSizes?.FirstOrDefault()?.SizeId;
                 CurrentProduct = new CurrentProduct(productId, positionId);
+                AddProduct(product, item);
                 return new(product, item, !HaveSelectedProductsAtFirst());
             }
             else
@@ -151,6 +155,7 @@ namespace WebAppAssembly.Shared.Models.Order.Service
                     AddItemToOrderWithNewPosition(product);
                     item = items.Last(x => x.ProductId == productId);
                 }
+                AddProduct(product, item);
                 await SendChangedOrderModelToServerAsync();
                 return new(product, item, !HaveSelectedProductsAtFirst());
             }
@@ -181,14 +186,18 @@ namespace WebAppAssembly.Shared.Models.Order.Service
         }
 
 
-        public async Task<ProductInfo> AddProductItemInShoppingCartPageAsync(Guid productId, Guid? positionId = null)
+        public async Task<ProductInfo> AddProductItemInShoppingCartPageAsync(ITwaNet twaNet, Guid productId, Guid? positionId = null)
         {
             var product = DeliveryGeneralInfo.ProductById(productId, CurrentGroupId);
             var item = OrderInfo.ItemById(productId, positionId);
 
             AddProduct(product, item);
 
-            UpdateTotalSumOfOrder();
+            if (DeliveryGeneralInfo.UseIikoBizProgram)
+            {
+                var res = await CalculateLoyaltyProgramAsync(twaNet);
+            }
+
             if (!IsTestMode)
             {
                 await JsRuntime.InvokeVoidAsync("HapticFeedbackSelectionChangedSet");
@@ -226,9 +235,8 @@ namespace WebAppAssembly.Shared.Models.Order.Service
         /// <param name="item"></param>
         private void AddProduct(TransportItemDto product, Item item)
         {
-            item.IncrementAmount();
-            OrderInfo.IncrementTotalAmount();
-            product.IncrementAmount();
+            OrderInfo.IncrementTotalAmountWithPrice(item);
+            product.IncrementAmount(); // ??? Remove it ???
         }
 
         /// <summary>
@@ -238,9 +246,8 @@ namespace WebAppAssembly.Shared.Models.Order.Service
         /// <param name="item"></param>
         public void RemoveProduct(TransportItemDto product, Item item)
         {
-            item.DecrementAmount();
-            OrderInfo.DecrementTotalAmount();
-            product.DecrementAmount();
+            OrderInfo.DecrementTotalAmountWithPrice(item);
+            product.DecrementAmount(); // ??? Remove it ???
         }
 
         /// <summary>
@@ -274,6 +281,112 @@ namespace WebAppAssembly.Shared.Models.Order.Service
             bool val = HaveSelectedItemsInOrder;
             HaveSelectedItemsInOrder = OrderInfo.HaveSelectedProducts();
             return val;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        /// <exception cref="HttpProcessException"></exception>
+        private async Task<LoyaltyCheckinInfo> CalculateCheckinAsync()
+        {
+            var json = JsonConvert.SerializeObject(OrderInfo);
+            var data = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await Http.PostAsync(OrderControllerPathsOfClientSide.CalculateCheckin, data);
+            string responseBody = await response.Content.ReadAsStringAsync();
+            if (!response.StatusCode.Equals(HttpStatusCode.OK))
+                throw new HttpProcessException(response.StatusCode, responseBody);
+            return JsonConvert.DeserializeObject<LoyaltyCheckinInfo>(responseBody) ?? throw new Exception("Json convert order model is empty");
+        }
+
+        /// <summary>
+        /// Calculate discount program
+        /// </summary>
+        /// <returns></returns>
+        private async Task<Checkin?> CalculateLoyaltyProgramAsync(ITwaNet twaNet)
+        {
+            var checkinResult = await CalculateCheckinAsync();
+
+            if (!checkinResult.Ok || checkinResult.Checkin is null)
+            {
+                Console.WriteLine(checkinResult.HttpResponseInfo?.Message);
+
+                var popupMessage = DeliveryGeneralInfo.GetTlgWebAppPopupMessages().LoayltyProgramUnavailable ?? throw new InfoException(typeof(OrderService).FullName!,
+                    nameof(CalculateLoyaltyProgramAsync), nameof(Exception), $"{typeof(TlgWebAppPopupMessages).FullName!}.{nameof(TlgWebAppPopupMessages.LoayltyProgramUnavailable)}",
+                    ExceptionType.Null);
+
+                // !!! Need to add check of error message !!!
+                if (IsReleaseMode)
+                {
+                    await twaNet.HideProgressAsync();
+                    await twaNet.ShowOkPopupMessageAsync(popupMessage.Title ?? string.Empty, popupMessage.Description ?? string.Empty, HapticFeedBackNotificationType.warning);
+                }
+                return null;
+            }
+
+            var checkin = checkinResult.Checkin;
+
+            if (!string.IsNullOrEmpty(checkin.WarningMessage))
+            {
+                Console.WriteLine(checkin.WarningMessage);
+
+                if (IsReleaseMode)
+                {
+                    await twaNet.HideProgressAsync();
+                    await twaNet.ShowOkPopupMessageAsync(string.Empty, checkin.WarningMessage, HapticFeedBackNotificationType.warning);
+                }
+                return null;
+            }
+            else if (checkin.LoyaltyProgramResults is not null)
+            {
+                Order.DiscountSum = 0;
+                OrderModel.FreePriceItems.Clear();
+                OrderModel.FreeItems.Clear();
+                var products = WebAppInfo?.TransportItemDtos;
+
+                foreach (var loyaltyProgram in checkinResult.LoyaltyProgramResults)
+                {
+                    if (loyaltyProgram.Discounts is not null && loyaltyProgram.Discounts.Any())
+                    {
+                        foreach (var discount in loyaltyProgram.Discounts)
+                        {
+                            OrderModel.DiscountSum += discount.DiscountSum;
+                            if (discount.Code == (int)DiscountType.FreeProduct && discount.OrderItemId != null && discount.OrderItemId != Guid.Empty)
+                                OrderModel.FreePriceItems.Add((Guid)discount.OrderItemId);
+                        }
+                    }
+                    if (loyaltyProgram.FreeProducts is not null && loyaltyProgram.FreeProducts.Any())
+                    {
+                        foreach (var freeProduct in loyaltyProgram.FreeProducts)
+                        {
+                            if (freeProduct.Products is not null && freeProduct.Products.Any())
+                            {
+                                foreach (var product in freeProduct.Products)
+                                {
+                                    if (products is not null && products.Any())
+                                    {
+                                        var sourceProduct = products.FirstOrDefault(x => x.ItemId == product.Id);
+                                        OrderModel.FreeItems.Add(new Item(
+                                            productId: product.Id,
+                                            productName: sourceProduct?.Name ?? string.Empty,
+                                            amount: 1,
+                                            type: sourceProduct?.OrderItemType ?? "Product"));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                OrderModel.FinalSum = OrderModel.TotalSum - OrderModel.DiscountSum;
+                OrderModel.DiscountProcent = OrderModel.DiscountSum * 100 / OrderModel.TotalSum;
+            }
+
+            IsPageBlocked = false;
+            await JsRuntime.InvokeVoidAsync("HideProgress");
+            return checkinResult;
+
         }
     }
 }

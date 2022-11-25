@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WebAppAssembly.Shared.Entities.Telegram;
 
 namespace TlgWebAppNet
 {
@@ -13,5 +14,8 @@ namespace TlgWebAppNet
         long GetChatId();
         Task ShowBackButtonAsync();
         Task HideMainButtonAsync();
+        Task ShowOkPopupMessageAsync(string title, string description, HapticFeedBackNotificationType notificationType);
+        Task ShowProgressAsync();
+        Task HideProgressAsync();
     }
 }

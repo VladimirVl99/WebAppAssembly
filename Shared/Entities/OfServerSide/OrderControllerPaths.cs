@@ -4,5 +4,6 @@
     {
         public static string MainInfoForWebAppOrder { get; } = "mainInfoForWebAppOrder";
         public static string SendChangedOrderModelToServer { get; } = "saveOrderInfoInServer";
+        public static string CalculateCheckin { get; } = "calculateCheckin";
     }
 }

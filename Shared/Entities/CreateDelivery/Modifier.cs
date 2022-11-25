@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using ApiServerForTelegram.Entities.EExceptions;
+using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 
 namespace WebAppAssembly.Shared.Entities.CreateDelivery
@@ -37,5 +38,8 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
         [JsonProperty("name")]
         [JsonPropertyName("name")]
         public string? Name { get; set; }
+
+        public double PriceBy() => Price ?? throw new InfoException(typeof(Modifier).FullName!, nameof(PriceBy),
+                nameof(Exception), $"Price of an item by ID - '{ProductId}' can't be null");
     }
 }

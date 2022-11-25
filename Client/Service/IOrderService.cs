@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace WebAppAssembly.Shared.Models.Order.Service
+namespace WebAppAssembly.Client.Service
 {
     public interface IOrderService
     {

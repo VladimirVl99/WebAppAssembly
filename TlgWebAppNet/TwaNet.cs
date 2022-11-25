@@ -17,6 +17,7 @@ namespace TlgWebAppNet
             var initTask = TlgWebAppInitAsync(buttonColor);
             initTask.Wait();
             ChatId = initTask.Result;
+            IsProgressing = false;
         }
 
         public TwaNet(IJSRuntime JsRuntime)
@@ -25,10 +26,12 @@ namespace TlgWebAppNet
             var initTask = TlgWebAppInitAsync();
             initTask.Wait();
             ChatId = initTask.Result;
+            IsProgressing = false;
         }
 
         private readonly IJSRuntime JsRuntime;
         public long ChatId { get; }
+        private bool IsProgressing { get; set; }
 
 
         /// <summary>
@@ -166,13 +169,27 @@ namespace TlgWebAppNet
         /// 
         /// </summary>
         /// <returns></returns>
-        public async Task ShowProgressAsync() => await JsRuntime.InvokeVoidAsync(TwaMethodNames.ShowProgress.ToString());
+        public async Task ShowProgressAsync()
+        {
+            if (!IsProgressing)
+            {
+                await JsRuntime.InvokeVoidAsync(TwaMethodNames.ShowProgress.ToString());
+                IsProgressing = true;
+            }
+        }
 
         /// <summary>
         /// 
         /// </summary>
         /// <returns></returns>
-        public async Task HideProgressAsync() => await JsRuntime.InvokeVoidAsync(TwaMethodNames.HideProgress.ToString());
+        public async Task HideProgressAsync()
+        {
+            if (IsProgressing)
+            {
+                await JsRuntime.InvokeVoidAsync(TwaMethodNames.HideProgress.ToString());
+                IsProgressing = false;
+            }
+        }
 
         /// <summary>
         /// 

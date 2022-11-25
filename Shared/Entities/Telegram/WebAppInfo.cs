@@ -48,10 +48,22 @@ namespace WebAppAssembly.Shared.Entities.Telegram
         [JsonProperty("currentOfRub")]
         [JsonPropertyName("currentOfRub")]
         public float CurrentOfRub { get; set; }
-        [JsonProperty("currTlgWebAppBtnTxt")]
-        [JsonPropertyName("currTlgWebAppBtnTxt")]
-        public CurrTlgWebAppBtnTxt? CurrTlgWebAppBtnTxt { get; set; }
+        [JsonProperty("tlgWebAppBtnTxts")]
+        [JsonPropertyName("tlgWebAppBtnTxts")]
+        public TlgWebAppBtnTxts? TlgWebAppBtnTxts { get; set; }
+        [JsonProperty("tlgWebAppPopupMessages")]
+        [JsonPropertyName("tlgWebAppPopupMessages")]
+        public TlgWebAppPopupMessages? TlgWebAppPopupMessages { get; set; }
 
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="InfoException"></exception>
+        public TlgWebAppPopupMessages GetTlgWebAppPopupMessages()
+            => TlgWebAppPopupMessages ?? throw new InfoException(typeof(WebAppInfo).FullName!, nameof(GetTlgWebAppPopupMessages),
+                nameof(Exception), typeof(TlgWebAppPopupMessages).FullName!, ExceptionType.Null);
 
         /// <summary>
         /// 

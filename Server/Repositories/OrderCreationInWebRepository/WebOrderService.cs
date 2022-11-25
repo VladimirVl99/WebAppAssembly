@@ -232,9 +232,9 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
             if (OrderModel.Items is not null)
             {
                 if (positionId != null && positionId != Guid.Empty)
-                    OrderModel.Items.Last(x => x.ProductId == productId && x.PositionId == positionId).IncrementAmount();
+                    OrderModel.Items.Last(x => x.ProductId == productId && x.PositionId == positionId).IncrementAmountWithPrice();
                 else
-                    OrderModel.Items.First(x => x.ProductId == productId).IncrementAmount();
+                    OrderModel.Items.First(x => x.ProductId == productId).IncrementAmountWithPrice();
                 OrderModel.IncrementTotalAmount();
 
                 var product = WebAppInfo.TransportItemDtos?.FirstOrDefault(x => x.ItemId == productId);
@@ -254,7 +254,7 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
             if (OrderModel is null) throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(AddProduct)}.{nameof(Exception)}: " +
                 $"{nameof(OrderModel)} can't be null");
 
-            item.IncrementAmount();
+            item.IncrementAmountWithPrice();
             OrderModel.IncrementTotalAmount();
             product.IncrementAmount();
         }
@@ -274,9 +274,9 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
             if (OrderModel.Items is not null)
             {
                 if (positionId != default && positionId != Guid.Empty)
-                    OrderModel.Items.First(x => x.ProductId == productId && x.PositionId == positionId).DecrementAmount();
+                    OrderModel.Items.First(x => x.ProductId == productId && x.PositionId == positionId).DecrementAmountWithPrice();
                 else
-                    OrderModel.Items.First(x => x.ProductId == productId).DecrementAmount();
+                    OrderModel.Items.First(x => x.ProductId == productId).DecrementAmountWithPrice();
                 OrderModel.DecrementTotalAmount();
 
                 var product = WebAppInfo.TransportItemDtos?.FirstOrDefault(x => x.ItemId == productId);
@@ -295,7 +295,7 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
             if (OrderModel is null) throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(RemoveProduct)}.{nameof(Exception)}: " +
                 $"{nameof(OrderModel)} can't be null");
 
-            item.DecrementAmount();
+            item.DecrementAmountWithPrice();
             OrderModel.DecrementTotalAmount();
             product.DecrementAmount();
         }

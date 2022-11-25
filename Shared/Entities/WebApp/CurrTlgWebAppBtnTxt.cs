@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace WebAppAssembly.Shared.Entities.WebApp
 {
-    public class CurrTlgWebAppBtnTxt
+    public class TlgWebAppBtnTxts
     {
         [JsonProperty("selectingProducts")]
         [JsonPropertyName("selectingProducts")]

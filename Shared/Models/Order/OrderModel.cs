@@ -4,8 +4,10 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System.Reflection.Metadata.Ecma335;
 using System.Text.Json.Serialization;
+using WebAppAssembly.Shared.Entities;
 using WebAppAssembly.Shared.Entities.CreateDelivery;
 using WebAppAssembly.Shared.Entities.Telegram;
+using WebAppAssembly.Shared.Models.Order.Service;
 using JsonIgnoreAttribute = Newtonsoft.Json.JsonIgnoreAttribute;
 
 namespace WebAppAssembly.Shared.Models.Order
@@ -151,9 +153,70 @@ namespace WebAppAssembly.Shared.Models.Order
         [JsonPropertyName("freePriceItems")]
         public List<Guid> FreePriceItems { get; set; } = new List<Guid>();
 
-        public void IncrementTotalAmount() => TotalAmount++;
-        public void DecrementTotalAmount() => TotalAmount = TotalAmount == 0 ? TotalAmount : --TotalAmount;
-        public void DecreaseTotalAmountBy(double i) => TotalAmount -= i;
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        private double IncrementTotalAmount() => ++TotalAmount;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        private double DecrementTotalAmount() => TotalAmount = TotalAmount == 0 ? TotalAmount : --TotalAmount;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sum"></param>
+        /// <returns></returns>
+        public double IncrementTotalAmountWithPrice(Item item)
+        {
+            var sum = item.IncrementAmountWithPrice();
+            IncrementTotalAmount();
+            return IncreaseTotalSum(sum);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sum"></param>
+        /// <returns></returns>
+        public double DecrementTotalAmountWithPrice(Item item)
+        {
+            var sum = item.DecrementAmountWithPrice();
+            var amount = DecrementTotalAmount();
+            if (amount <= 0) return TotalSum = 0;
+            return DecreaseTotalSum(sum);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="i"></param>
+        /// <returns></returns>
+        private double DecreaseTotalAmountBy(double i) => TotalAmount = TotalAmount == 0 ? TotalAmount : TotalAmount - i;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sum"></param>
+        /// <returns></returns>
+        private double DecreaseTotalSumBy(double sum) => TotalSum -= sum;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="amount"></param>
+        /// <param name="sum"></param>
+        /// <returns></returns>
+        public double DecreaseTotalAmountAndSumBy(double amount, double sum)
+        {
+            var res = DecreaseTotalAmountBy(amount);
+            if (res <= 0) return TotalSum = 0;
+            return DecreaseTotalSumBy(sum);
+        }
+
         public bool HaveSelectedProducts() => TotalAmount != 0;
         public double TotalAmountByProduct(Guid id)
         {
@@ -171,8 +234,10 @@ namespace WebAppAssembly.Shared.Models.Order
             {
                 if (Items is null || !Items.Any()) return;
                 var amount = item.Amount;
+                var totalPrice = item.TotalPrice ?? throw new InfoException(typeof(OrderModel).FullName!, nameof(Exception),
+                    $"{typeof(Item).FullName!}.{nameof(Item.TotalPrice)}", ExceptionType.Null); ;
                 Items.Remove(item);
-                DecreaseTotalAmountBy(amount);
+                DecreaseTotalAmountAndSumBy(amount, totalPrice);
             }
             catch (Exception ex)
             {
@@ -204,7 +269,19 @@ namespace WebAppAssembly.Shared.Models.Order
             Items ??= new List<Item>();
         }
 
-        public double IncreaseTotalSum()
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sum"></param>
+        /// <returns></returns>
+        public double IncreaseTotalSum(double sum) => TotalSum += sum;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sum"></param>
+        /// <returns></returns>
+        public double DecreaseTotalSum(double sum) => TotalSum -= sum;
 
         /// <summary>
         /// 
