@@ -61,6 +61,14 @@ namespace TlgWebAppNet
         /// <summary>
         /// 
         /// </summary>
+        /// <param name="color"></param>
+        /// <returns></returns>
+        public async Task SetMainBtnColorAsync(string color)
+            => await JsRuntime.InvokeVoidAsync(TwaMethodNames.SetMainButtonColor.ToString(), color);
+
+        /// <summary>
+        /// 
+        /// </summary>
         /// <returns></returns>
         public async Task ListenMainButtonAsync() => await JsRuntime.InvokeVoidAsync(TwaMethodNames.MainButtonHandler.ToString());
 

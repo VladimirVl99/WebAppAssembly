@@ -5,7 +5,6 @@ using System.Net.Http.Headers;
 using System.Text.Json.Serialization;
 using WebAppAssembly.Shared.Entities.WebApp;
 using WebAppAssembly.Shared.Models.Order;
-using WebAppAssembly.Shared.Models.Order.Service;
 
 namespace WebAppAssembly.Shared.Entities.Telegram
 {
@@ -47,7 +46,7 @@ namespace WebAppAssembly.Shared.Entities.Telegram
         public bool UseDiscountBalance { get; set; }
         [JsonProperty("currentOfRub")]
         [JsonPropertyName("currentOfRub")]
-        public float CurrentOfRub { get; set; }
+        public float CurrOfRub { get; set; }
         [JsonProperty("tlgWebAppBtnTxts")]
         [JsonPropertyName("tlgWebAppBtnTxts")]
         public TlgWebAppBtnTxts? TlgWebAppBtnTxts { get; set; }
@@ -111,10 +110,27 @@ namespace WebAppAssembly.Shared.Entities.Telegram
         /// <exception cref="InfoException"></exception>
         public TransportItemDto ProductById(Guid productId)
         {
-            var itemProducts = TransportItemDtos ?? throw new InfoException(typeof(WebAppInfo).FullName!,
-                nameof(ProductById), nameof(Exception), $"{nameof(Enumerable)}<{typeof(TransportItemDto).FullName!}>", ExceptionType.Null);
+            var itemProducts = Products();
             return itemProducts.FirstOrDefault(x => x.ItemId == productId) ?? throw new InfoException(typeof(WebAppInfo).FullName!,
                 nameof(ProductById), nameof(Exception), $"No found the product item by ProductId - '{productId}'");
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="InfoException"></exception>
+        public IEnumerable<TransportItemDto> Products()
+            => TransportItemDtos ?? throw new InfoException(typeof(WebAppInfo).FullName!,
+                nameof(Products), nameof(Exception), $"{nameof(Enumerable)}<{typeof(TransportItemDto).FullName!}>", ExceptionType.Null);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="InfoException"></exception>
+        public TlgWebAppBtnTxts GetTlgWebAppBtnTxts()
+            => TlgWebAppBtnTxts ?? throw new InfoException(typeof(WebAppInfo).FullName!,
+                nameof(GetTlgWebAppBtnTxts), nameof(Exception), typeof(TlgWebAppBtnTxts).FullName!, ExceptionType.Null);
     }
 }

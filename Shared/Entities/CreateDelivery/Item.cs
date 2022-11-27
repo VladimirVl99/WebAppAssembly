@@ -29,6 +29,12 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
             Price = price;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="product"></param>
+        /// <param name="positionId"></param>
+        /// <exception cref="InfoException"></exception>
         public Item(TransportItemDto product, Guid? positionId = default)
         {
             ProductId = product.ItemId ?? throw new InfoException(typeof(Item).FullName!,
@@ -38,6 +44,7 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
             Type = product.OrderItemType;
             PositionId = positionId != default && positionId != Guid.Empty ? positionId : Guid.NewGuid();
             Price = product.Price();
+            TotalPrice = 0;
 
             var modifierList = new List<Modifier>();
             var simpleGroups = new List<SimpleGroupModifier>();
@@ -272,7 +279,7 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
         public double DecreaseAmountOfModifier(Guid id, Guid? productGroupId = default)
         {
             var modifier = ModifierById(id);
-            if (modifier.Amount <= 0) return (double)TotalPrice!;
+            if (modifier.Amount <= 0) return 0;
             modifier.Amount--;
 
             if (productGroupId is not null && productGroupId != Guid.Empty && SimpleGroupModifiers is not null)
@@ -400,7 +407,7 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
             return Modifiers.FirstOrDefault(x => x.ProductId == id) ?? throw new InfoException(typeof(Item).FullName!,
                 nameof(ModifierById), nameof(Exception), $"No found a modifier by ID - '{id}'");
         }
-        private static void AddSimpleModifier(ref List<Modifier> modifiers, ref List<SimpleModifier> simpleModifiers, TransportModifierItemDto modifier,
+        private void AddSimpleModifier(ref List<Modifier> modifiers, ref List<SimpleModifier> simpleModifiers, TransportModifierItemDto modifier,
             Guid? modifierGroupId = null)
         {
             var modifierName = modifier.Name ?? string.Empty;
@@ -419,9 +426,10 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
                 ProductGroupId = modifierGroupId
             });
 
-            int default_ = modifierRestriction?.ByDefault ?? 0;
-            int min = modifierRestriction?.MinQuantity is not null ? (int)modifierRestriction.MinQuantity - default_ : 0;
-            int max = modifierRestriction?.MaxQuantity is not null ? (int)modifierRestriction.MaxQuantity - default_ : 0;
+            int _default = modifierRestriction?.ByDefault ?? 0;
+            if (_default > 0) TotalPrice += _default * modifier.Price();
+            int min = modifierRestriction?.MinQuantity is not null ? (int)modifierRestriction.MinQuantity - _default : 0;
+            int max = modifierRestriction?.MaxQuantity is not null ? (int)modifierRestriction.MaxQuantity - _default : 0;
 
             simpleModifiers.Add(new SimpleModifier(modifierId, modifierName, min, max));
         }

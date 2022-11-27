@@ -12,9 +12,38 @@ namespace WebAppAssembly.Shared.Entities.WebApp
     {
         [JsonProperty("selectingProducts")]
         [JsonPropertyName("selectingProducts")]
-        public string SelectingProducts { get; set; }
+        public string SelectingProducts
+        {
+            get => SelectingProducts ?? string.Empty;
+            set { }
+        }
         [JsonProperty("selectingModifiersAndAmountsForProduct")]
         [JsonPropertyName("selectingModifiersAndAmountsForProduct")]
-        public string SelectingModifiersAndAmountsForProduct { get; set; }
+        public string SelectingModifiersAndAmountsForProduct
+        {
+            get => SelectingModifiersAndAmountsForProduct ?? string.Empty;
+            set { }
+        }
+        [JsonProperty("shoppingCart")]
+        [JsonPropertyName("shoppingCart")]
+        public string ShoppingCart
+        {
+            get => ShoppingCart ?? string.Empty;
+            set { }
+        }
+        [JsonProperty("changingSelectedProductsWithModifiers")]
+        [JsonPropertyName("changingSelectedProductsWithModifiers")]
+        public string ChangingSelectedProductsWithModifiers
+        {
+            get => ChangingSelectedProductsWithModifiers ?? string.Empty;
+            set { }
+        }
+        [JsonProperty("selectingAmountsForProducts")]
+        [JsonPropertyName("selectingAmountsForProducts")]
+        public string SelectingAmountsForProducts
+        {
+            get => SelectingAmountsForProducts ?? string.Empty;
+            set { }
+        }
     }
 }

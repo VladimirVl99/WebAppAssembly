@@ -65,6 +65,9 @@ namespace ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExtern
             }
             return false;
         }
+
+        public bool HaveModifiersOrSizesMoreThanOne() => HaveModifiers() || HaveSizesMoreThanOne();
+
         public float? Price(Guid? sizeId = null) => 
             sizeId is null ? ItemSizes?.FirstOrDefault()?.Prices?.FirstOrDefault()?.Price : ItemSizes?.FirstOrDefault(x => x.SizeId == sizeId)?.Prices?.FirstOrDefault()?.Price;
         public bool HaveItems() => TotalAmount > 0;

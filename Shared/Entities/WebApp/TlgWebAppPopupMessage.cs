@@ -12,9 +12,17 @@ namespace WebAppAssembly.Shared.Entities.WebApp
     {
         [JsonProperty("title")]
         [JsonPropertyName("title")]
-        public string? Title { get; set; }
+        public string Title
+        {
+            get => Title ?? string.Empty;
+            set { }
+        }
         [JsonProperty("description")]
         [JsonPropertyName("description")]
-        public string? Description { get; set; }
+        public string Description
+        {
+            get => Description ?? string.Empty;
+            set { }
+        }
     }
 }

@@ -2,6 +2,7 @@
 using ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExternalMenuByID;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using Org.BouncyCastle.Asn1.X9;
 using System.Reflection.Metadata.Ecma335;
 using System.Text.Json.Serialization;
 using WebAppAssembly.Shared.Entities;
@@ -44,7 +45,7 @@ namespace WebAppAssembly.Shared.Models.Order
             TotalSum = totalSum;
             CreatedDate = createdDate;
             TotalAmount = totalAmount;
-            BonusSum = bonusSum;
+            WalletSum = bonusSum;
             ByCourier = byCourier;
             TerminalId = terminalId;
         }
@@ -59,14 +60,14 @@ namespace WebAppAssembly.Shared.Models.Order
             TotalSum = totalSum;
             CreatedDate = createdDate;
             TotalAmount = totalAmount;
-            BonusSum = bonusSum;
+            WalletSum = bonusSum;
             ByCourier = byCourier;
             TerminalId = terminalId;
             DeliveryTerminal = deliveryTerminal;
             Address = address;
             Coupon = coupon;
             DiscountSum = discountSum;
-            FreePriceItems = freePriceItems;
+            DiscountFreeItems = freePriceItems;
         }
 
         public OrderModel(Guid operationId, long chatId, List<Item> items, double totalSum, double totalAmount, double bonusSum, bool byCourier,
@@ -81,14 +82,14 @@ namespace WebAppAssembly.Shared.Models.Order
             TotalSum = totalSum;
             CreatedDate = createdDate;
             TotalAmount = totalAmount;
-            BonusSum = bonusSum;
+            WalletSum = bonusSum;
             ByCourier = byCourier;
             TerminalId = terminalId;
             DeliveryTerminal = deliveryTerminal;
             Address = address;
             Coupon = coupon;
             DiscountSum = discountSum;
-            FreePriceItems = freePriceItems;
+            DiscountFreeItems = freePriceItems;
         }
 
         [JsonProperty("operationId")]
@@ -117,9 +118,9 @@ namespace WebAppAssembly.Shared.Models.Order
         public double TotalAmount { get; set; } = 0;
         [JsonProperty("bonusSum")]
         [JsonPropertyName("bonusSum")]
-        public double BonusSum { get; set; } = 0;
+        public double WalletSum { get; set; } = 0;
         [JsonIgnore]
-        public int AllowedBonusSum { get; set; } = 0;
+        public int AllowedWalletSum { get; set; } = 0;
         [JsonIgnore]
         public double? AvailableWalletSum { get; set; }
         [JsonProperty("selectedBonusSum")]
@@ -149,9 +150,9 @@ namespace WebAppAssembly.Shared.Models.Order
         [JsonProperty("discountProcent")]
         [JsonPropertyName("discountProcent")]
         public double DiscountProcent { get; set; }
-        [JsonProperty("freePriceItems")]
-        [JsonPropertyName("freePriceItems")]
-        public List<Guid> FreePriceItems { get; set; } = new List<Guid>();
+        [JsonProperty("discountFreeItems")]
+        [JsonPropertyName("discountFreeItems")]
+        public List<Guid> DiscountFreeItems { get; set; } = new List<Guid>();
 
         /// <summary>
         /// 
@@ -187,6 +188,32 @@ namespace WebAppAssembly.Shared.Models.Order
             var sum = item.DecrementAmountWithPrice();
             var amount = DecrementTotalAmount();
             if (amount <= 0) return TotalSum = 0;
+            return DecreaseTotalSum(sum);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="modifierId"></param>
+        /// <param name="modifierGroupId"></param>
+        /// <returns></returns>
+        public double IncrementTotalAmountOfModifierWithPrice(Item item, Guid modifierId, Guid? modifierGroupId)
+        {
+            var sum = item.IncreaseAmountOfModifier(modifierId, modifierGroupId);
+            return IncreaseTotalSum(sum);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="modifierId"></param>
+        /// <param name="modifierGroupId"></param>
+        /// <returns></returns>
+        public double DecrementTotalAmountOfModifierWithPrice(Item item, Guid modifierId, Guid? modifierGroupId)
+        {
+            var sum = item.DecreaseAmountOfModifier(modifierId, modifierGroupId);
             return DecreaseTotalSum(sum);
         }
 
@@ -329,8 +356,22 @@ namespace WebAppAssembly.Shared.Models.Order
             else foreach (var item in Items)
                     items.Add((Item)item.Clone());
 
-            return new OrderModel(OperationId, ChatId, items, TotalSum, TotalAmount, BonusSum, ByCourier, TerminalId, DiscountSum, FreePriceItems, FreeItems, Comment, CreatedDate, 
+            return new OrderModel(OperationId, ChatId, items, TotalSum, TotalAmount, WalletSum, ByCourier, TerminalId, DiscountSum, DiscountFreeItems, FreeItems, Comment, CreatedDate, 
                 DeliveryTerminal, Address, Coupon);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="productId"></param>
+        /// <returns></returns>
+        public bool HaveMoreThanOneItemPositionOfProduct(Guid productId)
+        {
+            var items = CurrItems().Where(x => x.ProductId == productId);
+
+            int count = 0;
+            foreach (var item in items) if (count++ > 0) return true;
+            return false;
         }
     }
 }

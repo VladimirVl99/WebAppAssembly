@@ -13,5 +13,11 @@ namespace WebAppAssembly.Shared.Entities.WebApp
         [JsonProperty("loayltyProgramUnavailable")]
         [JsonPropertyName("loayltyProgramUnavailable")]
         public TlgWebAppPopupMessage? LoayltyProgramUnavailable { get; set; }
+        [JsonProperty("unavailableMinSumWithDiscountForPay")]
+        [JsonPropertyName("unavailableMinSumWithDiscountForPay")]
+        public TlgWebAppPopupMessage? UnavailableMinSumWithDiscountForPay { get; set; }
+        [JsonProperty("unavailableMinSumtForPay")]
+        [JsonPropertyName("unavailableMinSumtForPay")]
+        public TlgWebAppPopupMessage? UnavailableMinSumtForPay { get; set; }
     }
 }

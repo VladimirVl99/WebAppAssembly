@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Transactions;
 using WebAppAssembly.Shared.Entities.CreateDelivery;
-using WebAppAssembly.Shared.Models.Order.Service;
+using WebAppAssembly.Shared.Entities.EMenu;
 
 namespace WebAppAssembly.Shared.Entities.WebApp
 {
@@ -20,6 +20,13 @@ namespace WebAppAssembly.Shared.Entities.WebApp
             IsFirstSelected = isFirstSelected;
         }
 
+        public ProductInfo(TransportItemDto generalProductInfo, Item item)
+        {
+            GeneralProductInfo = generalProductInfo;
+            Item = item;
+            IsFirstSelected = false;
+        }
+
         public TransportItemDto GeneralProductInfo { get; set; }
         public Item Item { get; set; }
         public bool IsFirstSelected { get; set; }
@@ -28,31 +35,9 @@ namespace WebAppAssembly.Shared.Entities.WebApp
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="product"></param>
-        /// <param name="item"></param>
         /// <returns></returns>
-        /// <exception cref="Exception"></exception>
-        public double TotalSumOfSelectedProductWithModifiers()
-        {
-            var productPrice = GeneralProductInfo.Price(Item.ProductSizeId) ?? throw new InfoException(typeof(OrderService).FullName!,
-                nameof(TotalSumOfSelectedProductWithModifiers), nameof(Exception), $"Price of product by ID - '{GeneralProductInfo.ItemId}' can't be null");
-            return (productPrice + PriceWithModifiersByProductId()) * Item.Amount;
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
-        /// <exception cref="Exception"></exception>
-        public double PriceWithModifiersByProductId()
-        {
-            var modifiers = Item.SelectedModifiers();
-            double total = 0;
-            foreach (var modifier in modifiers)
-                total += (modifier.Price ?? throw new InfoException(typeof(OrderService).FullName!,
-                    nameof(TotalSumOfSelectedProductWithModifiers), nameof(Exception), $"Price of modifier by ID - '{modifier.ProductId}' can't be null")) * modifier.Amount;
-            return total;
-        }
+        /// <exception cref="InfoException"></exception>
+        public double TotalSumOfSelectedProductWithModifiers() => Item.TotalPrice ?? throw new InfoException(typeof(ProductInfo).FullName!,
+            nameof(TotalSumOfSelectedProductWithModifiers), nameof(Exception), $"Total price of modifier by ID - '{Item.ProductId}' can't be null");
     }
 }
