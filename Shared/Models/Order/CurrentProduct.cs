@@ -11,15 +11,15 @@ namespace WebAppAssembly.Shared.Models.Order
         public CurrentProduct() { }
         public CurrentProduct(Guid currentProductId)
         {
-            CurrentProductId = currentProductId;
+            ProductId = currentProductId;
         }
         public CurrentProduct(Guid currentProductId, Guid currentPositionId)
         {
-            CurrentProductId = currentProductId;
-            CurrentPostionId = currentPositionId;
+            ProductId = currentProductId;
+            PostionId = currentPositionId;
         }
 
-        public Guid? CurrentProductId { get; set; }
-        public Guid? CurrentPostionId { get; set; }
+        public Guid? ProductId { get; set; }
+        public Guid? PostionId { get; set; }
     }
 }

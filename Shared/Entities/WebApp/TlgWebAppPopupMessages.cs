@@ -19,5 +19,20 @@ namespace WebAppAssembly.Shared.Entities.WebApp
         [JsonProperty("unavailableMinSumtForPay")]
         [JsonPropertyName("unavailableMinSumtForPay")]
         public TlgWebAppPopupMessage? UnavailableMinSumtForPay { get; set; }
+        [JsonProperty("incorrectSelectingOfModifier")]
+        [JsonPropertyName("incorrectSelectingOfModifier")]
+        public TlgWebAppPopupMessage? IncorrectSelectedModifier { get; set; }
+        [JsonProperty("incorrectCityFormat")]
+        [JsonPropertyName("incorrectCityFormat")]
+        public TlgWebAppPopupMessage? IncorrectCityFormat { get; set; }
+        [JsonProperty("incorrectStreetFormat")]
+        [JsonPropertyName("incorrectStreetFormat")]
+        public TlgWebAppPopupMessage? IncorrectStreetFormat { get; set; }
+        [JsonProperty("incorrectHouseFormat")]
+        [JsonPropertyName("incorrectHouseFormat")]
+        public TlgWebAppPopupMessage? IncorrectHouseFormat { get; set; }
+        [JsonProperty("walletBalanceChangedInIikoBiz")]
+        [JsonPropertyName("walletBalanceChangedInIikoBiz")]
+        public TlgWebAppPopupMessage? WalletBalanceChangedInIikoBiz { get; set; }
     }
 }

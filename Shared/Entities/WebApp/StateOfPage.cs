@@ -44,5 +44,27 @@ namespace WebAppAssembly.Shared.Entities.WebApp
         /// 
         /// </summary>
         public void SetErrorStateForWebApp() => HaveErrors = true;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pageType"></param>
+        public void GoToPage(PageTypeOfOrder pageType) => PageTypeOfOrder = pageType;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public void GoBack()
+        {
+            PageTypeOfOrder = PageTypeOfOrder switch
+            {
+                PageTypeOfOrder.SelectingAmountsForProducts => PageTypeOfOrder.SelectingProducts,
+                PageTypeOfOrder.SelectingModifiersAndAmountsForProduct => PageTypeOfOrder.SelectingProducts,
+                PageTypeOfOrder.ChangingSelectedProductsWithModifiers => PageTypeOfOrder.SelectingProducts,
+                PageTypeOfOrder.ShoppingCart => PageTypeOfOrder.SelectingProducts,
+                PageTypeOfOrder.InfoAboutCreatedOrder => PageTypeOfOrder.ShoppingCart,
+                _ => PageTypeOfOrder.SelectingProducts
+            };
+        }
     }
 }

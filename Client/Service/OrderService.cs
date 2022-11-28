@@ -1,6 +1,7 @@
 ﻿using ApiServerForTelegram.Entities.EExceptions;
 using ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExternalMenuByID;
 using Microsoft.JSInterop;
+using Microsoft.VisualBasic;
 using Newtonsoft.Json;
 using Org.BouncyCastle.Asn1.X9;
 using System.Net;
@@ -35,6 +36,7 @@ namespace WebAppAssembly.Client.Service
 
             OrderInfo = OrderInfoInit(mainInfo.OrderInfo);
             if (OrderInfo.ChatId == 0) OrderInfo.ChatId = chatId;
+            OrderInfo.Address = new DeliveryPoint();
             DeliveryGeneralInfo = mainInfo.DeliveryGeneralInfo ?? throw new InfoException(typeof(OrderService).FullName!,
                 nameof(Exception), typeof(WebAppInfo).FullName!, ExceptionType.Null);
             IsDiscountBalanceConfirmed = false;
@@ -864,6 +866,15 @@ namespace WebAppAssembly.Client.Service
             return OrderInfo.AvailableWalletSum;
         }
 
+
+        private void CalculateAvailableWalletSum()
+        {
+            var perhapsWalletSum = OrderInfo.FinalSum - DeliveryGeneralInfo.CurrOfRub;
+
+            if (perhapsWalletSum <= 0) OrderInfo.AllowedWalletSum = 0;
+            else OrderInfo.AllowedWalletSum = perhapsWalletSum > OrderInfo.WalletSum ? (int)OrderInfo.WalletSum : (int)perhapsWalletSum;
+        }
+
         /// <summary>
         /// 
         /// </summary>
@@ -923,5 +934,93 @@ namespace WebAppAssembly.Client.Service
         /// <returns></returns>
         private string IntOrTwoNumberOfDigitsFromCurrentCulture(float number)
             => ((int)(number * 100) % 100) != 0 ? string.Format("0:F2", number) : ((int)number).ToString();
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="InfoException"></exception>
+        public bool CheckSelectingModifiersInSelectingModifiersAndAmountsForProductPageAsync()
+        {
+            if (CurrentProduct is null)
+                throw new InfoException(typeof(OrderService).FullName!, nameof(CheckSelectingModifiersInSelectingModifiersAndAmountsForProductPageAsync),
+                    nameof(Exception), typeof(CurrentProduct).FullName!, ExceptionType.Null);
+            var itemId = CurrentProduct.ProductId ?? throw new InfoException(typeof(OrderService).FullName!,
+                nameof(CheckSelectingModifiersInSelectingModifiersAndAmountsForProductPageAsync), nameof(Exception),
+                $"{typeof(CurrentProduct).FullName!}.{nameof(CurrentProduct.ProductId)}", ExceptionType.Null);
+            var itemPositionId = CurrentProduct.ProductId ?? throw new InfoException(typeof(OrderService).FullName!,
+                nameof(CheckSelectingModifiersInSelectingModifiersAndAmountsForProductPageAsync), nameof(Exception),
+                $"{typeof(CurrentProduct).FullName!}.{nameof(CurrentProduct.PostionId)}", ExceptionType.Null);
+
+            var item = OrderInfo.ItemById(itemId, itemPositionId);
+            if (item is null || !item.IsReachedMinAmountOfGroupModifiers() || !item.IsReachedMinAmountOfModifiers())
+                return false;
+            return true;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="twaNet"></param>
+        /// <returns></returns>
+        /// <exception cref="InfoException"></exception>
+        public async Task<bool> IsNecessaryDataOfOrderCorrect(ITwaNet twaNet)
+        {
+            if (OrderInfo.FinalSum < DeliveryGeneralInfo.CurrOfRub)
+            {
+                var popupMessage = DeliveryGeneralInfo.GetTlgWebAppPopupMessages().UnavailableMinSumtForPay ?? throw new InfoException(typeof(OrderService).FullName!,
+                    nameof(IsNecessaryDataOfOrderCorrect), nameof(Exception), $"{typeof(TlgWebAppPopupMessages).FullName!}." +
+                    $"{nameof(TlgWebAppPopupMessages.UnavailableMinSumtForPay)}", ExceptionType.Null);
+
+                popupMessage.Description = string.Format(popupMessage.Description, DeliveryGeneralInfo.CurrOfRub);
+                await twaNet.ShowOkPopupMessageAsync(popupMessage.Title, popupMessage.Description, HapticFeedBackNotificationType.warning);
+                return false;
+            }
+            else if (string.IsNullOrEmpty(OrderInfo.Address?.City) && OrderInfo.ByCourier)
+            {
+                var popupMessage = DeliveryGeneralInfo.GetTlgWebAppPopupMessages().IncorrectCityFormat ?? throw new InfoException(typeof(OrderService).FullName!,
+                    nameof(IsNecessaryDataOfOrderCorrect), nameof(Exception), $"{typeof(TlgWebAppPopupMessages).FullName!}." +
+                    $"{nameof(TlgWebAppPopupMessages.UnavailableMinSumtForPay)}", ExceptionType.Null);
+
+                await twaNet.ShowOkPopupMessageAsync(popupMessage.Title, popupMessage.Description, HapticFeedBackNotificationType.warning);
+                return false;
+            }
+            else if (string.IsNullOrEmpty(OrderInfo.Address?.Street) && OrderInfo.ByCourier)
+            {
+                var popupMessage = DeliveryGeneralInfo.GetTlgWebAppPopupMessages().IncorrectStreetFormat ?? throw new InfoException(typeof(OrderService).FullName!,
+                    nameof(IsNecessaryDataOfOrderCorrect), nameof(Exception), $"{typeof(TlgWebAppPopupMessages).FullName!}." +
+                    $"{nameof(TlgWebAppPopupMessages.UnavailableMinSumtForPay)}", ExceptionType.Null);
+
+                await twaNet.ShowOkPopupMessageAsync(popupMessage.Title, popupMessage.Description, HapticFeedBackNotificationType.warning);
+                return false;
+            }
+            else if (string.IsNullOrEmpty(OrderInfo.Address?.House) && OrderInfo.ByCourier)
+            {
+                var popupMessage = DeliveryGeneralInfo.GetTlgWebAppPopupMessages().IncorrectHouseFormat ?? throw new InfoException(typeof(OrderService).FullName!,
+                    nameof(IsNecessaryDataOfOrderCorrect), nameof(Exception), $"{typeof(TlgWebAppPopupMessages).FullName!}." +
+                    $"{nameof(TlgWebAppPopupMessages.UnavailableMinSumtForPay)}", ExceptionType.Null);
+
+                await twaNet.ShowOkPopupMessageAsync(popupMessage.Title, popupMessage.Description, HapticFeedBackNotificationType.warning);
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public async Task<bool> IsWalletBalanceChangedInIikoCardAsync()
+        {
+            var walletBalance = await RetrieveWalletBalanceAsync();
+            if (walletBalance?.Balance is not null && OrderInfo.WalletSum != walletBalance.Balance)
+            {
+                OrderInfo.WalletSum = walletBalance.Balance;
+                CalculateAvailableWalletSum();
+                return true;
+            }
+            return false;
+        }
     }
 }
