@@ -11,6 +11,7 @@ using WebAppAssembly.Shared.Entities;
 using WebAppAssembly.Shared.Entities.CreateDelivery;
 using WebAppAssembly.Shared.Entities.Exceptions;
 using WebAppAssembly.Shared.Entities.IikoCloudApi;
+using WebAppAssembly.Shared.Entities.OfServerSide;
 using WebAppAssembly.Shared.Entities.Telegram;
 using WebAppAssembly.Shared.Entities.WebApp;
 using WebAppAssembly.Shared.Models.Order;
@@ -1022,5 +1023,107 @@ namespace WebAppAssembly.Client.Service
             }
             return false;
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="HttpProcessException"></exception>
+        public async Task<InvoiceLinkStatus> CreateInvoiceUrlLinkAsync()
+        {
+            try
+            {
+                var body = JsonConvert.SerializeObject(OrderInfo);
+                var data = new StringContent(body, Encoding.UTF8, "application/json");
+                var response = await Http.PostAsync(OrderControllerPathsOfClientSide.CreateInvoiceLink, data);
+
+                string responseBody = await response.Content.ReadAsStringAsync();
+                if (response.StatusCode != HttpStatusCode.OK)
+                    throw new HttpProcessException(response.StatusCode, responseBody);
+
+                return JsonConvert.DeserializeObject<InvoiceLinkStatus>(responseBody);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return new(false, null, ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="twaNet"></param>
+        /// <returns></returns>
+        /// <exception cref="InfoException"></exception>
+        public async Task<bool> CreateInvoiceLinkAsync(ITwaNet twaNet)
+        {
+            try
+            {
+                var result = await CreateInvoiceUrlLinkAsync();
+                if (!result.Ok)
+                {
+                    await twaNet.ShowOkPopupMessageAsync(string.Empty, result.Message ?? string.Empty, HapticFeedBackNotificationType.error);
+                    throw new InfoException(typeof(OrderService).FullName!, nameof(CreateInvoiceLinkAsync), nameof(Exception), result.Message ?? string.Empty);
+                }
+                else if (string.IsNullOrEmpty(result.InvoiceLink)) // What to send to an user abount this situation ???
+                    throw new InfoException(typeof(OrderService).FullName!, nameof(CreateInvoiceLinkAsync), nameof(Exception), $"{typeof(InvoiceLinkStatus).FullName!}." +
+                        $"{nameof(InvoiceLinkStatus.InvoiceLink)}", ExceptionType.NullOrEmpty);
+
+                var invoiceClosedStatus = await twaNet.InvoiceClosedHandlerAsync(result.InvoiceLink);
+
+                switch (invoiceClosedStatus)
+                {
+                    case InvoiceClosedStatus.cancelled:
+                        {
+                            await twaNet.SetHapticFeedbackImpactOccurredAsync(HapticFeedbackImpactOccurredType.light);
+                            break;
+                        }
+                    case InvoiceClosedStatus.paid:
+                        {
+                            await twaNet.CloseWebAppAsync();
+                            break;
+                        }
+                    default: break;
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public void CancelCurrSelectedItemWithModifiers()
+        {
+            var currItem = GetCurrProduct();
+            var product = DeliveryGeneralInfo.ProductById(currItem.GetProductId(), CurrentGroupId);
+            var item = OrderInfo.ItemById(currItem.GetProductId(), currItem.GetPositionId());
+            product.TotalAmount -= (int)item.Amount;
+            OrderInfo.ZeroAmountOfItem(item);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public void CancelCurrSelectedItemsWithModifiers()
+        {
+            var currItem = GetCurrProduct();
+            var product = DeliveryGeneralInfo.ProductById(currItem.GetProductId(), CurrentGroupId);
+            product.TotalAmount = 0;
+            OrderInfo.RemoveItemsById(currItem.GetProductId());
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="InfoException"></exception>
+        public CurrentProduct GetCurrProduct() => CurrentProduct ?? throw new InfoException(typeof(OrderService).FullName!,
+            nameof(GetCurrProduct), nameof(Exception), typeof(CurrentProduct).FullName!, ExceptionType.Null);
     }
 }

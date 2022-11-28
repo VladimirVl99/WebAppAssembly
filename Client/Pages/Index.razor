@@ -826,7 +826,7 @@ padding-left:10px;padding-right:10px;"
                         else
                         {
                             var sum = OrderModel.TotalSum - OrderModel.DiscountSum;
-                            <button @onclick="(e => PayOrder())" data-toggle="modal" data-target="#productModal" class="btn btn-success">Оплатить ₽@(sum)</button>
+                            <button @onclick="(e => PayOrderForTest())" data-toggle="modal" data-target="#productModal" class="btn btn-success">Оплатить ₽@(sum)</button>
                         }
                     </central>
                 }
@@ -1408,9 +1408,10 @@ else {
                     StateOfPage.GoBack();
                     StateHasChanged();
 
-                    await TwaNet.HideBackButtonAsync();
                     var btnText = OrderService!.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
                     await TwaNet.SetMainButtonTextAsync(btnText);
+                    await TwaNet.HideBackButtonAsync();
+
                     await OrderService!.SendChangedOrderModelToServerAsync();
                 }
                 else if (StateOfPage!.PageTypeOfOrder == PageTypeOfOrder.SelectingAmountsForProducts)
@@ -1456,7 +1457,7 @@ else {
 
                     // Save changed order info by using CreateInvoiceLinkAsync method
                     await OrderService!.SendChangedOrderModelToServerAsync();
-                    await CreateInvoiceLinkAsync();
+                    await OrderService!.CreateInvoiceLinkAsync(TwaNet);
                     await TwaNet!.HideProgressAsync();
                 }
             }
@@ -1470,312 +1471,34 @@ else {
         }
     }
 
-    // +
-    private async Task TryToCloseWebAppAsync()
-    {
-        try
-        {
-            await TwaNet!.CloseWebAppAsync();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex.Message);
-            StateOfPage!.SetErrorStateForWebApp();
-        }
-    }
-
-    // Set the order select state back (use only in web mode)
-    private void EditOrder()
-    {
-        try
-        {
-            Console.WriteLine(typeof(Index).FullName!, nameof(EditOrder), "Get back to select products page");
-            RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"{typeof(Index).FullName}.{nameof(EditOrder)}.{nameof(Exception)}: " +
-                $"{ex.Message}");
-        }
-    }
-
-    // 
-    private void AddChatId(long chatId)
-    {
-        Console.WriteLine(typeof(Index).FullName!, nameof(AddChatId), "Add a chat id via the TelegramBot");
-        ChatId = chatId;
-        if (OrderModel != null) OrderModel.ChatId = chatId;
-    }
-
-    // 
-    public async Task<InvoiceLinkStatus> CreateInvoiceUrlLinkAsync()
-    {
-        try
-        {
-            var body = JsonConvert.SerializeObject(OrderModel);
-            var data = new StringContent(body, Encoding.UTF8, "application/json");
-            var response = await Http.PostAsync(OrderControllerPath + "createInvoiceLink", data);
-
-            string responseBody = await response.Content.ReadAsStringAsync();
-            if (response.StatusCode != HttpStatusCode.OK)
-                throw new HttpProcessException(response.StatusCode, responseBody);
-
-            return JsonConvert.DeserializeObject<InvoiceLinkStatus>(responseBody) ?? throw new Exception("Received an invoice link is invalid");
-        }
-        catch (HttpRequestException hre)
-        {
-            Console.WriteLine(hre.Message);
-            return new(false, null, hre.Message);
-        }
-        catch (HttpProcessException hpe)
-        {
-            Console.WriteLine(hpe.Message);
-            return new(false, null, hpe.Message);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex.Message);
-            return new(false, null, ex.Message);
-        }
-    }
-
-    // 
-    private async Task<string?> CreateAndGetInvoiceLinkAsync()
-    {
-        var response = await CreateInvoiceUrlLinkAsync();
-
-        if (response.Ok) return response.InvoiceLink;
-        else return null;
-    }
-
-    // Pay the completed order (use only in web mode)
-    private async Task PayOrder()
-    {
-        try
-        {
-            Console.WriteLine(typeof(Index).FullName!, nameof(PayOrder), "Show info about created order");
-            AddChatId(ChatIdForTestMode);
-            if (OrderModel is not null)
-            {
-                OrderModel.Comment = CommentValue;
-                OrderModel.Address = new(CityValue, StreetValue, HouseValue, FlatValue, EntranceValue, FloorValue);
-            }
-            var result = await CreateAndGetInvoiceLinkAsync();
-            //await OrderService.SendCreatedOrderToTelegramBot();
-            RazorOrderInfo.OrderStatusType = OrderStatusType.OrderCreated;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"{typeof(Index).FullName}.{nameof(PayOrder)}.{nameof(Exception)}: " +
-                $"{ex.Message}");
-        }
-    }
-
-    // Initialize the Telegram connection
-    private async Task MakeTelegramReadyAsync()
-    {
-        try
-        {
-            Console.WriteLine(typeof(Index).FullName!, nameof(MakeTelegramReadyAsync), "Ready to connect with the TelegramBot and get chat id");
-            var chatId = await JsRuntime.InvokeAsync<long>("InitTelegram");
-            // Add received chatId via the TelegramBot
-            AddChatId(chatId);
-            RazorOrderInfo.IsTelegramConnectionInit = true;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"{typeof(Index).FullName}.{nameof(ViewOrderOfTestMode)}.{nameof(Exception)}: " +
-                $"{ex.Message}");
-            HaveErrors = true;
-            StateHasChanged();
-        }
-    }
-
-    // Cancel the selected product in modifier menu
-    private async Task CancelSelectModifiersAsync(Guid productId, Guid positionId)
-    {
-        try
-        {
-            if (WebAppInfo?.TransportItemDtos is null)
-            {
-                HaveErrors = true;
-                throw new Exception("!!!");
-            }
-
-            RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
-            var order = OrderModel ?? throw new Exception($"{nameof(OrderModel)} can't be null");
-            var item = order.Items?.Last(x => x.ProductId == productId && x.PositionId == positionId) ??
-            throw new Exception($"{typeof(Index).FullName}.{nameof(CancelSelectModifiersAsync)}.{nameof(Exception)}: " +
-                $"{nameof(Item)} can't be null");
-            var product = WebAppInfo.TransportItemDtos.FirstOrDefault(x => x.ItemId == productId);
-            if (product is not null) product.TotalAmount -= (int)item.Amount;
-            OrderModel.ZeroAmountOfItem(item);
-
-            if (!IsTestMode)
-            {
-                if (OrderModel.HaveSelectedProducts())
-                {
-                    await JsRuntime.InvokeVoidAsync("SetViewOrderButton");
-                }
-                else
-                {
-                    await JsRuntime.InvokeVoidAsync("HideViewOrderButton");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"{typeof(Index).FullName}.{nameof(CancelSelectModifiersAsync)}.{nameof(Exception)}: " +
-                $"{ex.Message}");
-        }
-    }
-
-    // Cancel the selected product
-    //private void CancelSelectedProductFromTlgHandlerBack(Guid productId)
-    //{
-    //    try
-    //    {
-    //        RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        Console.WriteLine($"{typeof(Index).FullName}.{nameof(CancelSelectedProduct)}.{nameof(Exception)}: " +
-    //            $"{ex.Message}");
-    //    }
-    //}
-
-    // Cancel the selected product
-    private void CancelSelectedProduct(Guid productId)
-    {
-        try
-        {
-            RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"{typeof(Index).FullName}.{nameof(CancelSelectedProduct)}.{nameof(Exception)}: " +
-                $"{ex.Message}");
-        }
-    }
-
-    // Cancel the selected product in modifier menu
-    private void CancelSelectModifiers(Item item)
-    {
-        try
-        {
-            if (WebAppInfo?.TransportItemDtos is null)
-            {
-                HaveErrors = true;
-                throw new Exception("!!!");
-            }
-
-            RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
-            var order = OrderModel;
-            if (order is null) return;
-            var product = WebAppInfo.TransportItemDtos.FirstOrDefault(x => x.ItemId == item.ProductId);
-            if (product is not null) product.TotalAmount -= (int)item.Amount;
-            order.ZeroAmountOfItem(item);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"{typeof(Index).FullName}.{nameof(CancelSelectModifiersAsync)}.{nameof(Exception)}: " +
-                $"{ex.Message}");
-        }
-    }
-
-    // Cancel the selected product
-    private void CancelSelectedProduct(Item item)
-    {
-        try
-        {
-            RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"{typeof(Index).FullName}.{nameof(CancelSelectedProduct)}.{nameof(Exception)}: " +
-                $"{ex.Message}");
-        }
-    }
-
-    // Cancel the selected products with modifiers in main menu
-    private async Task CancelSelectedProductsWithModifiersAsync(Guid productId)
-    {
-        try
-        {
-            if (WebAppInfo?.TransportItemDtos is null)
-            {
-                HaveErrors = true;
-                throw new Exception("!!!");
-            }
-
-            if (OrderModel is null) return;
-            OrderModel.RemoveItemsById(productId);
-            var product = WebAppInfo.TransportItemDtos.FirstOrDefault(x => x.ItemId == productId);
-            if (product is not null) product.TotalAmount = 0;
-            RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
-            if (!IsTestMode && !OrderModel.HaveSelectedProducts())
-                await JsRuntime.InvokeVoidAsync("HideViewOrderButton");
-            else
-                await JsRuntime.InvokeVoidAsync("SetViewOrderButton");
-            await JsRuntime.InvokeVoidAsync("BackButtonHide");
-            await SendChangedOrderModelToServerAsync();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"{typeof(Index).FullName}.{nameof(CancelSelectedProductsWithModifiersAsync)}.{nameof(Exception)}: " +
-                $"{ex.Message}");
-        }
-    }
-
-    // Finish to select product with modifiers (use only in web mode)
-    private void CompleteSelectModifiers()
-    {
-        try
-        {
-            RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"{typeof(Index).FullName}.{nameof(CompleteSelectModifiers)}.{nameof(Exception)}: " +
-                $"{ex.Message}");
-        }
-    }
-
-    // Finish to select product with modifiers (use only in web mode)
-    private void CompleteSelectedProducts()
-    {
-        try
-        {
-            RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"{typeof(Index).FullName}.{nameof(CompleteSelectModifiers)}.{nameof(Exception)}: " +
-                $"{ex.Message}");
-        }
-    }
-
     // Tracking the click of the back telegram button
     private async Task TelegramHandlerBackButtonAsync()
     {
         // Wait a callback from the telegram
-        Console.WriteLine(typeof(Index).FullName!, nameof(TelegramHandlerBackButtonAsync), "Listening the TelegramBot main button");
-        int exCount = 0;
+        Console.WriteLine(typeof(Index).FullName!, nameof(TelegramHandlerBackButtonAsync), "Listening the TelegramBot back button");
 
         while (true)
         {
             try
             {
-                await JsRuntime.InvokeVoidAsync("HandlerBackButtonClicked");
-                if (IsPageBlocked) return;
+                await TwaNet!.ListenBackButtonAsync();
 
-                if (RazorOrderInfo.OrderStatusType == OrderStatusType.OrderProductWithModifiersSelect)
+                if (StateOfPage!.IsPageBlocked)
                 {
-                    await JsRuntime.InvokeVoidAsync("BackButtonHide");
-                    await CancelSelectModifiersAsync(SelectedProductId, ProductPositionId);
-                    StateHasChanged();
+                    continue;
                 }
-                else if (RazorOrderInfo.OrderStatusType == OrderStatusType.OrderProductSelect)
+                else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.SelectingModifiersAndAmountsForProduct)
+                {
+                    OrderService!.CancelCurrSelectedItemWithModifiers();
+
+                    StateOfPage.GoBack();
+                    StateHasChanged();
+
+                    var btnText = OrderService!.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
+                    await TwaNet.SetMainButtonTextAsync(btnText);
+                    await TwaNet.HideBackButtonAsync();
+                }
+                else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.SelectingAmountsForProducts)
                 {
                     await JsRuntime.InvokeVoidAsync("BackButtonHide");
                     RazorOrderInfo.OrderStatusType = OrderStatusType.OrderSelect;
@@ -1814,18 +1537,39 @@ else {
             }
             catch (Exception ex)
             {
-                if (exCount < 3)
-                {
-                    exCount++;
-                }
-                else
-                {
-                    await JsRuntime.InvokeVoidAsync("CloseWebApp");
-                    return;
-                }
                 Console.WriteLine(ex.Message);
-                await Task.Delay(25);
+
+                // !!! Ask the user abount to close web app or left it !!!
+                await TryToCloseWebAppAsync();
             }
+        }
+    }
+
+    // +
+    private async Task TryToCloseWebAppAsync()
+    {
+        try
+        {
+            await TwaNet!.CloseWebAppAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            StateOfPage!.SetErrorStateForWebApp();
+        }
+    }
+
+    // Pay the completed order (use only in web mode) +
+    private async Task PayOrderForTest()
+    {
+        try
+        {
+            await OrderService!.CreateInvoiceUrlLinkAsync();
+            StateOfPage!.GoToPage(PageTypeOfOrder.InfoAboutCreatedOrder);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
         }
     }
 

@@ -20,6 +20,9 @@ namespace TlgWebAppNet
         Task HideProgressAsync();
         Task CloseWebAppAsync();
         Task ListenMainButtonAsync();
+        Task ListenBackButtonAsync();
         Task SetMainBtnColorAsync(string color);
+        Task<InvoiceClosedStatus> InvoiceClosedHandlerAsync(string invoiceLink);
+        Task SetHapticFeedbackImpactOccurredAsync(HapticFeedbackImpactOccurredType style);
     }
 }

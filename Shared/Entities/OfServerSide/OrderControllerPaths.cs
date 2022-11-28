@@ -6,5 +6,6 @@
         public static string SendChangedOrderModelToServer { get; } = "saveOrderInfoInServer";
         public static string CalculateCheckin { get; } = "calculateCheckin";
         public static string RetreiveWalletBalance { get; } = "walletBalance";
+        public static string CreateInvoiceLink { get; } = "createInvoiceLink";
     }
 }

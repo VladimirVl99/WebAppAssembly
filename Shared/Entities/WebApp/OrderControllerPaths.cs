@@ -9,5 +9,6 @@ namespace WebAppAssembly.Shared.Entities.WebApp
         public static string SendChangedOrderModelToServer { get; } = PathOfController + OrderControllerPathsOfServer.SendChangedOrderModelToServer;
         public static string CalculateCheckin { get; } = PathOfController + OrderControllerPathsOfServer.CalculateCheckin;
         public static string RetreiveWalletBalance { get; } = PathOfController + OrderControllerPathsOfServer.RetreiveWalletBalance;
+        public static string CreateInvoiceLink { get; } = PathOfController + OrderControllerPathsOfServer.CreateInvoiceLink;
     }
 }
