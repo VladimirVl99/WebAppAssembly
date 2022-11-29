@@ -218,11 +218,5 @@ namespace TlgWebAppNet
             if (style is not null) await SetHapticFeedbackImpactOccurredAsync((HapticFeedbackImpactOccurredType)style);
             return res;
         }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        public long GetChatId() => ChatId;
     }
 }

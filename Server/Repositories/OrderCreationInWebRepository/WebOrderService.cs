@@ -379,7 +379,7 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
 
                 if (product != null)
                 {
-                    var productPrice = (item.ProductSizeId is not null ? product.Price((Guid)item.ProductSizeId) : product.Price())
+                    var productPrice = (item.ProductSizeId is not null ? product.PriceOrDefault((Guid)item.ProductSizeId) : product.PriceOrDefault())
                         ?? throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(TotalSumOfSelectedProductWithModifiers)}.{nameof(Exception)}: " +
                         $"Price of product by ID - '{product.ItemId}' can't be null");
                     return (productPrice + PriceWithModifiersByProductId(item)) * item.Amount;
@@ -579,7 +579,7 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         public double PriceByProductId(Guid id, Guid? productSizeId = null)
         {
             var product = WebAppInfo.TransportItemDtos?.FirstOrDefault(x => x.ItemId == id);
-            return product?.Price(productSizeId) ?? throw new Exception($"{typeof(WebOrderService).FullName}." +
+            return product?.PriceOrDefault(productSizeId) ?? throw new Exception($"{typeof(WebOrderService).FullName}." +
                 $"{nameof(PriceByProductId)}.{nameof(Exception)}: {nameof(WebAppInfo.TransportItemDtos)} can't be null");
         }
 
@@ -771,7 +771,7 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
                     throw new HttpProcessException(response.StatusCode, responseBody);
             }
 
-            return JsonConvert.DeserializeObject<WalletBalance>(responseBody) ?? throw new Exception("Received the wallet balance result is empty");
+            return JsonConvert.DeserializeObject<WalletBalance>(responseBody);
         }
     }
 }

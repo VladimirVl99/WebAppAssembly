@@ -9,9 +9,10 @@ namespace TlgWebAppNet
 {
     public interface ITwaNet
     {
+        long ChatId { get; }
+
         Task SetMainButtonTextAsync(string txt);
         Task SetHapticFeedbackSelectionChangedAsync();
-        long GetChatId();
         Task ShowBackButtonAsync();
         Task HideBackButtonAsync();
         Task HideMainButtonAsync();
@@ -24,5 +25,7 @@ namespace TlgWebAppNet
         Task SetMainBtnColorAsync(string color);
         Task<InvoiceClosedStatus> InvoiceClosedHandlerAsync(string invoiceLink);
         Task SetHapticFeedbackImpactOccurredAsync(HapticFeedbackImpactOccurredType style);
+        Task SetHapticFeedbackNotificationAsync(HapticFeedBackNotificationType type);
+        Task<string> ShowPopupParamsAsync(PopupParams popup, HapticFeedBackNotificationType? type = null, HapticFeedbackImpactOccurredType? style = null);
     }
 }

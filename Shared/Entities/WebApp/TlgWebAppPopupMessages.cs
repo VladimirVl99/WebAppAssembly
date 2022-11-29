@@ -34,5 +34,11 @@ namespace WebAppAssembly.Shared.Entities.WebApp
         [JsonProperty("walletBalanceChangedInIikoBiz")]
         [JsonPropertyName("walletBalanceChangedInIikoBiz")]
         public TlgWebAppPopupMessage? WalletBalanceChangedInIikoBiz { get; set; }
+        [JsonProperty("emptyShoppingCart")]
+        [JsonPropertyName("emptyShoppingCart")]
+        public TlgWebAppPopupMessage? EmptyShoppingCart { get; set; }
+        [JsonProperty("emptySelectedItemsWithModifiers")]
+        [JsonPropertyName("emptySelectedItemsWithModifiers")]
+        public TlgWebAppPopupMessage? EmptySelectedItemsWithModifiers { get; set; }
     }
 }

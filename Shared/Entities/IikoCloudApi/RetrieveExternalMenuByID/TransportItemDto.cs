@@ -1,6 +1,8 @@
-﻿using Newtonsoft.Json;
+﻿using ApiServerForTelegram.Entities.EExceptions;
+using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 using WebAppAssembly.Shared.Entities.EMenu;
+using WebAppAssembly.Shared.Models.Order;
 
 namespace ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExternalMenuByID
 {
@@ -68,8 +70,18 @@ namespace ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExtern
 
         public bool HaveModifiersOrSizesMoreThanOne() => HaveModifiers() || HaveSizesMoreThanOne();
 
-        public float? Price(Guid? sizeId = null) => 
+        public float? PriceOrDefault(Guid? sizeId = null) => 
             sizeId is null ? ItemSizes?.FirstOrDefault()?.Prices?.FirstOrDefault()?.Price : ItemSizes?.FirstOrDefault(x => x.SizeId == sizeId)?.Prices?.FirstOrDefault()?.Price;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sizeId"></param>
+        /// <returns></returns>
+        /// <exception cref="InfoException"></exception>
+        public float Price(Guid? sizeId = null) => PriceOrDefault(sizeId) ?? throw new InfoException(typeof(TransportItemDto).FullName!,
+            nameof(Price), nameof(Exception), $"Price of size ID - '{(sizeId is null ? "default ID" : sizeId)}' is null");
+
         public bool HaveItems() => TotalAmount > 0;
         public void IncrementAmount() => TotalAmount++;
         public void DecrementAmount() => TotalAmount = TotalAmount != 0 ? --TotalAmount : TotalAmount;

@@ -3,12 +3,14 @@ using ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExternalMe
 using Microsoft.JSInterop;
 using Microsoft.VisualBasic;
 using Newtonsoft.Json;
+using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.Asn1.X9;
 using System.Net;
 using System.Text;
 using TlgWebAppNet;
 using WebAppAssembly.Shared.Entities;
 using WebAppAssembly.Shared.Entities.CreateDelivery;
+using WebAppAssembly.Shared.Entities.EMenu;
 using WebAppAssembly.Shared.Entities.Exceptions;
 using WebAppAssembly.Shared.Entities.IikoCloudApi;
 using WebAppAssembly.Shared.Entities.OfServerSide;
@@ -1110,12 +1112,14 @@ namespace WebAppAssembly.Client.Service
         /// <summary>
         /// 
         /// </summary>
-        public void CancelCurrSelectedItemsWithModifiers()
+        public async Task CancelCurrSimilarSelectedItemsWithModifiers()
         {
             var currItem = GetCurrProduct();
             var product = DeliveryGeneralInfo.ProductById(currItem.GetProductId(), CurrentGroupId);
             product.TotalAmount = 0;
             OrderInfo.RemoveItemsById(currItem.GetProductId());
+            HaveSelectedProductsAtFirst();
+            await SendChangedOrderModelToServerAsync();
         }
 
         /// <summary>
@@ -1125,5 +1129,85 @@ namespace WebAppAssembly.Client.Service
         /// <exception cref="InfoException"></exception>
         public CurrentProduct GetCurrProduct() => CurrentProduct ?? throw new InfoException(typeof(OrderService).FullName!,
             nameof(GetCurrProduct), nameof(Exception), typeof(CurrentProduct).FullName!, ExceptionType.Null);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="twaNet"></param>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public async Task SetPickupTerminalAsync(ITwaNet twaNet, Guid id)
+        {
+            OrderInfo.TerminalId = id;
+            var pickupTerminal = DeliveryGeneralInfo.DeliveryTerminals?.FirstOrDefault(x => x.Id == id);
+            if (pickupTerminal is not null)
+                OrderInfo.DeliveryTerminal = new(id, pickupTerminal.Name);
+            if (DeliveryGeneralInfo.UseIikoBizProgram)
+                await CalculateLoayltyProgramAndAllowedSumAsync(twaNet);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public async Task SetPickupTerminalAsync(Guid id)
+        {
+            OrderInfo.TerminalId = id;
+            var pickupTerminal = DeliveryGeneralInfo.DeliveryTerminals?.FirstOrDefault(x => x.Id == id);
+            if (pickupTerminal is not null)
+                OrderInfo.DeliveryTerminal = new(id, pickupTerminal.Name);
+            if (DeliveryGeneralInfo.UseIikoBizProgram)
+                await CalculateLoayltyProgramAndAllowedSumAsync();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public async Task RemoveAllSelectedProductsInShoppingCartPageAsync()
+        {
+            OrderInfo.TotalAmount = 0;
+            OrderInfo.Items?.Clear();
+
+            if (DeliveryGeneralInfo?.TransportItemDtos is not null)
+                foreach (var product in DeliveryGeneralInfo.TransportItemDtos)
+                    product.TotalAmount = 0;
+
+            await SendChangedOrderModelToServerAsync();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public string InfoAboutCreatedOrderForTest()
+        {
+            string selectedProductsInfo = string.Empty;
+            if (OrderInfo.Items is not null)
+                foreach (var item in OrderInfo.Items)
+                    selectedProductsInfo += $"{item.ProductName} x{item.Amount} - ₽{item.Price}\n";
+
+            return $"Order summary:\n" +
+            $"operationId: {OrderInfo.OperationId}\n" +
+            $"\n{selectedProductsInfo}\n" +
+            $"Total: ₽{OrderInfo.TotalSum}\n" +
+            $"Comment: {OrderInfo.Comment}\n" +
+            $"Order's create date: {OrderInfo.CreatedDate}";
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sizeId"></param>
+        public Item ChangeProductSize(Guid sizeId)
+        {
+            var currItem = GetCurrProduct();
+            var product = DeliveryGeneralInfo.ProductById(currItem.GetProductId(), CurrentGroupId);
+            var item = OrderInfo.ItemById(currItem.GetProductId(), currItem.GetPositionId());
+            item.ProductSizeId = sizeId;
+            item.ChangePriceOfItem(product.Price(sizeId));
+            return item;
+        }
     }
 }

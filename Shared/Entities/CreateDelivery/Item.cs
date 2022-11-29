@@ -43,7 +43,7 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
                     nameof(Exception), $"{typeof(TransportItemDto).FullName!}.{nameof(TransportItemDto.Name)}", ExceptionType.Null);
             Type = product.OrderItemType;
             PositionId = positionId != default && positionId != Guid.Empty ? positionId : Guid.NewGuid();
-            Price = product.Price();
+            Price = product.PriceOrDefault();
             TotalPrice = 0;
 
             var modifierList = new List<Modifier>();
@@ -444,6 +444,18 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
 
             simpleGroupModifiers.Add(new SimpleGroupModifier(groupModifierId, groupModifierName, min, max));
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="newPrice"></param>
+        public void ChangePriceOfItem(float newPrice)
+        {
+            var different = newPrice - Price;
+            TotalPrice += different;
+            Price = newPrice;
+        }
+
         public object Clone() => new Item(ProductName ?? string.Empty, ProductId, Modifiers, Price, PositionId, Type ?? string.Empty, Amount, ProductSizeId, ComboInformation, Comment,
             SimpleGroupModifiers, SimpleModifiers);
     }
