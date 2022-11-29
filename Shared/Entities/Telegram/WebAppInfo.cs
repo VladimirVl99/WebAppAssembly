@@ -132,5 +132,13 @@ namespace WebAppAssembly.Shared.Entities.Telegram
         public TlgWebAppBtnTxts GetTlgWebAppBtnTxts()
             => TlgWebAppBtnTxts ?? throw new InfoException(typeof(WebAppInfo).FullName!,
                 nameof(GetTlgWebAppBtnTxts), nameof(Exception), typeof(TlgWebAppBtnTxts).FullName!, ExceptionType.Null);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="InfoException"></exception>
+        public IEnumerable<TransportMenuCategoryDto> GetItemCategories() => ItemCategories ?? throw new InfoException(typeof(WebAppInfo).FullName!,
+                nameof(GetItemCategories), nameof(Exception), $"{nameof(Enumerable)}<{typeof(TransportMenuCategoryDto).FullName!}>", ExceptionType.Null);
     }
 }

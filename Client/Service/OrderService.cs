@@ -1,19 +1,13 @@
 ﻿using ApiServerForTelegram.Entities.EExceptions;
 using ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExternalMenuByID;
-using Microsoft.JSInterop;
-using Microsoft.VisualBasic;
 using Newtonsoft.Json;
-using Org.BouncyCastle.Asn1.X509;
-using Org.BouncyCastle.Asn1.X9;
 using System.Net;
 using System.Text;
 using TlgWebAppNet;
 using WebAppAssembly.Shared.Entities;
 using WebAppAssembly.Shared.Entities.CreateDelivery;
-using WebAppAssembly.Shared.Entities.EMenu;
 using WebAppAssembly.Shared.Entities.Exceptions;
 using WebAppAssembly.Shared.Entities.IikoCloudApi;
-using WebAppAssembly.Shared.Entities.OfServerSide;
 using WebAppAssembly.Shared.Entities.Telegram;
 using WebAppAssembly.Shared.Entities.WebApp;
 using WebAppAssembly.Shared.Models.Order;
@@ -869,7 +863,9 @@ namespace WebAppAssembly.Client.Service
             return OrderInfo.AvailableWalletSum;
         }
 
-
+        /// <summary>
+        /// 
+        /// </summary>
         private void CalculateAvailableWalletSum()
         {
             var perhapsWalletSum = OrderInfo.FinalSum - DeliveryGeneralInfo.CurrOfRub;

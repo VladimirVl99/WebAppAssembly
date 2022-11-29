@@ -29,9 +29,9 @@
 <PageTitle>Index</PageTitle>
 
 @*Page for orders*@
-@if (FirstRender)
+@if (IsLoadedGeneralInfo)
 {
-    if (OrderModel is null || WebAppInfo is null || HaveErrors)
+    if (OrderService is null || (OrderService.IsReleaseMode && TwaNet is null) || StateOfPage is null || StateOfPage.HaveErrors || JsHelperService is null)
     {
         <div>
             <center>
@@ -39,13 +39,17 @@
             </center>
         </div>
     }
-    else if (RazorOrderInfo.PageType == PageType.OrderPage)
+    else
     {
+        var dgi = OrderService.DeliveryGeneralInfo;
+
         // Show the page for selecting products
-        if (RazorOrderInfo.OrderStatusType == OrderStatusType.OrderSelect)
+        if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.SelectingProducts)
         {
-            var groups = WebAppInfo.ItemCategories;
-            if (groups is not null && groups.Any())
+            var itemCategories = dgi.ItemCategories;
+            TransportMenuCategoryDto? itemCategory = null;
+
+            if (itemCategories is not null)
             {
                 <h1 style="padding-top: 5px;margin-bottom: 0px;text-align: center;">
                     Категории
@@ -53,14 +57,19 @@
                 <hr style="color:grey;margin-bottom:0px;margin-top:10px;"/>
                 <div class="horizontal_slider" style="padding-left: 0px;padding-right: 0px;padding-top:5px;margin-top: 0px;padding-bottom:10px;">
                     <div class="slider_container">
-                        @foreach (var group in groups)
+                        @foreach (var category in itemCategories)
                         {
+                            if (OrderService.CurrentGroupId is not null && category.Id == (Guid)OrderService.CurrentGroupId)
+                            {
+                                itemCategory = category;
+                            }
+
                             <div class="item">
                                 <div class="row">
-                                    <img class="img-fluid rounded" src="@group.ButtonImageUrl" alt="@group.Name" @onclick="(e => AddCurrentGroupId(group.Id))"/>
+                                    <img class="img-fluid rounded" src="@category.ButtonImageUrl" alt="@category.Name" @onclick="(e => AddCurrentGroupId(category.Id))"/>
                                 </div>
                                 <div class="row">
-                                    <h6 style="text-align:center;">@group.Name</h6>
+                                    <h6 style="text-align:center;">@category.Name</h6>
                                 </div>
                             </div>
                         }
@@ -68,11 +77,12 @@
                 </div>
             }
 
-            var products = (CurrentGroupId == Guid.Empty ? WebAppInfo.TransportItemDtos : GetListOfProductsByGroupId(CurrentGroupId))?.ToArray();
-            if (CurrentGroupId != Guid.Empty)
+            var products = itemCategory is null ? dgi.TransportItemDtos : itemCategory.Items;
+
+            if (itemCategory is not null)
             {
                 <h1 style="padding-top: 0px;margin-bottom: 0px;text-align:center;">
-                    @groups?.FirstOrDefault(x => x.Id == CurrentGroupId)?.Name
+                    @itemCategory.Name
                 </h1>
             }
             else
@@ -715,7 +725,7 @@
                 <div class="row">
                     <div class="col-6" style="position:relative;">
                         <input type="range" class="form-range" style="margin:0;position:absolute;top:50%;left:50%;margin-right:-50%;transform:translate(-50%,-50%);
-padding-left:10px;padding-right:10px;"
+    padding-left:10px;padding-right:10px;"
                         min="0" max="@(OrderModel.AllowedWalletSum)" id="customRangeForWalletBalance" value="@OrderModel.SelectedBonusSum"
                             @oninput="OnChangeAllowedBonusSum">
                     </div>
@@ -847,7 +857,7 @@ else {
 
 @code {
     //
-    private OrderService? OrderService { get; set; }
+    private IOrderService? OrderService { get; set; }
     //
     private ITwaNet? TwaNet { get; set; }
     //
@@ -856,6 +866,8 @@ else {
     private StateOfPage? StateOfPage { get; set; }
     //
     private long TestChatId { get; } = 2098619539;
+    //
+    private bool IsLoadedGeneralInfo { get; set; } = false;
 
 
     // +
@@ -896,6 +908,10 @@ else {
                 }
             }
             StateOfPage.SetErrorStateForWebApp();
+        }
+        finally
+        {
+            IsLoadedGeneralInfo = true;
         }
     }
 
