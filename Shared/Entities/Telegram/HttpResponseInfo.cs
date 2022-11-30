@@ -11,6 +11,14 @@ namespace WebAppAssembly.Shared.Entities.Telegram
 {
     public class HttpResponseInfo
     {
+        public HttpResponseInfo() { }
+
+        public HttpResponseInfo(HttpStatusCode httpStatusCode, string? message = null)
+        {
+            HttpStatusCode = httpStatusCode;
+            Message = message;
+        }
+
         [JsonProperty("httpStatusCode")]
         [JsonPropertyName("httpStatusCode")]
         public HttpStatusCode HttpStatusCode { get; set; }

@@ -21,7 +21,7 @@ namespace WebAppAssembly.Shared.Entities.Telegram
         /// <param name="checkin"></param>
         /// <param name="ok"></param>
         /// <param name="httpResponseInfo"></param>
-        public LoyaltyCheckinInfo(Checkin? checkin, bool ok, HttpResponseInfo? httpResponseInfo)
+        public LoyaltyCheckinInfo(bool ok, Checkin? checkin = null, HttpResponseInfo? httpResponseInfo = null)
         {
             Checkin = checkin;
             Ok = ok;

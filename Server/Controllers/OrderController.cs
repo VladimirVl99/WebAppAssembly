@@ -61,7 +61,6 @@ namespace WebAppAssembly.Server.Controllers
         {
             try
             {
-                _orderService.ChatId = chatInfo.ChatId;
                 return Ok(await _orderService.WalletBalanceAsync());
             }
             catch (Exception ex)
@@ -81,7 +80,6 @@ namespace WebAppAssembly.Server.Controllers
         {
             try
             {
-                if (_orderService.ChatId == 0) _orderService.AddChatId(order.ChatId);
                 _orderService.OrderModel = order;
                 await _orderService.SendChangedOrderModelToServerAsync();
                 return Ok();
@@ -103,8 +101,7 @@ namespace WebAppAssembly.Server.Controllers
         {
             try
             {
-                if (_orderService.ChatId == 0) _orderService.AddChatId(order.ChatId);
-                _orderService.OrderModel ??= order;                
+                _orderService.OrderModel = order;
                 return Ok(await _orderService.CalculateCheckinAsync());
             }
             catch (Exception ex)
@@ -124,8 +121,7 @@ namespace WebAppAssembly.Server.Controllers
         {
             try
             {
-                if (_orderService.ChatId == 0) _orderService.AddChatId(order.ChatId);
-                _orderService.OrderModel ??= order;
+                _orderService.OrderModel = order;
                 return Ok(await _orderService.CreateInvoiceLinkAsync());
             }
             catch (Exception ex)

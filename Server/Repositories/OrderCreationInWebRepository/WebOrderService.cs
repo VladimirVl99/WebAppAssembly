@@ -1,5 +1,4 @@
-﻿#region
-using WebAppAssembly.Shared.Entities.EMenu;
+﻿using WebAppAssembly.Shared.Entities.EMenu;
 using Newtonsoft.Json;
 using System.Net;
 using System.Text;
@@ -712,30 +711,47 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         }
 
         /// <summary>
-        /// Calculate checkin
+        /// 
         /// </summary>
         /// <returns></returns>
         /// <exception cref="HttpProcessException"></exception>
-        /// <exception cref="Exception"></exception>
         public async Task<LoyaltyCheckinInfo> CalculateCheckinAsync()
         {
-            if (OrderModel is null) throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(CalculateCheckinAsync)}.{nameof(Exception)}: " +
-                $"{nameof(OrderModel)} can't be null");
-
-            string responseBody = string.Empty;
-            using (var client = new HttpClient())
+            try
             {
-                client.Timeout = TimeSpan.FromSeconds(WebAppInfo.TimeOutForLoyaltyProgramProcessing);
-                var body = JsonConvert.SerializeObject(OrderModel);
-                var data = new StringContent(body, Encoding.UTF8, "application/json");
-                var response = await client.PostAsync(Url.Checkin, data);
+                if (OrderModel is null) throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(CalculateCheckinAsync)}.{nameof(Exception)}: " +
+                    $"{nameof(OrderModel)} can't be null");
 
-                responseBody = await response.Content.ReadAsStringAsync();
-                if (response.StatusCode != HttpStatusCode.OK)
-                    throw new HttpProcessException(response.StatusCode, responseBody);
+                string responseBody = string.Empty;
+                using (var client = new HttpClient())
+                {
+                    client.Timeout = TimeSpan.FromSeconds(WebAppInfo.TimeOutForLoyaltyProgramProcessing);
+                    var body = JsonConvert.SerializeObject(OrderModel);
+                    var data = new StringContent(body, Encoding.UTF8, "application/json");
+                    var response = await client.PostAsync(Url.Checkin, data);
+
+                    responseBody = await response.Content.ReadAsStringAsync();
+                    if (response.StatusCode != HttpStatusCode.OK)
+                        throw new HttpProcessException(response.StatusCode, responseBody);
+                }
+
+                var checkin = JsonConvert.DeserializeObject<Checkin>(responseBody) ?? throw new Exception("Received checkin result is empty");
+                return new LoyaltyCheckinInfo(true, checkin);
             }
-
-            return JsonConvert.DeserializeObject<Checkin>(responseBody) ?? throw new Exception("Received checkin result is empty");
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine(ex.Message);
+                return new LoyaltyCheckinInfo(
+                    ok: false,
+                    httpResponseInfo: new HttpResponseInfo(ex.StatusCode ?? HttpStatusCode.InternalServerError, ex.Message));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return new LoyaltyCheckinInfo(
+                ok: false,
+                httpResponseInfo: new HttpResponseInfo(HttpStatusCode.InternalServerError, ex.Message));
+            }
         }
 
         /// <summary>
@@ -762,4 +778,3 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         }
     }
 }
-#endregion
