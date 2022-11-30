@@ -53,6 +53,9 @@ namespace WebAppAssembly.Shared.Entities.Telegram
         [JsonProperty("tlgWebAppPopupMessages")]
         [JsonPropertyName("tlgWebAppPopupMessages")]
         public TlgWebAppPopupMessages? TlgWebAppPopupMessages { get; set; }
+        [JsonProperty("timeOutForLoyaltyProgramProcessing")]
+        [JsonPropertyName("timeOutForLoyaltyProgramProcessing")]
+        public double TimeOutForLoyaltyProgramProcessing { get; set; } 
 
 
         /// <summary>

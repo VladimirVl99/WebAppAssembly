@@ -8,7 +8,6 @@ using System.Text.Json.Serialization;
 using WebAppAssembly.Shared.Entities;
 using WebAppAssembly.Shared.Entities.CreateDelivery;
 using WebAppAssembly.Shared.Entities.Telegram;
-using WebAppAssembly.Shared.Models.Order.Service;
 using JsonIgnoreAttribute = Newtonsoft.Json.JsonIgnoreAttribute;
 
 namespace WebAppAssembly.Shared.Models.Order
@@ -45,7 +44,7 @@ namespace WebAppAssembly.Shared.Models.Order
             TotalSum = totalSum;
             CreatedDate = createdDate;
             TotalAmount = totalAmount;
-            WalletSum = bonusSum;
+            WalletBalance = bonusSum;
             ByCourier = byCourier;
             TerminalId = terminalId;
         }
@@ -60,7 +59,7 @@ namespace WebAppAssembly.Shared.Models.Order
             TotalSum = totalSum;
             CreatedDate = createdDate;
             TotalAmount = totalAmount;
-            WalletSum = bonusSum;
+            WalletBalance = bonusSum;
             ByCourier = byCourier;
             TerminalId = terminalId;
             DeliveryTerminal = deliveryTerminal;
@@ -82,7 +81,7 @@ namespace WebAppAssembly.Shared.Models.Order
             TotalSum = totalSum;
             CreatedDate = createdDate;
             TotalAmount = totalAmount;
-            WalletSum = bonusSum;
+            WalletBalance = bonusSum;
             ByCourier = byCourier;
             TerminalId = terminalId;
             DeliveryTerminal = deliveryTerminal;
@@ -118,7 +117,7 @@ namespace WebAppAssembly.Shared.Models.Order
         public double TotalAmount { get; set; } = 0;
         [JsonProperty("bonusSum")]
         [JsonPropertyName("bonusSum")]
-        public double WalletSum { get; set; } = 0;
+        public double WalletBalance { get; set; } = 0;
         [JsonIgnore]
         public int AllowedWalletSum { get; set; } = 0;
         [JsonIgnore]
@@ -356,7 +355,7 @@ namespace WebAppAssembly.Shared.Models.Order
             else foreach (var item in Items)
                     items.Add((Item)item.Clone());
 
-            return new OrderModel(OperationId, ChatId, items, TotalSum, TotalAmount, WalletSum, ByCourier, TerminalId, DiscountSum, DiscountFreeItems, FreeItems, Comment, CreatedDate, 
+            return new OrderModel(OperationId, ChatId, items, TotalSum, TotalAmount, WalletBalance, ByCourier, TerminalId, DiscountSum, DiscountFreeItems, FreeItems, Comment, CreatedDate, 
                 DeliveryTerminal, Address, Coupon);
         }
 

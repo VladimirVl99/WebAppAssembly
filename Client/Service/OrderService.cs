@@ -4,7 +4,6 @@ using Newtonsoft.Json;
 using System.Net;
 using System.Text;
 using TlgWebAppNet;
-using WebAppAssembly.Shared.Entities;
 using WebAppAssembly.Shared.Entities.CreateDelivery;
 using WebAppAssembly.Shared.Entities.Exceptions;
 using WebAppAssembly.Shared.Entities.IikoCloudApi;
@@ -27,7 +26,7 @@ namespace WebAppAssembly.Client.Service
         {
             Http = client;
 
-            var mainInfoTask = RetrieveMainInfoForWebAppOrderAsync(client, urlPathOfMainInfo);
+            var mainInfoTask = RetrieveMainInfoForWebAppOrderAsync(client, chatId, urlPathOfMainInfo);
             mainInfoTask.Wait();
             var mainInfo = mainInfoTask.Result;
 
@@ -51,6 +50,8 @@ namespace WebAppAssembly.Client.Service
         public WebAppInfo DeliveryGeneralInfo { get; set; }
         public bool IsDiscountBalanceConfirmed { get; set; }
         public CurrentProduct? CurrentProduct { get; set; }
+        public Item? CurrItem { get; set; }
+        public TransportItemDto? CurrProductItem { get; set; }
         public Guid? CurrentGroupId { get; set; }
         public bool IsReleaseMode { get; set; }
         public string TlgMainBtnColor { get; set; }
@@ -64,9 +65,13 @@ namespace WebAppAssembly.Client.Service
         /// <param name="urlPathOfMainInfo"></param>
         /// <returns></returns>
         /// <exception cref="HttpProcessException"></exception>
-        private static async Task<MainInfoForWebAppOrder> RetrieveMainInfoForWebAppOrderAsync(HttpClient client, string urlPathOfMainInfo)
+        private static async Task<MainInfoForWebAppOrder> RetrieveMainInfoForWebAppOrderAsync(HttpClient client, long chatId, string urlPathOfMainInfo)
         {
-            var response = await client.GetAsync(urlPathOfMainInfo);
+            var chatInfo = new ChatInfo() { ChatId = chatId };
+            var body = JsonConvert.SerializeObject(chatInfo);
+            var data = new StringContent(body, Encoding.UTF8, "application/json");
+            var response = await client.PostAsync(urlPathOfMainInfo, data);
+
             response.EnsureSuccessStatusCode();
             string responseBody = await response.Content.ReadAsStringAsync();
             if (!response.StatusCode.Equals(HttpStatusCode.OK))
@@ -138,6 +143,8 @@ namespace WebAppAssembly.Client.Service
                 var item = items.Last(x => x.ProductId == productId && x.PositionId == positionId);
                 if (product.HaveSizesMoreThanOne()) item.ProductSizeId = product.ItemSizes?.FirstOrDefault()?.SizeId;
                 CurrentProduct = new CurrentProduct(productId, positionId);
+                CurrItem = item;
+                CurrProductItem = product;
                 IncreaseAmountOfProduct(product, item);
                 return new(product, item, !HaveSelectedProductsAtFirst());
             }
@@ -290,14 +297,17 @@ namespace WebAppAssembly.Client.Service
         /// <returns></returns>
         public async Task<bool> RemoveProductItemWithModifiersInSelectingProductPageAsync(Guid productId)
         {
+            var product = DeliveryGeneralInfo.ProductById(productId, CurrentGroupId);
+            var item = OrderInfo.ItemById(productId);
+
             if (OrderInfo.HaveMoreThanOneItemPositionOfProduct(productId))
             {
                 CurrentProduct = new(productId);
+                CurrItem = item;
+                CurrProductItem = product;
                 return true;
             }
 
-            var product = DeliveryGeneralInfo.ProductById(productId, CurrentGroupId);
-            var item = OrderInfo.ItemById(productId);
             RemoveOrDecreaseAmountOfProduct(product, item);
             await SendChangedOrderModelToServerAsync();
             return false;
@@ -310,13 +320,16 @@ namespace WebAppAssembly.Client.Service
         /// <returns></returns>
         public async Task<bool> RemoveProductItemWithModifiersInSelectingProductPageAsync(TransportItemDto product)
         {
+            var item = OrderInfo.ItemById((Guid)product.ItemId!);
+
             if (OrderInfo.HaveMoreThanOneItemPositionOfProduct((Guid)product.ItemId!))
             {
                 CurrentProduct = new((Guid)product.ItemId);
+                CurrItem = item;
+                CurrProductItem = product;
                 return true;
             }
 
-            var item = OrderInfo.ItemById((Guid)product.ItemId!);
             RemoveOrDecreaseAmountOfProduct(product, item);
             await SendChangedOrderModelToServerAsync();
             return false;
@@ -359,9 +372,9 @@ namespace WebAppAssembly.Client.Service
         /// <param name="modifierId"></param>
         /// <param name="positionId"></param>
         /// <param name="modifierGroupId"></param>
-        public Item AddModifierInSelectingModifiersAndAmountsForProductPageAsync(Guid productId, Guid modifierId, Guid positionId, Guid? modifierGroupId = null)
+        public Item AddModifierInSelectingModifiersAndAmountsForProductPageAsync(Guid modifierId, Guid? modifierGroupId = null)
         {
-            var item = OrderInfo.ItemById(productId, positionId);
+            var item = GetCurrItem();
             OrderInfo.IncrementTotalAmountOfModifierWithPrice(item, modifierId, modifierGroupId);
             return item;
         }
@@ -374,9 +387,9 @@ namespace WebAppAssembly.Client.Service
         /// <param name="positionId"></param>
         /// <param name="modifierGroupId"></param>
         /// <returns></returns>
-        public Item RemoveModifierInSelectingModifiersAndAmountsForProductPageAsync(Guid productId, Guid modifierId, Guid positionId, Guid? modifierGroupId = null)
+        public Item RemoveModifierInSelectingModifiersAndAmountsForProductPageAsync(Guid modifierId, Guid? modifierGroupId = null)
         {
-            var item = OrderInfo.ItemById(productId, positionId);
+            var item = GetCurrItem();
             OrderInfo.DecrementTotalAmountOfModifierWithPrice(item, modifierId, modifierGroupId);
             return item;
         }
@@ -387,10 +400,10 @@ namespace WebAppAssembly.Client.Service
         /// <param name="productId"></param>
         /// <param name="positionId"></param>
         /// <returns></returns>
-        public Item AddProductInSelectingModifiersAndAmountsForProductPageAsync(Guid productId, Guid positionId)
+        public Item AddProductInSelectingModifiersAndAmountsForProductPageAsync()
         {
-            var product = DeliveryGeneralInfo.ProductById(productId, CurrentGroupId);
-            var item = OrderInfo.ItemById(productId, positionId);
+            var item = GetCurrItem();
+            var product = GetCurrProductItem();
             IncreaseAmountOfProduct(product, item);
             return item;
         }
@@ -401,10 +414,10 @@ namespace WebAppAssembly.Client.Service
         /// <param name="productId"></param>
         /// <param name="positionId"></param>
         /// <returns></returns>
-        public Item? RemoveProductInSelectingModifiersAndAmountsForProductPageAsync(Guid productId, Guid positionId)
+        public Item? RemoveProductInSelectingModifiersAndAmountsForProductPageAsync()
         {
-            var product = DeliveryGeneralInfo.ProductById(productId, CurrentGroupId);
-            var item = OrderInfo.ItemById(productId, positionId);
+            var item = GetCurrItem();
+            var product = GetCurrProductItem();
             RemoveOrDecreaseAmountOfProduct(product, item);
             return item;
         }
@@ -438,10 +451,10 @@ namespace WebAppAssembly.Client.Service
         /// </summary>
         /// <param name="productId"></param>
         /// <returns></returns>
-        public ProductInfo AddProductWithoutModifiersInSelectingAmountsForProductsPageAsync(Guid productId)
+        public ProductInfo AddProductWithoutModifiersInSelectingAmountsForProductsPageAsync()
         {
-            var product = DeliveryGeneralInfo.ProductById(productId, CurrentGroupId);
-            var item = OrderInfo.ItemById(productId);
+            var product = GetCurrProductItem();
+            var item = GetCurrItem();
             IncreaseAmountOfProduct(product, item);
             return new(product, item);
         }
@@ -451,10 +464,10 @@ namespace WebAppAssembly.Client.Service
         /// </summary>
         /// <param name="productId"></param>
         /// <returns></returns>
-        public ProductInfo? RemoveProductWithoutModifiersInSelectingAmountsForProductsPageAsync(Guid productId)
+        public ProductInfo? RemoveProductWithoutModifiersInSelectingAmountsForProductsPageAsync()
         {
-            var product = DeliveryGeneralInfo.ProductById(productId, CurrentGroupId);
-            var item = OrderInfo.ItemById(productId);
+            var product = GetCurrProductItem();
+            var item = GetCurrItem();
             if (RemoveOrDecreaseAmountOfProduct(product, item))
             {
                 HaveSelectedProductsAtFirst();
@@ -830,7 +843,7 @@ namespace WebAppAssembly.Client.Service
                 if (availablePayments is not null)
                     availableWalletSum = CalculateAvailableWalletSum(availablePayments);
 
-                OrderInfo.AllowedWalletSum = perhapsWalletSum > OrderInfo.WalletSum ? (int)OrderInfo.WalletSum : (int)perhapsWalletSum;
+                OrderInfo.AllowedWalletSum = perhapsWalletSum > OrderInfo.WalletBalance ? (int)OrderInfo.WalletBalance : (int)perhapsWalletSum;
                 if (availableWalletSum is not null)
                 {
                     var value = (int)Math.Floor((double)availableWalletSum);
@@ -871,7 +884,7 @@ namespace WebAppAssembly.Client.Service
             var perhapsWalletSum = OrderInfo.FinalSum - DeliveryGeneralInfo.CurrOfRub;
 
             if (perhapsWalletSum <= 0) OrderInfo.AllowedWalletSum = 0;
-            else OrderInfo.AllowedWalletSum = perhapsWalletSum > OrderInfo.WalletSum ? (int)OrderInfo.WalletSum : (int)perhapsWalletSum;
+            else OrderInfo.AllowedWalletSum = perhapsWalletSum > OrderInfo.WalletBalance ? (int)OrderInfo.WalletBalance : (int)perhapsWalletSum;
         }
 
         /// <summary>
@@ -1013,9 +1026,9 @@ namespace WebAppAssembly.Client.Service
         public async Task<bool> IsWalletBalanceChangedInIikoCardAsync()
         {
             var walletBalance = await RetrieveWalletBalanceAsync();
-            if (walletBalance?.Balance is not null && OrderInfo.WalletSum != walletBalance.Balance)
+            if (walletBalance?.Balance is not null && OrderInfo.WalletBalance != walletBalance.Balance)
             {
-                OrderInfo.WalletSum = walletBalance.Balance;
+                OrderInfo.WalletBalance = walletBalance.Balance;
                 CalculateAvailableWalletSum();
                 return true;
             }
@@ -1108,7 +1121,7 @@ namespace WebAppAssembly.Client.Service
         /// <summary>
         /// 
         /// </summary>
-        public async Task CancelCurrSimilarSelectedItemsWithModifiers()
+        public async Task CancelCurrSimilarSelectedItemsWithModifiersAsync()
         {
             var currItem = GetCurrProduct();
             var product = DeliveryGeneralInfo.ProductById(currItem.GetProductId(), CurrentGroupId);
@@ -1205,5 +1218,21 @@ namespace WebAppAssembly.Client.Service
             item.ChangePriceOfItem(product.Price(sizeId));
             return item;
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="InfoException"></exception>
+        private Item GetCurrItem() => CurrItem ?? throw new InfoException(typeof(OrderService).FullName!,
+            nameof(GetCurrItem), nameof(Exception), nameof(CurrItem), ExceptionType.Null);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="InfoException"></exception>
+        private TransportItemDto GetCurrProductItem() => CurrProductItem ?? throw new InfoException(typeof(OrderService).FullName!,
+            nameof(GetCurrProductItem), nameof(Exception), nameof(CurrProductItem), ExceptionType.Null);
     }
 }

@@ -9,6 +9,10 @@ using WebAppAssembly.Shared.Entities.Telegram;
 using WebAppAssembly.Shared.LogRepository;
 using WebAppAssembly.Shared.Models.Order;
 using ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExternalMenuByID;
+using ApiServerForTelegram.Entities.EExceptions;
+using WebAppAssembly.Client.Service;
+using System.Diagnostics.Eventing.Reader;
+using System.Net.Http;
 
 namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
 {
@@ -41,7 +45,12 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         }
 
         private readonly IConfiguration Configuration;
-        public OrderClientModel? OrderModel { get; set; }
+        public OrderClientModel OrderModel
+        {
+            get => OrderModel is null ? throw new InfoException(typeof(WebOrderService).FullName!, nameof(Exception),
+                typeof(OrderClientModel).FullName!, ExceptionType.NullOrEmpty) : OrderModel;
+            set { }
+        }
         public IEnumerable<DeliveryTerminal> DeliveryTerminals { get; private set; }
         public double DiscountBalance =>
             discountBalance == null ? GetCustomerBalanceAsync(Configuration["TelegramBotProperties:customerBalance"]).Result : (double)discountBalance;
@@ -51,24 +60,18 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         public long ChatId { get; set; } = 0;
         private ApiServerUrls Url { get; set; }
         public WebAppInfo WebAppInfo { get; set; }
+        public bool IsReleaseMode { get; set; }
+        public string TlgMainBtnColor { get; set; }
 
         /// <summary>
         /// Initialize all order parameters
         /// </summary>
         /// <param name="chatId"></param>
         /// <returns></returns>
-        public async Task<OrderClientModel?> InitializeOrderModelAsync()
+        public async Task<OrderClientModel> InitializeOrderModelAsync(long chatId)
         {
-            try
-            {
-                var obj = await OrderModelCashAsync(Url.OrderModel, ChatId);
-                return OrderModel = obj;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-                return null;
-            }
+            var obj = await OrderModelCashAsync(Url.OrderModel, chatId);
+            return OrderModel = obj;
         }
 
         /// <summary>
@@ -109,35 +112,18 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         /// <returns></returns>
         /// <exception cref="HttpProcessException"></exception>
         /// <exception cref="Exception"></exception>
-        private static async Task<OrderClientModel?> OrderModelCashAsync(string url, long chatId)
+        private static async Task<OrderClientModel> OrderModelCashAsync(string url, long chatId)
         {
             using var httpClient = new HttpClient();
-            try
-            {
-                var body = JsonConvert.SerializeObject(new { chatId });
-                var data = new StringContent(body, Encoding.UTF8, "application/json");
-                var response = await httpClient.PostAsync(url, data);
+            var body = JsonConvert.SerializeObject(new { chatId });
+            var data = new StringContent(body, Encoding.UTF8, "application/json");
+            var response = await httpClient.PostAsync(url, data);
 
-                string responseBody = await response.Content.ReadAsStringAsync();
-                if (!response.StatusCode.Equals(HttpStatusCode.OK))
-                    throw new HttpProcessException(response.StatusCode, responseBody);
+            string responseBody = await response.Content.ReadAsStringAsync();
+            if (!response.StatusCode.Equals(HttpStatusCode.OK))
+                throw new HttpProcessException(response.StatusCode, responseBody);
 
-                return JsonConvert.DeserializeObject<OrderClientModel>(responseBody) ?? throw new Exception("Json convert order model is empty");
-            }
-            catch (HttpRequestException ex)
-            {
-                Console.WriteLine(ex.Message);
-                if (ex.StatusCode == HttpStatusCode.BadRequest)
-                    return null;
-                throw ex;
-            }
-            catch (HttpProcessException ex)
-            {
-                Console.WriteLine(ex.Message);
-                if (ex.StatusCode == HttpStatusCode.BadRequest)
-                    return null;
-                throw ex;
-            }
+            return JsonConvert.DeserializeObject<OrderClientModel>(responseBody);
         }
 
         /// <summary>
@@ -731,7 +717,7 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         /// <returns></returns>
         /// <exception cref="HttpProcessException"></exception>
         /// <exception cref="Exception"></exception>
-        public async Task<Checkin> CalculateCheckinAsync()
+        public async Task<LoyaltyCheckinInfo> CalculateCheckinAsync()
         {
             if (OrderModel is null) throw new Exception($"{typeof(WebOrderService).FullName}.{nameof(CalculateCheckinAsync)}.{nameof(Exception)}: " +
                 $"{nameof(OrderModel)} can't be null");
@@ -739,6 +725,7 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
             string responseBody = string.Empty;
             using (var client = new HttpClient())
             {
+                client.Timeout = TimeSpan.FromSeconds(WebAppInfo.TimeOutForLoyaltyProgramProcessing);
                 var body = JsonConvert.SerializeObject(OrderModel);
                 var data = new StringContent(body, Encoding.UTF8, "application/json");
                 var response = await client.PostAsync(Url.Checkin, data);

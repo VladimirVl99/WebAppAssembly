@@ -18,6 +18,8 @@ namespace WebAppAssembly.Client.Service
         public WebAppInfo DeliveryGeneralInfo { get; set; }
         public bool IsDiscountBalanceConfirmed { get; set; }
         public CurrentProduct? CurrentProduct { get; set; }
+        public Item? CurrItem { get; set; }
+        public TransportItemDto? CurrProductItem { get; set; }
         public Guid? CurrentGroupId { get; set; }
         public bool IsReleaseMode { get; set; }
         public string TlgMainBtnColor { get; set; }
@@ -122,8 +124,7 @@ namespace WebAppAssembly.Client.Service
         /// <param name="positionId"></param>
         /// <param name="modifierGroupId"></param>
         /// <returns></returns>
-        Item AddModifierInSelectingModifiersAndAmountsForProductPageAsync(Guid productId, Guid modifierId,
-            Guid positionId, Guid? modifierGroupId = null);
+        Item AddModifierInSelectingModifiersAndAmountsForProductPageAsync(Guid modifierId, Guid? modifierGroupId = null);
 
         /// <summary>
         /// 
@@ -133,8 +134,7 @@ namespace WebAppAssembly.Client.Service
         /// <param name="positionId"></param>
         /// <param name="modifierGroupId"></param>
         /// <returns></returns>
-        Item RemoveModifierInSelectingModifiersAndAmountsForProductPageAsync(Guid productId, Guid modifierId,
-            Guid positionId, Guid? modifierGroupId = null);
+        Item RemoveModifierInSelectingModifiersAndAmountsForProductPageAsync(Guid modifierId, Guid? modifierGroupId = null);
 
         /// <summary>
         /// 
@@ -142,7 +142,7 @@ namespace WebAppAssembly.Client.Service
         /// <param name="productId"></param>
         /// <param name="positionId"></param>
         /// <returns></returns>
-        Item AddProductInSelectingModifiersAndAmountsForProductPageAsync(Guid productId, Guid positionId);
+        Item AddProductInSelectingModifiersAndAmountsForProductPageAsync();
 
         /// <summary>
         /// 
@@ -150,7 +150,7 @@ namespace WebAppAssembly.Client.Service
         /// <param name="productId"></param>
         /// <param name="positionId"></param>
         /// <returns></returns>
-        Item? RemoveProductInSelectingModifiersAndAmountsForProductPageAsync(Guid productId, Guid positionId);
+        Item? RemoveProductInSelectingModifiersAndAmountsForProductPageAsync();
 
         /// <summary>
         /// 
@@ -164,14 +164,14 @@ namespace WebAppAssembly.Client.Service
         /// </summary>
         /// <param name="productId"></param>
         /// <returns></returns>
-        ProductInfo AddProductWithoutModifiersInSelectingAmountsForProductsPageAsync(Guid productId);
+        ProductInfo AddProductWithoutModifiersInSelectingAmountsForProductsPageAsync();
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="productId"></param>
         /// <returns></returns>
-        ProductInfo? RemoveProductWithoutModifiersInSelectingAmountsForProductsPageAsync(Guid productId);
+        ProductInfo? RemoveProductWithoutModifiersInSelectingAmountsForProductsPageAsync();
 
         /// <summary>
         /// 
@@ -280,7 +280,7 @@ namespace WebAppAssembly.Client.Service
         /// 
         /// </summary>
         /// <returns></returns>
-        Task CancelCurrSimilarSelectedItemsWithModifiers();
+        Task CancelCurrSimilarSelectedItemsWithModifiersAsync();
 
         /// <summary>
         /// 

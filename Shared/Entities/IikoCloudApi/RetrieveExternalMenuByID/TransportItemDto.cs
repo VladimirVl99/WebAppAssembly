@@ -1,5 +1,6 @@
 ﻿using ApiServerForTelegram.Entities.EExceptions;
 using Newtonsoft.Json;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Serialization;
 using WebAppAssembly.Shared.Entities.EMenu;
 using WebAppAssembly.Shared.Models.Order;
@@ -85,18 +86,26 @@ namespace ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExtern
         public bool HaveItems() => TotalAmount > 0;
         public void IncrementAmount() => TotalAmount++;
         public void DecrementAmount() => TotalAmount = TotalAmount != 0 ? --TotalAmount : TotalAmount;
-        private static string IntOrSomeNumberOfDigitsFromCurrentCulture(float number, int numberOfDigitsFromCurrentCulture) =>
-            ((int)(number * 100) % 100) != 0 ? string.Format($"{{0:F{numberOfDigitsFromCurrentCulture}}}", number) : ((int)number).ToString();
+        private string IntOrTwoNumberOfDigitsFromCurrentCulture(float number)
+            => ((int)(number * 100) % 100) != 0 ? string.Format("0:F2", number) : ((int)number).ToString();
         public float Weight() => ItemSizes?.FirstOrDefault()?.PortionWeightGrams ?? 0;
-        public string WeightAsString() => IntOrSomeNumberOfDigitsFromCurrentCulture(Weight(), 2);
+        public string WeightAsString() => IntOrTwoNumberOfDigitsFromCurrentCulture(Weight());
         public float Fats() => ItemSizes?.FirstOrDefault()?.NutritionPerHundredGrams?.Fats ?? 0;
-        public string FatsAsString() => IntOrSomeNumberOfDigitsFromCurrentCulture(Fats(), 2);
+        public string FatsAsString() => IntOrTwoNumberOfDigitsFromCurrentCulture(Fats());
         public float Proteins() => ItemSizes?.FirstOrDefault()?.NutritionPerHundredGrams?.Proteins ?? 0;
-        public string ProteinsAsString() => IntOrSomeNumberOfDigitsFromCurrentCulture(Proteins(), 2);
+        public string ProteinsAsString() => IntOrTwoNumberOfDigitsFromCurrentCulture(Proteins());
         public float Carbs() => ItemSizes?.FirstOrDefault()?.NutritionPerHundredGrams?.Carbs ?? 0;
-        public string CarbsAsString() => IntOrSomeNumberOfDigitsFromCurrentCulture(Carbs(), 2);
+        public string CarbsAsString() => IntOrTwoNumberOfDigitsFromCurrentCulture(Carbs());
         public float Energy() => ItemSizes?.FirstOrDefault()?.NutritionPerHundredGrams?.Energy ?? 0;
-        public string EnergyAsString() => IntOrSomeNumberOfDigitsFromCurrentCulture(Energy(), 2);
+        public string EnergyAsString() => IntOrTwoNumberOfDigitsFromCurrentCulture(Energy());
         public IEnumerable<TransportModifierGroupDto>? ModifierGroups() => ItemSizes?.FirstOrDefault()?.ItemModifierGroups;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="InfoException"></exception>
+        public Guid GetItemId() => ItemId ?? throw new InfoException(typeof(TransportItemDto).FullName!,
+            nameof(GetItemId), nameof(Exception), $"Item ID can't be null");
     }
 }

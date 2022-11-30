@@ -93,8 +93,9 @@
             }
             <hr style="color:grey;"/>
 
-            if (products != null && products.Any())
+            if (products is not null)
             {
+                var productsArr = products.ToArray();
                 int columnAmount = 3;
                 int productCount = products.Count();
 
@@ -106,15 +107,16 @@
                         {
                             if (j < productCount)
                             {
-                                var product = products[j];
+                                var product = productsArr[j];
 
                                 <div class="col">
                                     <center>
                                         <img class="img-fluid rounded" src="@product.ImageLink()" alt="@product.Name"
                                             @onclick="(e => (product.HaveModifiers() || product.HaveSizesMoreThanOne())
-                                            ? AddProductInMainMenuAsync(product.ItemId ?? Guid.Empty) : AddProductForOtherMenuAsync(product.ItemId ?? Guid.Empty))"/>
+                                            ? AddProductItemInSelectingProductPageAsync(product.GetItemId())
+                                            : AddProductWithoutModifiersForSelectingAmountsForProductsPageAsync(product.ItemId ?? Guid.Empty))" />
                                     </center>
-                                    <h6 style="line-height:0.5;margin-top: 5px;">@($"₽{(product.Price().ToString() ?? "?")}")</h6>
+                                    <h6 style="line-height:0.5;margin-top: 5px;">@($"₽{(product.PriceOrDefault().ToString() ?? "???")}")</h6>
                                     <p style="line-height:1;" id="@product.ItemId">@product.Name</p>
                                         <p style="line-height:0.5;color:lightgrey;margin-top:0px;" id="@product.ItemId">@(product.WeightAsString()) г</p>
                                 </div>
@@ -131,12 +133,12 @@
                             {
                                 if (j < productCount)
                                 {
-                                    var product = products[j];
+                                    var product = productsArr[j];
                                     <div class="col">
                                         @if (!product.HaveItems())
                                         {
                                             <div class="TlBlr_div TlBlrCounter_x TlBlrDesktopProductCard_footer TlBlrCounter_y">
-                                                <button @onclick="(e => AddProductInMainMenuAsync(product.ItemId ?? Guid.Empty))" class="TlBlrCounter_btn TlBlrCounter_onlyIncrement"
+                                                <button @onclick="(e => AddProductItemInSelectingProductPageAsync(product.GetItemId()))" class="TlBlrCounter_btn TlBlrCounter_onlyIncrement"
                     data-testid="amount-select-increment">
                                                     <span>Добавить</span>
                                                 </button>
@@ -145,16 +147,14 @@
                                         else
                                         {
                                             <div class="TlBlr_div TlBlrCounter_x TlBlrDesctopProductCard TlBlrCounter_y">
-                                                <button @onclick="(e => (product.HaveModifiers() || product.HaveSizesMoreThanOne())
-                                                    ? ChangeProductsWithModifiersForChangingMenuAsync(product.ItemId ?? Guid.Empty)
-                                                    : RemoveProductInMainMenuAsync(product.ItemId ?? Guid.Empty))" class="TlBlrCounter_btn TlBlrCounter_decrement"
+                                                <button @onclick="(e => RemoveProductItemInSelectingProductPageAsync(product.GetItemId()))" class="TlBlrCounter_btn TlBlrCounter_decrement"
                     data-testid="amount-select-decrement">
                                                     <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
                                                         <path fill-rule="evenodd" clip-rule="evenodd" d="M6 12a1 1 0 0 0 1 1h10a1 1 0 1 0 0-2H7a1 1 0 0 0-1 1Z" fill="currentColor"></path>
                                                     </svg>
                                                 </button>
                                                 <span>@product.TotalAmount</span>
-                                                <button @onclick="(e => AddProductInMainMenuAsync(product.ItemId ?? Guid.Empty))" class="TlBlrCounter_btn TlBlrCounter_increment"
+                                                <button @onclick="(e => AddProductItemInSelectingProductPageAsync(product.GetItemId()))" class="TlBlrCounter_btn TlBlrCounter_increment"
                     data-testid="amount-select-increment">
                                                     <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
                                                         <path fill-rule="evenodd" clip-rule="evenodd" d="M12 6a1 1 0 0 0-1 1v4H7a1 1 0 1 0 0 2h4v4a1 1 0 1 0 2 0v-4h4a1 1 0 1 0 0-2h-4V7a1 1 0 0 0-1-1Z"
@@ -175,13 +175,13 @@
                 }
             }
 
-            if (IsTestMode)
+            if (!OrderService.IsReleaseMode)
             {
-                if (OrderModel.HaveSelectedProducts())
+                if (OrderService.OrderInfo.HaveSelectedProducts())
                 {
                     <div>
                         <center>
-        @*Show button if at least one product is selected*@
+                            @*Show button if at least one product is selected*@
                             <a href="#" @onclick="(e => ViewOrderOfTestMode())" data-toggle="modal" data-target="#productModal" class="btn btn-success">Корзина</a>
                         </center>
                     </div>
@@ -189,17 +189,18 @@
             }
         }
         // Show the page for to select modifiers for the selected product
-        else if (RazorOrderInfo.OrderStatusType == OrderStatusType.OrderProductWithModifiersSelect)
+        else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.SelectingModifiersAndAmountsForProduct
+        && OrderService.CurrItem is not null && OrderService.CurrProductItem is not null)
         {
-            var item = ItemById(SelectedProductId, ProductPositionId);
-            var product = ProductById(SelectedProductId);
+            var item = OrderService.CurrItem;
+            var product = OrderService.CurrProductItem;
 
             <div class="container">
-            @if (IsTestMode)
+            @if (!OrderService.IsReleaseMode)
             {
                 <div align="right">
-                    <button @onclick="(e => CancelSelectModifiersAsync(SelectedProductId, ProductPositionId))" 
-        data-toggle="modal" data-target="#productModal" class="btn btn-link btn-sm btn-text-green">Отмена</button>
+                        <button @onclick="(e => OrderService.CancelCurrSelectedItemWithModifiers())"
+                data-toggle="modal" data-target="#productModal" class="btn btn-link btn-sm btn-text-green">Отмена</button>
                 </div>
             }
             <div align="center">
@@ -215,14 +216,14 @@
                 </div>
                 <div class="col">
                     <div class="TlBlr_div TlBlrCounter_x TlBlrDesctopProductCard TlBlrCounter_y" style="height:48px;">
-                        <button @onclick="(e => RemoveProductInModifierMenuAsync(product.ItemId ?? Guid.Empty, ProductPositionId))" class="TlBlrCounter_btn TlBlrCounter_decrement"
+                            <button @onclick="(e => RemoveProductInSelectingModifiersAndAmountsForProductPageAsync())" class="TlBlrCounter_btn TlBlrCounter_decrement"
         data-testid="amount-select-decrement">
                             <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
                                 <path fill-rule="evenodd" clip-rule="evenodd" d="M6 12a1 1 0 0 0 1 1h10a1 1 0 1 0 0-2H7a1 1 0 0 0-1 1Z" fill="currentColor"></path>
                             </svg>
                         </button>
                         <span>@item.Amount</span>
-                        <button @onclick="(e => AddProductInModifierMenuAsync(product.ItemId ?? Guid.Empty, ProductPositionId))" class="TlBlrCounter_btn TlBlrCounter_increment"
+                        <button @onclick="(e => AddProductInSelectingModifiersAndAmountsForProductPageAsync())" class="TlBlrCounter_btn TlBlrCounter_increment"
         data-testid="amount-select-increment">
                             <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
                                 <path fill-rule="evenodd" clip-rule="evenodd" d="M12 6a1 1 0 0 0-1 1v4H7a1 1 0 1 0 0 2h4v4a1 1 0 1 0 2 0v-4h4a1 1 0 1 0 0-2h-4V7a1 1 0 0 0-1-1Z"
@@ -290,7 +291,7 @@
                                         <div class="TlBlr_div TlBlrCounter_x TlBlrDesktopProductCard_footer TlBlrCounter_y">
                                             @if (!item.IsReachedMaxAmountOfGroupModifier(groupModifier.ItemGroupId ?? Guid.Empty, modifier.ItemId ?? Guid.Empty))
                                             {
-                                                <button @onclick="(e => AddModifierAsync(SelectedProductId, modifier.ItemId ?? Guid.Empty, ProductPositionId, groupModifier.ItemGroupId))"
+                                                    <button @onclick="(e => AddModifierInSelectingModifiersAndAmountsForProductPageAsync(modifier.ItemId ?? Guid.Empty, groupModifier.ItemGroupId))"
                                                     class="TlBlrCounter_btn TlBlrCounter_onlyIncrement" data-testid="amount-select-increment">
                                                     <span>Добавить</span>
                                                 </button>
@@ -306,7 +307,7 @@
                                     else
                                     {
                                         <div class="TlBlr_div TlBlrCounter_x TlBlrDesctopProductCard TlBlrCounter_y">
-                                            <button @onclick="(e => RemoveModifierAsync(SelectedProductId, modifier.ItemId ?? Guid.Empty, ProductPositionId, groupModifier.ItemGroupId))"
+                                            <button @onclick="(e => RemoveModifierInSelectingModifiersAndAmountsForProductPageAsync(modifier.ItemId ?? Guid.Empty, groupModifier.ItemGroupId))"
                                                 class="TlBlrCounter_btn TlBlrCounter_decrement" data-testid="amount-select-decrement">
                                                 <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
                                                     <path fill-rule="evenodd" clip-rule="evenodd" d="M6 12a1 1 0 0 0 1 1h10a1 1 0 1 0 0-2H7a1 1 0 0 0-1 1Z" fill="currentColor"></path>
@@ -316,7 +317,7 @@
                                             @if (!item.IsReachedMaxAmountOfGroupModifier(groupModifier.ItemGroupId ?? Guid.Empty, modifier.ItemId ?? Guid.Empty))
                                             {
                                                 <span>@(item.AmountOfModifier(modifier.ItemId ?? Guid.Empty, groupModifier.ItemGroupId))</span>
-                                                <button @onclick="(e => AddModifierAsync(SelectedProductId, modifier.ItemId ?? Guid.Empty, ProductPositionId, groupModifier.ItemGroupId))"
+                                                    <button @onclick="(e => AddModifierInSelectingModifiersAndAmountsForProductPageAsync(modifier.ItemId ?? Guid.Empty, groupModifier.ItemGroupId))"
                                                 class="TlBlrCounter_btn TlBlrCounter_increment" data-testid="amount-select-increment">
                                                     <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
                                                         <path fill-rule="evenodd" clip-rule="evenodd" d="M12 6a1 1 0 0 0-1 1v4H7a1 1 0 1 0 0 2h4v4a1 1 0 1 0 2 0v-4h4a1 1 0 1 0 0-2h-4V7a1 1 0 0 0-1-1Z"
@@ -336,7 +337,6 @@
                                             }
                                         </div>
                                     }
-
 
                                 </div>
 
@@ -358,35 +358,36 @@
                 }
             }
 
-            @if (IsTestMode)
+            @if (!OrderService.IsReleaseMode)
             {
                 <br />
                 <div>
                     @if (item.IsReachedMinAmountOfGroupModifiers() && item.IsReachedMinAmountOfModifiers())
                     {
-                        <button @onclick="(e => CompleteSelectModifiers())" id="@SelectedProductId" data-toggle="modal" data-target="#productModal"
-                            class="btn btn-success w-100">Добавить ₽@(TotalSumOfSelectedProductWithModifiers(SelectedProductId, ProductPositionId))</button>
+                        <button @onclick="(e => StateOfPage.GoBack())" id="@OrderService.CurrItem.ProductId" data-toggle="modal" data-target="#productModal"
+                            class="btn btn-success w-100">Добавить ₽@(OrderService.CurrItem.TotalPrice)</button>
                     }
                     else
                     {
-                        <button @onclick="(e => CompleteSelectModifiers())" id="@SelectedProductId" data-toggle="modal" data-target="#productModal"
-                            class="btn btn-success w-100" disabled>Добавить ₽@(TotalSumOfSelectedProductWithModifiers(SelectedProductId, ProductPositionId))</button>
+                        <button id="@OrderService.CurrItem.ProductId" data-toggle="modal" data-target="#productModal"
+                        class="btn btn-success w-100" disabled>Добавить ₽@(OrderService.CurrItem.TotalPrice)</button>
                     }
                 </div>
             }
         </div>
         }
         // Show the page to add products
-        else if (RazorOrderInfo.OrderStatusType == OrderStatusType.OrderProductSelect)
+        else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.SelectingAmountsForProducts
+        && OrderService.CurrItem is not null && OrderService.CurrProductItem is not null)
         {
-            var item = ItemById(SelectedProductId);
-            var product = ProductById(SelectedProductId);
+            var item = OrderService.CurrItem;
+            var product = OrderService.CurrProductItem;
 
             <div class="container">
-                @if (IsTestMode)
+                @if (!OrderService.IsReleaseMode)
                 {
                     <div align="right">
-                        <button @onclick="(e => CancelSelectedProduct(SelectedProductId))" 
+                        <button @onclick="(e => StateOfPage.GoBack())" 
             data-toggle="modal" data-target="#productModal" class="btn btn-link btn-sm btn-text-green">Отмена</button>
                     </div>
                 }
@@ -403,14 +404,14 @@
                     </div>
                     <div class="col">
                         <div class="TlBlr_div TlBlrCounter_x TlBlrDesctopProductCard TlBlrCounter_y" style="height:48px;">
-                            <button @onclick="(e => RemoveProductInOtherMenuAsync(product.ItemId ?? Guid.Empty))" class="TlBlrCounter_btn TlBlrCounter_decrement"
+                            <button @onclick="(e => RemoveProductWithoutModifiersInSelectingAmountsForProductsPageAsync())" class="TlBlrCounter_btn TlBlrCounter_decrement"
             data-testid="amount-select-decrement">
                                 <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
                                     <path fill-rule="evenodd" clip-rule="evenodd" d="M6 12a1 1 0 0 0 1 1h10a1 1 0 1 0 0-2H7a1 1 0 0 0-1 1Z" fill="currentColor"></path>
                                 </svg>
                             </button>
                             <span>@item.Amount</span>
-                            <button @onclick="(e => AddProductInOtherMenuAsync(product.ItemId ?? Guid.Empty))" class="TlBlrCounter_btn TlBlrCounter_increment"
+                            <button @onclick="(e => AddProductWithoutModifiersInSelectingAmountsForProductsPageAsync())" class="TlBlrCounter_btn TlBlrCounter_increment"
             data-testid="amount-select-increment">
                                 <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
                                     <path fill-rule="evenodd" clip-rule="evenodd" d="M12 6a1 1 0 0 0-1 1v4H7a1 1 0 1 0 0 2h4v4a1 1 0 1 0 2 0v-4h4a1 1 0 1 0 0-2h-4V7a1 1 0 0 0-1-1Z"
@@ -427,25 +428,26 @@
                     <p>@product.Description</p>
                 }
 
-                @if (IsTestMode)
+                @if (!OrderService.IsReleaseMode)
                 {
                     <br />
                     <div>
-                        <button @onclick="(e => CompleteSelectedProducts())" id="@SelectedProductId" data-toggle="modal" data-target="#productModal"
+                        <button @onclick="(e => StateOfPage.GoBack())" id="@item.ProductId" data-toggle="modal" data-target="#productModal"
             class="btn btn-success w-100">Добавить</button>
                     </div>
                 }
             </div>
         }
         // Show the page to remove selected products with modifiers
-        else if (RazorOrderInfo.OrderStatusType == OrderStatusType.OrderProductWithModifiersRemove)
+        else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.ChangingSelectedProductsWithModifiers
+        && OrderService.CurrentProduct is not null && OrderService.CurrProductItem is not null)
         {
             bool hr = false;
-            var items = OrderModel.Items?.Where(item => item.ProductId == SelectedProductId);
-            var product = WebAppInfo.ProductById(CurrentGroupId, SelectedProductId);
-            double totalSumOfSelectedProducts = 0;
-            <br />
+            var items = OrderService.OrderInfo.CurrItems().Where(x => x.ProductId == OrderService.CurrentProduct.GetProductId());
+            var product = OrderService.CurrProductItem;
+            double totalSum = 0;
 
+            <br />
             @if (items is not null && product is not null)
             {
                 foreach (var item in items)
@@ -461,7 +463,7 @@
 
                     <div class="row">
                         <div class="col">
-                            <img class="img-fluid rounded" src="@ImageLinkByProductId(item.ProductId)" alt="@item.ProductName" />
+                            <img class="img-fluid rounded" src="@product!.ImageLink()" alt="@item.ProductName" />
                         </div>
                         <div class="col-6">
                             @{
@@ -474,12 +476,12 @@
                                 <p> • @modifier.Name x@(modifier.Amount)</p>
                             }
                             <div style="display: flex;">
-                                <button @onclick="(e => RemoveProductWithModifiersInChangingMenuAsync(item.ProductId, item.PositionId ?? Guid.Empty))"
+                                <button @onclick="(e => RemoveProductItemInChangingSelectedProductsWithModifiersPageAsync(item.ProductId, item.PositionId ?? Guid.Empty))"
                                     data-toggle="modal" data-target="#productModal" class="btn btn-light" style="box-shadow:none;width:35px;border-radius:50%;background-color: #F5F4F2;">
                                     -
                                 </button>
                                 <p style="padding-left:10px;padding-right:10px;margin-bottom:0;margin-top:3%;">@(item.Amount) шт</p>
-                                <button @onclick="(e => AddProductWithModifiersInChangingMenuAsync(item.ProductId, item.PositionId ?? Guid.Empty))"
+                                <button @onclick="(e => AddProductItemInChangingSelectedProductsWithModifiersPageAsync(item.ProductId, item.PositionId ?? Guid.Empty))"
                                     data-toggle="modal" data-target="#productModal" class="btn btn-light" style="box-shadow:none;width:35px;border-radius:50%;background-color: #F5F4F2;">
                                     +
                                 </button>
@@ -487,21 +489,18 @@
                         </div>
                         <div align="right" class="col-2">
                             @{    
-                                var totalSum = product is not null ? TotalSumOfSelectedProductWithModifiers(product, item)
-                                : TotalSumOfSelectedProductWithModifiers(item.ProductId, item.PositionId ?? Guid.Empty);
-                                totalSumOfSelectedProducts += totalSum;
-                                    
+                                totalSum += item.TotalPrice ?? 0;           
                             }
                             <p>₽@totalSum</p>
                         </div>
                     </div>
                 }
             }
-        <h5 align="right" style="margin-top:20px;margin-bottom:5px;">Итого: ₽@totalSumOfSelectedProducts</h5>
+        <h5 align="right" style="margin-top:20px;margin-bottom:5px;">Итого: ₽@totalSum</h5>
 
         <br />
         <center>
-            <button @onclick="(e => RemoveSelectedProductsWithMofifiersByIdAsync(SelectedProductId))" style="background-color:rgba(28,28,28,0);outline:none;border:0;width:42px;height:32px;">
+            <button @onclick="(e => CancelCurrSimilarSelectedItemsWithModifiersAsync())" style="background-color:rgba(28,28,28,0);outline:none;border:0;width:42px;height:32px;">
                 <svg xmlns="http://www.w3.org/2000/svg" class="Trash" viewBox="0 0 16 18.286" width="16" height="18.286">
                     <path d="M1.143 16.571a1.714 1.714 0 0 0 1.714 1.714h10.286a1.714 1.714 0 0 0 1.714 -1.714V4.571H1.143zm9.714 -9.143a0.571 0.571 0 0 1 1.143 0v8a0.571 0.571 0 0 1 -1.143 0zm-3.429 0a0.571 0.571 0 0 1 1.143 0v8a0.571 0.571 0 0 1 -1.143 0zm-3.429 0a0.571 0.571 0 0 1 1.143 0v8a0.571 0.571 0 0 1 -1.143 0zM15.429 1.143H11.143l-0.336 -0.668A0.857 0.857 0 0 0 10.039 0H5.957a0.847 0.847 0 0 0 -0.764 0.475L4.857 1.143H0.571A0.571 0.571 0 0 0 0 1.714v1.143a0.571 0.571 0 0 0 0.571 0.571h14.857a0.571 0.571 0 0 0 0.571 -0.571V1.714a0.571 0.571 0 0 0 -0.571 -0.571z"></path>
                 </svg>
@@ -509,10 +508,10 @@
         </center>
         }
         // Show the page for view and check selected products in the order
-        else if (RazorOrderInfo.OrderStatusType == OrderStatusType.OrderView)
+        else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.ShoppingCart)
         {   
             <div class="container-fluid">
-                @if (IsTestMode)
+                @if (!OrderService.IsReleaseMode)
                 {
                     <div class="row mt-1 mb-2">
                         <div class="col">
@@ -551,15 +550,11 @@
 
                 @*Get the selected products in the order
                     Output all selected products*@
-                @if (OrderModel.Items is not null)
+                @if (OrderService.OrderInfo.Items is not null)
                 {
-                    foreach (var item in OrderModel.Items)
+                    foreach (var item in OrderService.OrderInfo.Items)
                     {
-                        var product = WebAppInfo.ProductById(item.ProductId);
-                        if (product is null)
-                        {
-                            continue;
-                        }
+                        var product = OrderService.DeliveryGeneralInfo.ProductById(item.ProductId);
 
                         if (hr)
                         {
@@ -569,13 +564,14 @@
                         {
                             hr = true;
                         }
+
                         var sizeName = item.ProductSizeId is not null ? product.ItemSizes?.FirstOrDefault(x => x.SizeId == item.ProductSizeId)?.SizeName
                         : product.HaveSizesMoreThanOne() ? product.ItemSizes?.FirstOrDefault()?.SizeName : null;
                         if (item.HaveModifiers())
                         {
                             <div class="row">
                                 <div class="col">
-                                    <img class="img-fluid rounded" src="@ImageLinkByProductId(item.ProductId)" alt="@item.ProductName" />
+                                    <img class="img-fluid rounded" src="@product.ImageLink()" alt="@item.ProductName" />
                                 </div>
                                 <div class="col-6">
                                     <p>@item.ProductName @sizeName</p>
@@ -598,11 +594,11 @@
 
                                 <div align="right" class="col-2">
                                     @{
-                                        var totalSum = product != null ? TotalSumOfSelectedProductWithModifiers(product, item)
-                                        : TotalSumOfSelectedProductWithModifiers(item.ProductId, item.PositionId ?? Guid.Empty);
-                                        var freeItems = OrderModel?.DiscountFreeItems?.Where(id => id == item.PositionId);
+                                        var totalSum = item.TotalPrice;
+                                        var freeItems = OrderService.OrderInfo.DiscountFreeItems?.Where(id => id == item.PositionId);
                                     }
-                                    @if (freeItems != null && freeItems.Any())
+
+                                    @if (freeItems is not null)
                                     {
                                         double discountSum = 0;
                                         foreach (var freeItem in freeItems)
@@ -624,7 +620,7 @@
                         {
                             <div class="row">
                                 <div class="col">
-                                    <img class="img-fluid rounded" src="@ImageLinkByProductId(item.ProductId)" alt="@item.ProductName" />
+                                    <img class="img-fluid rounded" src="@product.ImageLink()" alt="@item.ProductName" />
                                 </div>
                                 <div class="col-6">
                                     <p>@item.ProductName @sizeName</p>
@@ -643,10 +639,10 @@
 
                                 <div align="right" class="col-2">
                                     @{
-                                        var freeItems = OrderModel?.DiscountFreeItems?.Where(id => id == item.PositionId);
+                                        var freeItems = OrderService.OrderInfo.DiscountFreeItems?.Where(id => id == item.PositionId);
                                     }
 
-                                    @if (freeItems != null && freeItems.Any())
+                                    @if (freeItems is not null)
                                     {
                                         double discountSum = 0;
                                         foreach (var freeItem in freeItems)
@@ -665,14 +661,17 @@
                         }
                     }
                 }
-                @if (OrderModel.FreeItems != null)
+
+                @if (OrderService.OrderInfo.FreeItems is not null)
                 {
-                    foreach (var item in OrderModel.FreeItems)
+                    foreach (var item in OrderService.OrderInfo.FreeItems)
                     {
+                        var product = OrderService.DeliveryGeneralInfo.ProductById(item.ProductId);
+
                         <hr style="color:lightgrey;" />
                         <div class="row">
                             <div class="col">
-                                <img class="img-fluid rounded" src="@ImageLinkByProductId(item.ProductId)" alt="@item.ProductName" />
+                                <img class="img-fluid rounded" src="@product.ImageLink()" alt="@product.Name" />
                             </div>
                             <div class="col-6">
                                 <p>@item.ProductName</p>
@@ -687,28 +686,28 @@
             </div>
             <br />
 
-            @if (OrderModel.DiscountSum > 0)
+            @if (OrderService.OrderInfo.DiscountSum > 0)
             {
 
-                var discountProcent = OrderModel.DiscountProcent;
+                var discountProcent = OrderService.OrderInfo.DiscountProcent;
                 bool isInteger = (int)(discountProcent * 100 % 100) == 0;
-                <h5 style="margin-top:5px;">Скидка: -@string.Format(isInteger ? "{0:F0}" : "{0:F2}", OrderModel.DiscountProcent)%</h5>
+                <h5 style="margin-top:5px;">Скидка: -@string.Format(isInteger ? "{0:F0}" : "{0:F2}", discountProcent)%</h5>
 
                 <div class="row mb-2">
                     <div class="col">
                         <h5>Итого:</h5>
                     </div>
                     <div class="col" style="flex:0 0 auto;width:80%;">
-                        <h6 align="left" style="padding-top:5px;"><del>₽@OrderModel.TotalSum</del></h6>
-                        <h6 align="left">₽@(OrderModel.FinalSum)</h6>
+                        <h6 align="left" style="padding-top:5px;"><del>₽@OrderService.OrderInfo.TotalSum</del></h6>
+                        <h6 align="left">₽@(OrderService.OrderInfo.FinalSum)</h6>
                     </div>
                 </div>
             }
-            @if (WebAppInfo.UseCoupon)
+            @if (OrderService.DeliveryGeneralInfo.UseCoupon)
             {
                 <div class="row" style="padding-bottom:5px;">
                         <div class="col">
-                        <input class="comment" type="text" name="Coupon" placeholder="Введите промокод" @bind="@CouponValue" />
+                        <input class="comment" type="text" name="Coupon" placeholder="Введите промокод" @bind="@OrderService.OrderInfo.Coupon" />
                     </div>
                     <div class="col">
                         <button @onclick="CalculateLoyaltyProgramByCouponAsync" class="btn btn-light TlBlrCouponApply" style="box-shadow:none;background-color:#F5F4F2;height:100%;">
@@ -718,33 +717,21 @@
                 </div>
             }
 
-            if (OrderModel.WalletSum > 0)
+            @* !!! Change sum of pay on the main button of Telegram by using the wallet balance !!! *@
+            if (OrderService.OrderInfo.WalletBalance > 0)
             {
                 <h5>Бонусные баллы</h5>
-                <h6>У Вас накоплено @(OrderModel.WalletSum) баллов</h6>
+                @* В зависимости от баланса изменять слово "баланс" *@
+                <h6>У Вас накоплено @(OrderService.OrderInfo.WalletBalance) баллов</h6>
                 <div class="row">
                     <div class="col-6" style="position:relative;">
                         <input type="range" class="form-range" style="margin:0;position:absolute;top:50%;left:50%;margin-right:-50%;transform:translate(-50%,-50%);
     padding-left:10px;padding-right:10px;"
-                        min="0" max="@(OrderModel.AllowedWalletSum)" id="customRangeForWalletBalance" value="@OrderModel.SelectedBonusSum"
+               min="0" max="@(OrderService.OrderInfo.AllowedWalletSum)" id="customRangeForWalletBalance" value="@OrderService.OrderInfo.SelectedBonusSum"
                             @oninput="OnChangeAllowedBonusSum">
                     </div>
                     <div class="col-2" style="position:relative;">
-                        <h5 style="margin:0;position:absolute;top:50%;left:50%;margin-right:-50%;transform:translate(-50%,-50%);">@(OrderModel.SelectedBonusSum)</h5>
-                    </div>
-                    <div class="col-4">
-                        @if (!ConfirmDiscountBonus)
-                        {
-                            <button @onclick="(e => ConfirmDiscountBonus = true)" class="btn btn-light TlBlrCouponApply" style="box-shadow:none;background-color:#F5F4F2;height:100%;">
-                                <span>Применить</span>
-                            </button>
-                        }
-                        else
-                        {
-                            <button class="btn btn-light TlBlrCouponApply" style="box-shadow:none;background-color:#F5F4F2;height:100%;" disabled>
-                                <span>Применено</span>
-                            </button>
-                        }
+                        <h5 style="margin:0;position:absolute;top:50%;left:50%;margin-right:-50%;transform:translate(-50%,-50%);">@(OrderService.OrderInfo.SelectedBonusSum)</h5>
                     </div>
                 </div>
             }
@@ -752,27 +739,28 @@
             <div>
                 <h5>Способ доставки</h5>
             </div>
-            @if (OrderModel.ByCourier)
+            @if (OrderService.OrderInfo.ByCourier)
             {
                 <div class="btn-group" role="group" aria-label="Delivery type">
                     <button type="button" @onclick="(e => ChangeDeliveryTypeFlagAsync(true))" data-toggle="modal" data-target="#productModal" class="btn btn-success disabled">Доставка</button>
                     <button type="button" @onclick="(e => ChangeDeliveryTypeFlagAsync(false))" data-toggle="modal" data-target="#productModal" class="btn btn-secondary"
                         style="background-color:#c2c9cf;border-color: #c2c9cf;">Самовывоз</button>
                 </div>
-                <input class="comment" type="text" name="City" placeholder="Город" value="@CityValue" @oninput="(e => { var res = e.Value.ToString(); CityValue = res is null ? CityValue : res; })"/>
-                <input class="comment" type="text" name="Street" placeholder="Улица" value="@StreetValue"
-                @oninput="(e => { var res = e.Value.ToString(); StreetValue = res is null ? StreetValue : res; })" />
+                <input class="comment" type="text" name="City" placeholder="Город" value="@OrderService.OrderInfo.Address!.City"
+       @oninput="(e => { var res = e.Value.ToString(); OrderService.OrderInfo.Address!.City = res is null ? OrderService.OrderInfo.Address!.City : res; })" />
+                <input class="comment" type="text" name="Street" placeholder="Улица" value="@OrderService.OrderInfo.Address!.Street"
+       @oninput="(e => { var res = e.Value.ToString(); OrderService.OrderInfo.Address!.Street = res is null ? OrderService.OrderInfo.Address!.Street : res; })" />
                 <div style="display: flex;">
-                    <input class="comment" style="width:49%;" type="text" name="House" placeholder="Дом" value="@HouseValue"
-                    @oninput="(e => { var res = e.Value.ToString(); HouseValue = res is null ? HouseValue : res; })" />
-                    <input class="comment" style="width:49%;margin-left:auto;margin-right:0em;" type="text" name="Flat" placeholder="Квартира" value="@FlatValue"
-                    @oninput="(e => { var res = e.Value.ToString(); FlatValue = res is null ? FlatValue : res; })" />
+                    <input class="comment" style="width:49%;" type="text" name="House" placeholder="Дом" value="@OrderService.OrderInfo.Address!.House"
+                    @oninput="(e => { var res = e.Value.ToString(); OrderService.OrderInfo.Address!.House = res is null ? OrderService.OrderInfo.Address!.House : res; })" />
+                    <input class="comment" style="width:49%;margin-left:auto;margin-right:0em;" type="text" name="Flat" placeholder="Квартира" value="@OrderService.OrderInfo.Address!.Flat"
+           @oninput="(e => { var res = e.Value.ToString(); OrderService.OrderInfo.Address!.Flat = res is null ? OrderService.OrderInfo.Address!.Flat : res; })" />
                 </div>
                 <div style="display: flex;">
-                    <input class="comment" style="width:49%;" type="text" name="Entrance" placeholder="Подъезд" value="@EntranceValue"
-                    @oninput="(e => { var res = e.Value.ToString(); EntranceValue = res is null ? EntranceValue : res; })"/>
-                    <input class="comment" style="width:49%;margin-left:auto;margin-right:0em;" type="text" name="Floor" placeholder="Этаж" value="@FloorValue"
-                    @oninput="(e => { var res = e.Value.ToString(); FloorValue = res is null ? FloorValue : res; })" />
+                    <input class="comment" style="width:49%;" type="text" name="Entrance" placeholder="Подъезд" value="@OrderService.OrderInfo.Address!.Entrance"
+           @oninput="(e => { var res = e.Value.ToString(); OrderService.OrderInfo.Address!.Entrance = res is null ? OrderService.OrderInfo.Address!.Entrance : res; })" />
+                    <input class="comment" style="width:49%;margin-left:auto;margin-right:0em;" type="text" name="Floor" placeholder="Этаж" value="@OrderService.OrderInfo.Address!.Floor"
+           @oninput="(e => { var res = e.Value.ToString(); OrderService.OrderInfo.Address!.Floor = res is null ? OrderService.OrderInfo.Address!.Floor : res; })" />
                 </div>
             }
             else
@@ -787,16 +775,16 @@
                 <div style="margin-top:10px;">
                     <select class="form-select" style="box-shadow:none;" aria-label="Default select example" @onchange="@OnSelectTerminalAsync">
                     @{
-                        var delTerminal = OrderModel.DeliveryTerminal;
+                        var delTerminal = OrderService.OrderInfo.DeliveryTerminal;
                     }
-                    @if (delTerminal != null)
+                    @if (delTerminal is not null)
                     {
                         <option id="@delTerminal.Id" selected>@(delTerminal.Name)</option>
                     }
-                    else if (OrderModel.TerminalId != null && OrderModel.TerminalId != Guid.Empty)
+                    else if (OrderService.OrderInfo.TerminalId is not null && OrderService.OrderInfo.TerminalId != Guid.Empty)
                     {
-                        delTerminal = DeliveryTerminals?.FirstOrDefault(x => x.Id == OrderModel.TerminalId);
-                        if (delTerminal != null)
+                        delTerminal = OrderService.DeliveryGeneralInfo.DeliveryTerminals?.FirstOrDefault(x => x.Id == OrderService.OrderInfo.TerminalId);
+                        if (delTerminal is not null)
                         {
                             <option id="@delTerminal.Id" selected>@(delTerminal.Name)</option>
                         }
@@ -809,9 +797,9 @@
                     {
                         <option selected>Выберите улицу</option>
                     }
-                    @if (DeliveryTerminals is not null)
+                    @if (OrderService.DeliveryGeneralInfo.DeliveryTerminals is not null)
                     {
-                        foreach (var terminal in DeliveryTerminals)
+                        foreach (var terminal in OrderService.DeliveryGeneralInfo.DeliveryTerminals)
                         {
                             <option value="@terminal.Id">@terminal.Name</option>
                         }
@@ -821,21 +809,21 @@
             }
 
             @*Comment field*@
-            <input class="comment" type="text" name="Comment" placeholder="Ваш комментарий..." @bind="@CommentValue"/>
+            <input class="comment" type="text" name="Comment" placeholder="Ваш комментарий..." @bind="@OrderService.OrderInfo.Comment"/>
 
             <div>
                 <br/>
-                @if (IsTestMode)
+                @if (!OrderService.IsReleaseMode)
                 {
                     <central>
                         @*The button for to pay the created order if the page isn't going to open in the Telegram app*@
-                        @if (OrderModel.TotalSum < 70)
+                        @if (OrderService.OrderInfo.TotalSum < OrderService.DeliveryGeneralInfo.CurrOfRub)
                         {
-                            <button data-toggle="modal" data-target="#productModal" class="btn btn-success" disabled>Pay ₽@(OrderModel.TotalSum)</button>
+                            <button data-toggle="modal" data-target="#productModal" class="btn btn-success" disabled>Pay ₽@(OrderService.OrderInfo.TotalSum)</button>
                         }
                         else
                         {
-                            var sum = OrderModel.TotalSum - OrderModel.DiscountSum;
+                            var sum = OrderService.OrderInfo.FinalSum;
                             <button @onclick="(e => PayOrderForTestAsync())" data-toggle="modal" data-target="#productModal" class="btn btn-success">Оплатить ₽@(sum)</button>
                         }
                     </central>
@@ -843,9 +831,9 @@
             </div>
         }
         // Page to show information about the created order
-        else if (RazorOrderInfo.OrderStatusType == OrderStatusType.OrderCreated && IsTestMode)
+        else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.InfoAboutCreatedOrder && !OrderService.IsReleaseMode)
         {
-            <p>@InfoAboutCreatedOrder()</p>
+            <p>@OrderService.InfoAboutCreatedOrderForTest()</p>
         }
     }
 }
@@ -1149,21 +1137,21 @@ else {
     }
 
     // Add a modifier to product by id +
-    private async Task AddModifierInSelectingModifiersAndAmountsForProductPageAsync(Guid productId, Guid modifierId, Guid positionId, Guid? modifierGroupId = null)
+    private async Task AddModifierInSelectingModifiersAndAmountsForProductPageAsync(Guid modifierId, Guid? modifierGroupId = null)
     {
         try
         {
             if (OrderService!.IsReleaseMode)
             {
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync();
-                var item = OrderService!.AddModifierInSelectingModifiersAndAmountsForProductPageAsync(productId, modifierId, positionId, modifierGroupId);
+                var item = OrderService!.AddModifierInSelectingModifiersAndAmountsForProductPageAsync(modifierId, modifierGroupId);
                 var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingModifiersAndAmountsForProduct;
                 btnText = string.Format(btnText, item.TotalPrice);
                 await TwaNet!.SetMainButtonTextAsync(btnText);
             }
             else
             {
-                OrderService!.AddModifierInSelectingModifiersAndAmountsForProductPageAsync(productId, modifierId, positionId, modifierGroupId);
+                OrderService!.AddModifierInSelectingModifiersAndAmountsForProductPageAsync(modifierId, modifierGroupId);
             }
         }
         catch (Exception ex)
@@ -1173,21 +1161,21 @@ else {
     }
 
     // Remove a modifier from product by id +
-    private async Task RemoveModifierInSelectingModifiersAndAmountsForProductPageAsync(Guid productId, Guid modifierId, Guid positionId, Guid? modifierGroupId = null)
+    private async Task RemoveModifierInSelectingModifiersAndAmountsForProductPageAsync(Guid modifierId, Guid? modifierGroupId = null)
     {
         try
         {
             if (OrderService!.IsReleaseMode)
             {
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync();
-                var item = OrderService!.RemoveModifierInSelectingModifiersAndAmountsForProductPageAsync(productId, modifierId, positionId, modifierGroupId);
+                var item = OrderService!.RemoveModifierInSelectingModifiersAndAmountsForProductPageAsync(modifierId, modifierGroupId);
                 var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingModifiersAndAmountsForProduct;
                 btnText = string.Format(btnText, item.TotalPrice);
                 await TwaNet!.SetMainButtonTextAsync(btnText);
             }
             else
             {
-                OrderService!.RemoveModifierInSelectingModifiersAndAmountsForProductPageAsync(productId, modifierId, positionId, modifierGroupId);
+                OrderService!.RemoveModifierInSelectingModifiersAndAmountsForProductPageAsync(modifierId, modifierGroupId);
             }
         }
         catch (Exception ex)
@@ -1197,21 +1185,21 @@ else {
     }
 
     // Add product in the modifier menu +
-    private async Task AddProductInSelectingModifiersAndAmountsForProductPageAsync(Guid productId, Guid positionId)
+    private async Task AddProductInSelectingModifiersAndAmountsForProductPageAsync()
     {
         try
         {
             if (OrderService!.IsReleaseMode)
             {
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync();
-                var item = OrderService.AddProductInSelectingModifiersAndAmountsForProductPageAsync(productId, positionId);
+                var item = OrderService.AddProductInSelectingModifiersAndAmountsForProductPageAsync();
                 var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingModifiersAndAmountsForProduct;
                 btnText = string.Format(btnText, item.TotalPrice);
                 await TwaNet!.SetMainButtonTextAsync(btnText);
             }
             else
             {
-                OrderService.AddProductInSelectingModifiersAndAmountsForProductPageAsync(productId, positionId);
+                OrderService.AddProductInSelectingModifiersAndAmountsForProductPageAsync();
             }
         }
         catch (Exception ex)
@@ -1221,14 +1209,14 @@ else {
     }
 
     // Remove product in the modifier menu +
-    private async Task RemoveProductInSelectingModifiersAndAmountsForProductPageAsync(Guid productId, Guid positionId)
+    private async Task RemoveProductInSelectingModifiersAndAmountsForProductPageAsync()
     {
         try
         {
             if (OrderService!.IsReleaseMode)
             {
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync();
-                var item = OrderService.RemoveProductInSelectingModifiersAndAmountsForProductPageAsync(productId, positionId);
+                var item = OrderService.RemoveProductInSelectingModifiersAndAmountsForProductPageAsync();
                 if (item is null)
                 {
                     StateOfPage!.GoBack();
@@ -1252,8 +1240,7 @@ else {
             }
             else
             {
-                OrderService.RemoveProductInSelectingModifiersAndAmountsForProductPageAsync(productId, positionId);
-                if (OrderService.RemoveProductInSelectingModifiersAndAmountsForProductPageAsync(productId, positionId) is null)
+                if (OrderService.RemoveProductInSelectingModifiersAndAmountsForProductPageAsync() is null)
                 {
                     StateOfPage!.GoBack();
                 }
@@ -1293,21 +1280,21 @@ else {
     }
 
     // Add product +
-    private async Task AddProductForOtherMenuAsync(Guid productId)
+    private async Task AddProductWithoutModifiersInSelectingAmountsForProductsPageAsync()
     {
         try
         {
             if (OrderService!.IsReleaseMode)
             {
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync();
-                var res = OrderService.AddProductWithoutModifiersInSelectingAmountsForProductsPageAsync(productId);
+                var res = OrderService.AddProductWithoutModifiersInSelectingAmountsForProductsPageAsync();
                 var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingAmountsForProducts;
                 btnText = string.Format(btnText, res.Item.TotalPrice);
                 await TwaNet!.SetMainButtonTextAsync(btnText);
             }
             else
             {
-                OrderService.AddProductWithoutModifiersInSelectingAmountsForProductsPageAsync(productId);
+                OrderService.AddProductWithoutModifiersInSelectingAmountsForProductsPageAsync();
             }
         }
         catch (Exception ex)
@@ -1317,14 +1304,14 @@ else {
     }
 
     // Remove product +
-    private async Task RemoveProductInOtherMenuAsync(Guid productId)
+    private async Task RemoveProductWithoutModifiersInSelectingAmountsForProductsPageAsync()
     {
         try
         {
             if (OrderService!.IsReleaseMode)
             {
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync();
-                var res = OrderService.RemoveProductWithoutModifiersInSelectingAmountsForProductsPageAsync(productId);
+                var res = OrderService.RemoveProductWithoutModifiersInSelectingAmountsForProductsPageAsync();
 
                 if (res is null)
                 {
@@ -1349,7 +1336,7 @@ else {
             }
             else
             {
-                if (OrderService.RemoveProductWithoutModifiersInSelectingAmountsForProductsPageAsync(productId) is null)
+                if (OrderService.RemoveProductWithoutModifiersInSelectingAmountsForProductsPageAsync() is null)
                 {
                     StateOfPage!.GoBack();
                 }
@@ -1703,7 +1690,7 @@ else {
     }
 
     // Remove selected products with modifiers by ID +
-    private async Task CancelCurrSimilarSelectedItemsWithModifiersAsync(Guid productId)
+    private async Task CancelCurrSimilarSelectedItemsWithModifiersAsync()
     {
         try
         {
@@ -1726,7 +1713,7 @@ else {
                 if (res == yes)
                 {
                     StateOfPage!.GoBack();
-                    await OrderService.CancelCurrSimilarSelectedItemsWithModifiers();
+                    await OrderService.CancelCurrSimilarSelectedItemsWithModifiersAsync();
                     if (OrderService.OrderInfo.HaveSelectedProducts())
                     {
                         var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
@@ -1787,6 +1774,11 @@ else {
         if (value is not null && Int32.TryParse(value, out var walletSum))
         {
             OrderService.OrderInfo.SelectedBonusSum = walletSum;
+            if (OrderService.IsReleaseMode)
+            {
+                var btnTxt = string.Format(OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart, OrderService.OrderInfo.FinalSum - walletSum);
+                await TwaNet!.SetMainButtonTextAsync(btnTxt);
+            }
         }
     }
 }

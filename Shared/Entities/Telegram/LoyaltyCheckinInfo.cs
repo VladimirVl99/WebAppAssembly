@@ -10,6 +10,24 @@ namespace WebAppAssembly.Shared.Entities.Telegram
 {
     public class LoyaltyCheckinInfo
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        public LoyaltyCheckinInfo() { }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="checkin"></param>
+        /// <param name="ok"></param>
+        /// <param name="httpResponseInfo"></param>
+        public LoyaltyCheckinInfo(Checkin? checkin, bool ok, HttpResponseInfo? httpResponseInfo)
+        {
+            Checkin = checkin;
+            Ok = ok;
+            HttpResponseInfo = httpResponseInfo;
+        }
+
         [JsonProperty("checkin")]
         [JsonPropertyName("checkin")]
         public Checkin? Checkin { get; set; }
