@@ -7,7 +7,6 @@ using WebAppAssembly.Shared.Entities.Exceptions;
 using WebAppAssembly.Shared.Entities.Telegram;
 using WebAppAssembly.Shared.LogRepository;
 using WebAppAssembly.Shared.Models.Order;
-using ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExternalMenuByID;
 using ApiServerForTelegram.Entities.EExceptions;
 using System.Reflection.Metadata.Ecma335;
 
@@ -171,11 +170,10 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         {
             OrderInfo = order;
             var orderModel = (OrderModelOfServer)OrderInfo.Clone();
-            OrderModelForInvoice(ref orderModel);
             using var httpClient = new HttpClient();
             try
             {
-                var body = JsonConvert.SerializeObject(new { chatId = ChatId, orderInfoViaWebApp = orderModel });
+                var body = JsonConvert.SerializeObject(orderModel);
                 var data = new StringContent(body, Encoding.UTF8, "application/json");
                 var response = await httpClient.PostAsync(Url.CheckOrderInfoAndCreateInvoiceLink, data);
 
@@ -183,7 +181,7 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
                 if (response.StatusCode != HttpStatusCode.OK)
                     throw new HttpProcessException(response.StatusCode, responseBody);
 
-                return JsonConvert.DeserializeObject<InvoiceLinkStatus>(responseBody) ?? throw new Exception("Received an invoice link is invalid");
+                return JsonConvert.DeserializeObject<InvoiceLinkStatus>(responseBody);
             }
             catch (Exception ex)
             {
