@@ -1,9 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using WebAppAssembly.Server.Repositories.OrderCreationInWebRepository;
 using WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository;
-using WebAppAssembly.Shared.Entities.OfServerSide;
 using WebAppAssembly.Shared.Entities.Telegram;
-using WebAppAssembly.Shared.Entities.WebApp;
 using WebAppAssembly.Shared.Models.Order;
 using MainInfoForWebAppOrderOfServerSide = WebAppAssembly.Shared.Entities.OfServerSide.MainInfoForWebAppOrder;
 
@@ -21,13 +20,11 @@ namespace WebAppAssembly.Server.Controllers
         public OrderController(ILogger<OrderController> logger, IConfiguration configuration)
         {
             _logger = logger;
-            _configuration = configuration;
-            _orderService = new ShoppingOnlineService(configuration);
+            ShoppingOrderService = new ShoppingOnlineService(configuration);
         }
 
         private readonly ILogger<OrderController> _logger;
-        private readonly ShoppingOnlineService _orderService;
-        private readonly IConfiguration _configuration;
+        private readonly IShoppingOnlineService ShoppingOrderService;
 
 
         /// <summary>
@@ -40,9 +37,8 @@ namespace WebAppAssembly.Server.Controllers
         {
             try
             {
-                await _orderService.InitializeOrderModelAsync(chatInfo.ChatId);
-                return Ok(new MainInfoForWebAppOrderOfServerSide(_orderService.OrderInfo, _orderService.DeliveryGeneralInfo, _orderService.IsReleaseMode,
-                    _orderService.TlgMainBtnColor));
+                var orderInfoOfCustomer = await ShoppingOrderService.GetOrderModelCashAsync(chatInfo.ChatId);
+                return Ok(new MainInfoForWebAppOrderOfServerSide(orderInfoOfCustomer, ShoppingOrderService.DeliveryGeneralInfo, ShoppingOrderService.IsReleaseMode));
             }
             catch (Exception ex)
             {
@@ -61,7 +57,7 @@ namespace WebAppAssembly.Server.Controllers
         {
             try
             {
-                return Ok(await _orderService.WalletBalanceAsync(chatInfo));
+                return Ok(await ShoppingOrderService.GetCustomerWalletBalanceAsync(chatInfo));
             }
             catch (Exception ex)
             {
@@ -80,7 +76,7 @@ namespace WebAppAssembly.Server.Controllers
         {
             try
             {
-                await _orderService.SendOrderInfoToServerAsync(order);
+                await ShoppingOrderService.SendOrderInfoToServerAsync(order);
                 return Ok();
             }
             catch (Exception ex)
@@ -100,7 +96,7 @@ namespace WebAppAssembly.Server.Controllers
         {
             try
             {
-                return Ok(await _orderService.CalculateCheckinAsync(order));
+                return Ok(await ShoppingOrderService.CalculateCheckinAsync(order));
             }
             catch (Exception ex)
             {
@@ -119,7 +115,7 @@ namespace WebAppAssembly.Server.Controllers
         {
             try
             {
-                return Ok(await _orderService.CreateInvoiceLinkAsync(order));
+                return Ok(await ShoppingOrderService.CreateInvoiceLinkAsync(order));
             }
             catch (Exception ex)
             {

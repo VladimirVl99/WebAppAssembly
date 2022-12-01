@@ -9,28 +9,30 @@ using WebAppAssembly.Shared.LogRepository;
 using WebAppAssembly.Shared.Models.Order;
 using ApiServerForTelegram.Entities.EExceptions;
 using System.Reflection.Metadata.Ecma335;
+using WebAppAssembly.Server.Repositories.OrderCreationInWebRepository;
 
 namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
 {
-    public class ShoppingOnlineService
+    public class ShoppingOnlineService : IShoppingOnlineService
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="configuration"></param>
         public ShoppingOnlineService(IConfiguration configuration)
         {
-            Console.WriteLine(typeof(ShoppingOnlineService).FullName!, nameof(ShoppingOnlineService), $"Initializing the {nameof(OrderInfo)} object and receiving the product items via db");
             Configuration = configuration;
-            IsTestMode = Convert.ToBoolean(configuration["WebAppMode:TestMode"]);
+            IsReleaseMode = !Convert.ToBoolean(configuration["WebAppMode:TestMode"]);
             Url = new ApiServerUrls(configuration);
 
             try
             {
-                var webAppInfoTask = GetDeliveryGeneralInfoAsync(Url.WebAppInfo);
-                webAppInfoTask.Wait();
-
-                DeliveryGeneralInfo = webAppInfoTask.Result;
-                DeliveryTerminals = webAppInfoTask.Result.DeliveryTerminals ?? throw new Exception($"{typeof(ShoppingOnlineService).FullName}.{nameof(Exception)}: " +
-                        $"{nameof(DeliveryTerminals)} can't be null");
-
-                Console.WriteLine(typeof(ShoppingOnlineService).FullName!, nameof(ShoppingOnlineService), $"The {nameof(OrderInfo)} object is initialized and the product items is received");
+                var deliveryGeneralInfoTask = GetDeliveryGeneralInfoAsync();
+                deliveryGeneralInfoTask.Wait();
+                DeliveryGeneralInfo = deliveryGeneralInfoTask.Result;
+                if (string.IsNullOrEmpty(DeliveryGeneralInfo.TlgMainBtnColor))
+                    DeliveryGeneralInfo.TlgMainBtnColor = configuration["Settings:TlgMainButtonColor"];
+                DeliveryGeneralInfo.TimeOutForLoyaltyProgramProcessing ??= Convert.ToDouble(configuration["Settings:TimeOutForLoyaltyProgramProcessing"]);
             }
             catch (Exception ex)
             {
@@ -42,12 +44,6 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
 
 
         private readonly IConfiguration Configuration;
-        public OrderModelOfServer OrderInfo
-        {
-            get => OrderInfo is null ? throw new InfoException(typeof(ShoppingOnlineService).FullName!, nameof(Exception),
-                typeof(OrderModelOfServer).FullName!, ExceptionType.NullOrEmpty) : OrderInfo;
-            set { }
-        }
         public bool IsReleaseMode { get; }
         private ApiServerUrls Url { get; }
         public DeliveryGeneralInfo DeliveryGeneralInfo { get; }
@@ -56,24 +52,12 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="chatId"></param>
-        /// <returns></returns>
-        public async Task<OrderModelOfServer> InitializeOrderModelAsync(long chatId)
-        {
-            var res = await GetOrderModelCashAsync(Url.OrderModel, chatId);
-            return OrderInfo = res;
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="url"></param>
         /// <returns></returns>
         /// <exception cref="HttpProcessException"></exception>
-        private static async Task<DeliveryGeneralInfo> GetDeliveryGeneralInfoAsync(string url)
+        private async Task<DeliveryGeneralInfo> GetDeliveryGeneralInfoAsync()
         {
             using var client = new HttpClient();
-            var response = await client.GetAsync(url);
+            var response = await client.GetAsync(Url.WebAppInfo);
             response.EnsureSuccessStatusCode();
             string responseBody = await response.Content.ReadAsStringAsync();
 
@@ -86,16 +70,15 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="url"></param>
         /// <param name="chatId"></param>
         /// <returns></returns>
         /// <exception cref="HttpProcessException"></exception>
-        private static async Task<OrderModelOfServer> GetOrderModelCashAsync(string url, long chatId)
+        public async Task<OrderModelOfServer> GetOrderModelCashAsync(long chatId)
         {
             using var httpClient = new HttpClient();
             var body = JsonConvert.SerializeObject(new { chatId });
             var data = new StringContent(body, Encoding.UTF8, "application/json");
-            var response = await httpClient.PostAsync(url, data);
+            var response = await httpClient.PostAsync(Url.OrderModel, data);
 
             string responseBody = await response.Content.ReadAsStringAsync();
             if (!response.StatusCode.Equals(HttpStatusCode.OK))
@@ -107,51 +90,17 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="url"></param>
-        /// <returns></returns>
-        /// <exception cref="Exception"></exception>
-        private async Task<double> GetCustomerWalletBalanceAsync(string url)
-        {
-            try
-            {
-                using var client = new HttpClient();
-                string body = JsonConvert.SerializeObject(new { chatId = OrderInfo.ChatId });
-                var data = new StringContent(body, Encoding.UTF8, "application/json");
-                var response = await client.PostAsync(url, data);
-                response.EnsureSuccessStatusCode();
-
-                // Get body from the response
-                string responseBody = await response.Content.ReadAsStringAsync();
-                if (!response.StatusCode.Equals(HttpStatusCode.OK))               
-                    return 0;
-
-                var customerWalletBalance = JsonConvert.DeserializeObject<CustomerDiscountBalance>(responseBody)
-                    ?? throw new Exception($"{nameof(GetCustomerWalletBalanceAsync)}: This object can't be null");
-
-                return customerWalletBalance.Balance;
-            }
-            catch (HttpRequestException ex)
-            {
-                Console.WriteLine(ex.Message);
-                return 0;
-            }
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
         /// <param name="order"></param>
         /// <returns></returns>
         /// <exception cref="HttpProcessException"></exception>
         public async Task SendOrderInfoToServerAsync(OrderModelOfServer order)
         {
-            OrderInfo = order;
-            using var httpClient = new HttpClient();
             try
             {
+                using var client = new HttpClient();
                 var body = JsonConvert.SerializeObject(order);
                 var data = new StringContent(body, Encoding.UTF8, "application/json");
-                var response = await httpClient.PostAsync(Url.SaveOrderModel, data);
+                var response = await client.PostAsync(Url.SaveOrderModel, data);
 
                 string responseBody = await response.Content.ReadAsStringAsync();
                 if (!response.StatusCode.Equals(HttpStatusCode.OK))
@@ -163,19 +112,20 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
             }
         }
 
-        /// Create invoice link in the server
+        /// <summary>
+        /// 
         /// </summary>
+        /// <param name="order"></param>
         /// <returns></returns>
+        /// <exception cref="HttpProcessException"></exception>
         public async Task<InvoiceLinkStatus> CreateInvoiceLinkAsync(OrderModelOfServer order)
-        {
-            OrderInfo = order;
-            var orderModel = (OrderModelOfServer)OrderInfo.Clone();
-            using var httpClient = new HttpClient();
+        {;
             try
             {
-                var body = JsonConvert.SerializeObject(orderModel);
+                using var client = new HttpClient();
+                var body = JsonConvert.SerializeObject(order);
                 var data = new StringContent(body, Encoding.UTF8, "application/json");
-                var response = await httpClient.PostAsync(Url.CheckOrderInfoAndCreateInvoiceLink, data);
+                var response = await client.PostAsync(Url.CheckOrderInfoAndCreateInvoiceLink, data);
 
                 string responseBody = await response.Content.ReadAsStringAsync();
                 if (response.StatusCode != HttpStatusCode.OK)
@@ -193,18 +143,20 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         /// <summary>
         /// 
         /// </summary>
+        /// <param name="order"></param>
         /// <returns></returns>
         /// <exception cref="HttpProcessException"></exception>
         public async Task<LoyaltyCheckinInfo> CalculateCheckinAsync(OrderModelOfServer order)
         {
             try
             {
-                OrderInfo = order;
                 string responseBody = string.Empty;
                 using (var client = new HttpClient())
                 {
-                    client.Timeout = TimeSpan.FromSeconds(DeliveryGeneralInfo.TimeOutForLoyaltyProgramProcessing);
-                    var body = JsonConvert.SerializeObject(OrderInfo);
+                    if (DeliveryGeneralInfo.TimeOutForLoyaltyProgramProcessing is not null)
+                        client.Timeout = TimeSpan.FromSeconds((double)DeliveryGeneralInfo.TimeOutForLoyaltyProgramProcessing);
+
+                    var body = JsonConvert.SerializeObject(order);
                     var data = new StringContent(body, Encoding.UTF8, "application/json");
                     var response = await client.PostAsync(Url.Checkin, data);
 
@@ -233,28 +185,32 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         }
 
         /// <summary>
-        /// Receive the wallet balance by chat ID
+        /// 
         /// </summary>
+        /// <param name="chatInfo"></param>
         /// <returns></returns>
-        /// <exception cref="Exception"></exception>
-        /// <exception cref="HttpProcessException"></exception>
-        public async Task<WalletBalance> WalletBalanceAsync(ChatInfo chatInfo)
+        public async Task<WalletBalance> GetCustomerWalletBalanceAsync(ChatInfo chatInfo)
         {
-            ChatId ??= chatInfo.ChatId;
-
-            string responseBody = string.Empty;
-            using (var client = new HttpClient())
+            try
             {
-                var body = JsonConvert.SerializeObject(new { chatId = ChatId });
+                using var client = new HttpClient();
+                string body = JsonConvert.SerializeObject(chatInfo);
                 var data = new StringContent(body, Encoding.UTF8, "application/json");
                 var response = await client.PostAsync(Url.WalletBalance, data);
+                response.EnsureSuccessStatusCode();
 
-                responseBody = await response.Content.ReadAsStringAsync();
-                if (response.StatusCode != HttpStatusCode.OK)
-                    throw new HttpProcessException(response.StatusCode, responseBody);
+                // Get body from the response
+                string responseBody = await response.Content.ReadAsStringAsync();
+                if (!response.StatusCode.Equals(HttpStatusCode.OK))
+                    return new WalletBalance() { Balance = 0 };
+
+                return JsonConvert.DeserializeObject<WalletBalance>(responseBody);
             }
-
-            return JsonConvert.DeserializeObject<WalletBalance>(responseBody);
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine(ex.Message);
+                return new WalletBalance() { Balance = 0 };
+            }
         }
     }
 }

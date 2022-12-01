@@ -147,15 +147,6 @@ namespace WebAppAssembly.Shared.Models.Order
             TotalAmount = 0;
             Items ??= new List<Item>();
         }
-        public object Clone()
-        {
-            var items = new List<Item>();
-            if (Items is null || !Items.Any()) items = new List<Item>();
-            else foreach (var item in Items)
-                    items.Add((Item)item.Clone());
-
-            return new OrderModelOfServer(OperationId, ChatId, items, TotalSum, TotalAmount, BonusSum, ByCourier, TerminalId, DiscountSum, FreePriceItems, FreeItems, Comment, CreatedDate,
-                DeliveryTerminal, Address, Coupon, SelectedBonusSum);
-        }
+        public object Clone() => this;
     }
 }

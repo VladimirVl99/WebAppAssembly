@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace WebAppAssembly.Shared.Entities.Telegram
 {
-    public class CustomerDiscountBalance
+    public class WalletBalance
     {
         [JsonProperty("balance")]
         [JsonPropertyName("balance")]

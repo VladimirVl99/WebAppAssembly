@@ -8,29 +8,26 @@ using System.Threading.Tasks;
 using WebAppAssembly.Shared.Entities.Telegram;
 using WebAppAssembly.Shared.Models.Order;
 
-namespace WebAppAssembly.Shared.Entities.WebApp
+namespace WebAppAssembly.Shared.Entities.OfServerSide
 {
     public class MainInfoForWebAppOrder
     {
-        public MainInfoForWebAppOrder(OrderModel orderInfo, DeliveryGeneralInfo deliveryGeneralInfo, bool isReleaseMode, string btnColor)
+        public MainInfoForWebAppOrder(OrderModelOfServer orderInfo, DeliveryGeneralInfo deliveryGeneralInfo, bool isReleaseMode)
         {
             OrderInfo = orderInfo;
             DeliveryGeneralInfo = deliveryGeneralInfo;
             IsReleaseMode = isReleaseMode;
-            TlgMainBtnColor = btnColor;
         }
+
 
         [JsonProperty("orderInfo")]
         [JsonPropertyName("orderInfo")]
-        public OrderModel OrderInfo { get; set; }
+        public OrderModelOfServer OrderInfo { get; set; }
         [JsonProperty("deliveryGeneralInfo")]
         [JsonPropertyName("deliveryGeneralInfo")]
         public DeliveryGeneralInfo DeliveryGeneralInfo { get; set; }
         [JsonProperty("isReleaseMode")]
         [JsonPropertyName("isReleaseMode")]
         public bool IsReleaseMode { get; set; }
-        [JsonProperty("tlgMainBtnColor")]
-        [JsonPropertyName("tlgMainBtnColor")]
-        public string TlgMainBtnColor { get; set; }
     }
 }

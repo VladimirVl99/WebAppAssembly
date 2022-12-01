@@ -16,7 +16,6 @@ namespace WebAppAssembly.Client.Service
     {
         public OrderModel OrderInfo { get; set; }
         public DeliveryGeneralInfo DeliveryGeneralInfo { get; set; }
-        public bool IsDiscountBalanceConfirmed { get; set; }
         public CurrentProduct? CurrentProduct { get; set; }
         public Item? CurrItem { get; set; }
         public TransportItemDto? CurrProductItem { get; set; }

@@ -35,7 +35,6 @@ namespace WebAppAssembly.Client.Service
             OrderInfo.Address = new DeliveryPoint();
             DeliveryGeneralInfo = mainInfo.DeliveryGeneralInfo ?? throw new InfoException(typeof(OrderService).FullName!,
                 nameof(Exception), typeof(DeliveryGeneralInfo).FullName!, ExceptionType.Null);
-            IsDiscountBalanceConfirmed = false;
             IsReleaseMode = mainInfo.IsReleaseMode;
             var tlgMainBtnClr = !string.IsNullOrEmpty(mainInfo.TlgMainBtnColor)
                 ? mainInfo.TlgMainBtnColor : mainInfo.TlgMainBtnColor ?? throw new InfoException(typeof(OrderService).FullName!,
@@ -48,7 +47,6 @@ namespace WebAppAssembly.Client.Service
         private HttpClient Http { get; set; }
         public OrderModel OrderInfo { get; set; }
         public DeliveryGeneralInfo DeliveryGeneralInfo { get; set; }
-        public bool IsDiscountBalanceConfirmed { get; set; }
         public CurrentProduct? CurrentProduct { get; set; }
         public Item? CurrItem { get; set; }
         public TransportItemDto? CurrProductItem { get; set; }
@@ -928,7 +926,7 @@ namespace WebAppAssembly.Client.Service
             string responseBody = await response.Content.ReadAsStringAsync();
             if (!response.StatusCode.Equals(HttpStatusCode.OK))
                 throw new HttpProcessException(response.StatusCode, responseBody);
-            return JsonConvert.DeserializeObject<WalletBalance>(responseBody) ?? throw new Exception("Json the wallet balance result is empty");
+            return JsonConvert.DeserializeObject<WalletBalance>(responseBody);
         }
 
         /// <summary>
