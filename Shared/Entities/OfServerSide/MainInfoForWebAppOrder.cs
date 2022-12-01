@@ -12,7 +12,7 @@ namespace WebAppAssembly.Shared.Entities.WebApp
 {
     public class MainInfoForWebAppOrder
     {
-        public MainInfoForWebAppOrder(OrderModel orderInfo, WebAppInfo deliveryGeneralInfo, bool isReleaseMode, string btnColor)
+        public MainInfoForWebAppOrder(OrderModel orderInfo, DeliveryGeneralInfo deliveryGeneralInfo, bool isReleaseMode, string btnColor)
         {
             OrderInfo = orderInfo;
             DeliveryGeneralInfo = deliveryGeneralInfo;
@@ -25,7 +25,7 @@ namespace WebAppAssembly.Shared.Entities.WebApp
         public OrderModel OrderInfo { get; set; }
         [JsonProperty("deliveryGeneralInfo")]
         [JsonPropertyName("deliveryGeneralInfo")]
-        public WebAppInfo DeliveryGeneralInfo { get; set; }
+        public DeliveryGeneralInfo DeliveryGeneralInfo { get; set; }
         [JsonProperty("isReleaseMode")]
         [JsonPropertyName("isReleaseMode")]
         public bool IsReleaseMode { get; set; }

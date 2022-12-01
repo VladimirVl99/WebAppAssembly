@@ -34,7 +34,7 @@ namespace WebAppAssembly.Client.Service
             if (OrderInfo.ChatId == 0) OrderInfo.ChatId = chatId;
             OrderInfo.Address = new DeliveryPoint();
             DeliveryGeneralInfo = mainInfo.DeliveryGeneralInfo ?? throw new InfoException(typeof(OrderService).FullName!,
-                nameof(Exception), typeof(WebAppInfo).FullName!, ExceptionType.Null);
+                nameof(Exception), typeof(DeliveryGeneralInfo).FullName!, ExceptionType.Null);
             IsDiscountBalanceConfirmed = false;
             IsReleaseMode = mainInfo.IsReleaseMode;
             var tlgMainBtnClr = !string.IsNullOrEmpty(mainInfo.TlgMainBtnColor)
@@ -47,7 +47,7 @@ namespace WebAppAssembly.Client.Service
 
         private HttpClient Http { get; set; }
         public OrderModel OrderInfo { get; set; }
-        public WebAppInfo DeliveryGeneralInfo { get; set; }
+        public DeliveryGeneralInfo DeliveryGeneralInfo { get; set; }
         public bool IsDiscountBalanceConfirmed { get; set; }
         public CurrentProduct? CurrentProduct { get; set; }
         public Item? CurrItem { get; set; }

@@ -15,7 +15,7 @@ namespace WebAppAssembly.Client.Service
     public interface IOrderService
     {
         public OrderModel OrderInfo { get; set; }
-        public WebAppInfo DeliveryGeneralInfo { get; set; }
+        public DeliveryGeneralInfo DeliveryGeneralInfo { get; set; }
         public bool IsDiscountBalanceConfirmed { get; set; }
         public CurrentProduct? CurrentProduct { get; set; }
         public Item? CurrItem { get; set; }

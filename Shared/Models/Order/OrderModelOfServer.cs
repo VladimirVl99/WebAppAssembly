@@ -10,11 +10,11 @@ using WebAppAssembly.Shared.Entities.Telegram;
 
 namespace WebAppAssembly.Shared.Models.Order
 {
-    public class OrderClientModel : ICloneable
+    public class OrderModelOfServer : ICloneable
     {
-        public OrderClientModel() { }
+        public OrderModelOfServer() { }
 
-        public OrderClientModel(Guid operationId, long chatId, List<Item> items, double totalSum, double totalAmount, double bonusSum,
+        public OrderModelOfServer(Guid operationId, long chatId, List<Item> items, double totalSum, double totalAmount, double bonusSum,
             bool byCourier, Guid? terminalId, double discountSum, List<Guid> freePriceItems, List<Item> freeItems, string? comment,
             string? createdDate, DeliveryTerminal? deliveryTerminal, DeliveryPoint? address, string? coupon, int selectedBonusSum)
         {
@@ -154,7 +154,7 @@ namespace WebAppAssembly.Shared.Models.Order
             else foreach (var item in Items)
                     items.Add((Item)item.Clone());
 
-            return new OrderClientModel(OperationId, ChatId, items, TotalSum, TotalAmount, BonusSum, ByCourier, TerminalId, DiscountSum, FreePriceItems, FreeItems, Comment, CreatedDate,
+            return new OrderModelOfServer(OperationId, ChatId, items, TotalSum, TotalAmount, BonusSum, ByCourier, TerminalId, DiscountSum, FreePriceItems, FreeItems, Comment, CreatedDate,
                 DeliveryTerminal, Address, Coupon, SelectedBonusSum);
         }
     }

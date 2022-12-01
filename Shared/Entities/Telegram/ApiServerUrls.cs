@@ -17,6 +17,7 @@ namespace WebAppAssembly.Shared.Entities.Telegram
             WebAppInfo = configuration["TelegramBotProperties:webAppInfo"];
             Checkin = configuration["TelegramBotProperties:checkin"];
             WalletBalance = configuration["TelegramBotProperties:walletBalance"];
+            TlgMainBtnColor = configuration["Settings:TlgMainButtonColor"];
         }
 
         public string SendOrder { get; }
@@ -30,5 +31,6 @@ namespace WebAppAssembly.Shared.Entities.Telegram
         public string WebAppInfo { get; }
         public string Checkin { get; }
         public string WalletBalance { get; }
+        public string TlgMainBtnColor { get; }
     }
 }

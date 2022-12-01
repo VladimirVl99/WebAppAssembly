@@ -22,11 +22,11 @@ namespace WebAppAssembly.Server.Controllers
         {
             _logger = logger;
             _configuration = configuration;
-            _orderService = new WebOrderService(configuration);
+            _orderService = new ShoppingOnlineService(configuration);
         }
 
         private readonly ILogger<OrderController> _logger;
-        private readonly WebOrderService _orderService;
+        private readonly ShoppingOnlineService _orderService;
         private readonly IConfiguration _configuration;
 
 
@@ -41,7 +41,7 @@ namespace WebAppAssembly.Server.Controllers
             try
             {
                 await _orderService.InitializeOrderModelAsync(chatInfo.ChatId);
-                return Ok(new MainInfoForWebAppOrderOfServerSide(_orderService.OrderModel, _orderService.WebAppInfo, _orderService.IsReleaseMode,
+                return Ok(new MainInfoForWebAppOrderOfServerSide(_orderService.OrderInfo, _orderService.DeliveryGeneralInfo, _orderService.IsReleaseMode,
                     _orderService.TlgMainBtnColor));
             }
             catch (Exception ex)
@@ -61,7 +61,7 @@ namespace WebAppAssembly.Server.Controllers
         {
             try
             {
-                return Ok(await _orderService.WalletBalanceAsync());
+                return Ok(await _orderService.WalletBalanceAsync(chatInfo));
             }
             catch (Exception ex)
             {
@@ -76,12 +76,11 @@ namespace WebAppAssembly.Server.Controllers
         /// <param name="order"></param>
         /// <returns></returns>
         [HttpPost("saveOrderInfoInServer")]
-        public async Task<IActionResult> SaveChangedOrderAsync(OrderClientModel order)
+        public async Task<IActionResult> SendOrderInfoToServerAsync(OrderModelOfServer order)
         {
             try
             {
-                _orderService.OrderModel = order;
-                await _orderService.SendChangedOrderModelToServerAsync();
+                await _orderService.SendOrderInfoToServerAsync(order);
                 return Ok();
             }
             catch (Exception ex)
@@ -97,12 +96,11 @@ namespace WebAppAssembly.Server.Controllers
         /// <param name="order"></param>
         /// <returns></returns>
         [HttpPost("calculateCheckin")]
-        public async Task<ActionResult<LoyaltyCheckinInfo>> CalculateCheckinAsync(OrderClientModel order)
+        public async Task<ActionResult<LoyaltyCheckinInfo>> CalculateCheckinAsync(OrderModelOfServer order)
         {
             try
             {
-                _orderService.OrderModel = order;
-                return Ok(await _orderService.CalculateCheckinAsync());
+                return Ok(await _orderService.CalculateCheckinAsync(order));
             }
             catch (Exception ex)
             {
@@ -117,12 +115,11 @@ namespace WebAppAssembly.Server.Controllers
         /// <param name="order"></param>
         /// <returns></returns>
         [HttpPost("createInvoiceLink")]
-        public async Task<ActionResult<InvoiceLinkStatus>> CreateInvoiceLinkAsync(OrderClientModel order)
+        public async Task<ActionResult<InvoiceLinkStatus>> CreateInvoiceLinkAsync(OrderModelOfServer order)
         {
             try
             {
-                _orderService.OrderModel = order;
-                return Ok(await _orderService.CreateInvoiceLinkAsync());
+                return Ok(await _orderService.CreateInvoiceLinkAsync(order));
             }
             catch (Exception ex)
             {
