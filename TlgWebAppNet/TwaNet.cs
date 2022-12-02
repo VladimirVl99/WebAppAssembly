@@ -11,28 +11,29 @@ namespace TlgWebAppNet
 {
     public class TwaNet : ITwaNet
     {
-        public TwaNet(IJSRuntime JsRuntime, string buttonColor)
-        {
-            this.JsRuntime = JsRuntime;
-            var initTask = TlgWebAppInitAsync(buttonColor);
-            initTask.Wait();
-            ChatId = initTask.Result;
-            IsProgressing = false;
-        }
-
         public TwaNet(IJSRuntime JsRuntime)
         {
             this.JsRuntime = JsRuntime;
-            var initTask = TlgWebAppInitAsync();
-            initTask.Wait();
-            ChatId = initTask.Result;
             IsProgressing = false;
         }
 
         private readonly IJSRuntime JsRuntime;
-        public long ChatId { get; }
+        public long ChatId { get; private set; }
         private bool IsProgressing { get; set; }
 
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public async Task<long> TwaNetInitAsync() => ChatId = await TlgWebAppInitAsync();
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="btnColor"></param>
+        /// <returns></returns>
+        public async Task<long> TwaNetInitAsync(string btnColor) => ChatId = await TlgWebAppInitAsync(btnColor);
 
         /// <summary>
         /// 

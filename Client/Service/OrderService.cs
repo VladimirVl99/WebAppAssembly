@@ -1,5 +1,6 @@
 ﻿using ApiServerForTelegram.Entities.EExceptions;
 using ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExternalMenuByID;
+using MySqlX.XDevAPI;
 using Newtonsoft.Json;
 using System.Net;
 using System.Text;
@@ -22,39 +23,61 @@ namespace WebAppAssembly.Client.Service
         /// <param name="client"></param>
         /// <param name="urlPathOfMainInfo"></param>
         /// <exception cref="InfoException"></exception>
-        public OrderService(HttpClient client, long chatId, string urlPathOfMainInfo)
-        {
-            Http = client;
-
-            var mainInfoTask = RetrieveMainInfoForWebAppOrderAsync(client, chatId, urlPathOfMainInfo);
-            mainInfoTask.Wait();
-            var mainInfo = mainInfoTask.Result;
-
-            OrderInfo = OrderInfoInit(mainInfo.OrderInfo);
-            if (OrderInfo.ChatId == 0) OrderInfo.ChatId = chatId;
-            OrderInfo.Address = new DeliveryPoint();
-            DeliveryGeneralInfo = mainInfo.DeliveryGeneralInfo ?? throw new InfoException(typeof(OrderService).FullName!,
-                nameof(Exception), typeof(DeliveryGeneralInfo).FullName!, ExceptionType.Null);
-            IsReleaseMode = mainInfo.IsReleaseMode;
-            var tlgMainBtnClr = !string.IsNullOrEmpty(mainInfo.TlgMainBtnColor)
-                ? mainInfo.TlgMainBtnColor : mainInfo.TlgMainBtnColor ?? throw new InfoException(typeof(OrderService).FullName!,
-                nameof(Exception), $"{typeof(MainInfoForWebAppOrder).FullName!}.{nameof(MainInfoForWebAppOrder.TlgMainBtnColor)}", ExceptionType.NullOrEmpty);
-            TlgMainBtnColor = IsRgbColorFormat(tlgMainBtnClr) ? mainInfo.TlgMainBtnColor : throw new InfoException(typeof(OrderService).FullName!,
-                nameof(Exception), $"Incorrect formant of rgb (#rrggbb) color for the main button of the Telegram. Current value is '{tlgMainBtnClr}'");
-            HaveSelectedItemsInOrder = OrderInfo.HaveSelectedProducts();
-        }
+        public OrderService(HttpClient client) => Http = client;
 
         private HttpClient Http { get; set; }
-        public OrderModel OrderInfo { get; set; }
-        public DeliveryGeneralInfo DeliveryGeneralInfo { get; set; }
+        private OrderModel? _orderInfo;
+        public OrderModel OrderInfo
+        {
+            get => _orderInfo is null ? throw new InfoException(typeof(OrderService).FullName!, nameof(Exception),
+                $"{typeof(OrderService).FullName}.{nameof(OrderInfo)}", ExceptionType.Null) : _orderInfo;
+            set => _orderInfo = value;
+        }
+        private DeliveryGeneralInfo? _deliveryGeneralInfo;
+        public DeliveryGeneralInfo DeliveryGeneralInfo
+        {
+            get => _deliveryGeneralInfo is null ? throw new InfoException(typeof(OrderService).FullName!, nameof(Exception),
+                $"{typeof(OrderService).FullName}.{nameof(OrderInfo)}", ExceptionType.Null) : _deliveryGeneralInfo;
+            set => _deliveryGeneralInfo = value;
+        }
         public CurrentProduct? CurrentProduct { get; set; }
         public Item? CurrItem { get; set; }
         public TransportItemDto? CurrProductItem { get; set; }
         public Guid? CurrentGroupId { get; set; }
         public bool IsReleaseMode { get; set; }
-        public string TlgMainBtnColor { get; set; }
+        private string? _tlgMainBtnColor;
+        public string TlgMainBtnColor
+        {
+            get => _tlgMainBtnColor ?? string.Empty;
+            set => _tlgMainBtnColor = value;
+        }
         private bool HaveSelectedItemsInOrder { get; set; }
 
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="chatId"></param>
+        /// <param name="urlPathOfMainInfo"></param>
+        /// <returns></returns>
+        /// <exception cref="InfoException"></exception>
+        public async Task OrderServiceInitAsync(long chatId, string urlPathOfMainInfo)
+        {
+            var mainInfo = await RetrieveMainInfoForWebAppOrderAsync(Http, chatId, urlPathOfMainInfo);
+
+            DeliveryGeneralInfo = mainInfo.DeliveryGeneralInfo ?? throw new InfoException(typeof(OrderService).FullName!,
+                nameof(Exception), typeof(DeliveryGeneralInfo).FullName!, ExceptionType.Null);
+            OrderInfo = OrderInfoInit(mainInfo.OrderInfo);
+            if (OrderInfo.ChatId == 0) OrderInfo.ChatId = chatId;
+            OrderInfo.Address = new DeliveryPoint();
+            IsReleaseMode = mainInfo.IsReleaseMode;
+            var tlgMainBtnClr = (!string.IsNullOrEmpty(mainInfo.DeliveryGeneralInfo.TlgMainBtnColor)
+                ? mainInfo.DeliveryGeneralInfo.TlgMainBtnColor : mainInfo.TlgMainBtnColor) ?? throw new InfoException(typeof(OrderService).FullName!,
+                nameof(Exception), $"{typeof(MainInfoForWebAppOrder).FullName!}.{nameof(MainInfoForWebAppOrder.TlgMainBtnColor)}", ExceptionType.NullOrEmpty);
+            TlgMainBtnColor = IsRgbColorFormat(tlgMainBtnClr) ? tlgMainBtnClr : throw new InfoException(typeof(OrderService).FullName!,
+                nameof(Exception), $"Incorrect formant of rgb (#rrggbb) color for the main button of the Telegram. Current value is '{tlgMainBtnClr}'");
+            HaveSelectedItemsInOrder = OrderInfo.HaveSelectedProducts();
+        }
 
         /// <summary>
         /// 
@@ -65,17 +88,30 @@ namespace WebAppAssembly.Client.Service
         /// <exception cref="HttpProcessException"></exception>
         private static async Task<MainInfoForWebAppOrder> RetrieveMainInfoForWebAppOrderAsync(HttpClient client, long chatId, string urlPathOfMainInfo)
         {
-            var chatInfo = new ChatInfo() { ChatId = chatId };
-            var body = JsonConvert.SerializeObject(chatInfo);
-            var data = new StringContent(body, Encoding.UTF8, "application/json");
-            var response = await client.PostAsync(urlPathOfMainInfo, data);
+            try
+            {
+                var chatInfo = new ChatInfo() { ChatId = chatId };
+                var body = JsonConvert.SerializeObject(chatInfo);
+                var data = new StringContent(body, Encoding.UTF8, "application/json");
+                var response = await client.PostAsync(urlPathOfMainInfo, data);
 
-            response.EnsureSuccessStatusCode();
-            string responseBody = await response.Content.ReadAsStringAsync();
-            if (!response.StatusCode.Equals(HttpStatusCode.OK))
-                throw new HttpProcessException(response.StatusCode, responseBody);
+                response.EnsureSuccessStatusCode();
+                string responseBody = await response.Content.ReadAsStringAsync();
+                if (!response.StatusCode.Equals(HttpStatusCode.OK))
+                    throw new HttpProcessException(response.StatusCode, responseBody);
 
-            return JsonConvert.DeserializeObject<MainInfoForWebAppOrder>(responseBody);
+               return JsonConvert.DeserializeObject<MainInfoForWebAppOrder>(responseBody);
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw ex;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw;
+            }
         }
 
         /// <summary>

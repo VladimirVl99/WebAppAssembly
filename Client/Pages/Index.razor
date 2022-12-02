@@ -865,9 +865,11 @@ else {
 
         try
         {
+            JsHelperService = new JsHelperService(JsRuntime);
             TwaNet = new TwaNet(JsRuntime);
-            var chatId = TwaNet.ChatId;
-            OrderService = new OrderService(Http, chatId, OrderControllerPaths.RetrieveMainInfoForWebAppOrder);
+            var chatId = await TwaNet.TwaNetInitAsync();
+            OrderService = new OrderService(Http);
+            await OrderService.OrderServiceInitAsync(chatId, OrderControllerPaths.RetrieveMainInfoForWebAppOrder);
             await TwaNet.SetMainBtnColorAsync(OrderService.TlgMainBtnColor);
 
             // !!! Initialize and run it block after render page !!!
@@ -883,19 +885,22 @@ else {
         {
             Console.WriteLine(ex.Message);
             // !!! Check error message for test chat ID !!!
-            if (ex.Message.Contains("Cannot wait on monitors on this runtime"))
+            if (ex.Message.Contains("Cannot read properties of undefined (reading 'id')"))
             {
                 try
                 {
-                    OrderService = new OrderService(Http, TestChatId, OrderControllerPaths.RetrieveMainInfoForWebAppOrder);
-                    return;
+                    OrderService = new OrderService(Http);
+                    await OrderService.OrderServiceInitAsync(TestChatId, OrderControllerPaths.RetrieveMainInfoForWebAppOrder);
                 }
                 catch (Exception iex)
                 {
                     Console.WriteLine(iex.Message);
                 }
             }
-            StateOfPage.SetErrorStateForWebApp();
+            else
+            {
+                StateOfPage.SetErrorStateForWebApp();
+            }
         }
         finally
         {

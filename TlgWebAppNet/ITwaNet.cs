@@ -11,6 +11,8 @@ namespace TlgWebAppNet
     {
         long ChatId { get; }
 
+        Task<long> TwaNetInitAsync();
+        Task<long> TwaNetInitAsync(string btnColor);
         Task SetMainButtonTextAsync(string txt);
         Task SetHapticFeedbackSelectionChangedAsync();
         Task ShowBackButtonAsync();

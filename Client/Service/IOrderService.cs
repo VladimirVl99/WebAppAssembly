@@ -27,6 +27,12 @@ namespace WebAppAssembly.Client.Service
         /// <summary>
         /// 
         /// </summary>
+        /// <returns></returns>
+        Task OrderServiceInitAsync(long chatId, string urlPathOfMainInfo);
+
+        /// <summary>
+        /// 
+        /// </summary>
         /// <param name="productId"></param>
         /// <returns></returns>
         Task<ProductInfo> AddProductItemInSelectingProductPageAsync(Guid productId);
