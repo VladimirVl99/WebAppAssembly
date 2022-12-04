@@ -1,5 +1,6 @@
 ﻿using ApiServerForTelegram.Entities.EExceptions;
 using ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExternalMenuByID;
+using Microsoft.JSInterop;
 using MySqlX.XDevAPI;
 using Newtonsoft.Json;
 using System.Net;
@@ -69,7 +70,7 @@ namespace WebAppAssembly.Client.Service
                 nameof(Exception), typeof(DeliveryGeneralInfo).FullName!, ExceptionType.Null);
             OrderInfo = OrderInfoInit(mainInfo.OrderInfo);
             if (OrderInfo.ChatId == 0) OrderInfo.ChatId = chatId;
-            OrderInfo.Address = new DeliveryPoint();
+            OrderInfo.Address ??= new DeliveryPoint();
             IsReleaseMode = mainInfo.IsReleaseMode;
             var tlgMainBtnClr = (!string.IsNullOrEmpty(mainInfo.DeliveryGeneralInfo.TlgMainBtnColor)
                 ? mainInfo.DeliveryGeneralInfo.TlgMainBtnColor : mainInfo.TlgMainBtnColor) ?? throw new InfoException(typeof(OrderService).FullName!,
@@ -147,13 +148,7 @@ namespace WebAppAssembly.Client.Service
 
                 if (!orderInfo.Items.Any())
                     orderInfo.WithNewParameters();
-                else
-                {
-                    var items = orderInfo.Items;
-                    var products = DeliveryGeneralInfo.TransportItemDtos;
-                    if (products is not null)
-                        foreach (var item in items) products.First(y => y.ItemId == item.ProductId).TotalAmount += (int)item.Amount;
-                }
+
                 orderInfo.FreeItems ??= new List<Item>();
                 orderInfo.DiscountFreeItems ??= new List<Guid>();
                 return orderInfo;
@@ -179,8 +174,8 @@ namespace WebAppAssembly.Client.Service
                 CurrentProduct = new CurrentProduct(productId, positionId);
                 CurrItem = item;
                 CurrProductItem = product;
-                IncreaseAmountOfProduct(product, item);
-                return new(product, item, !HaveSelectedProductsAtFirst());
+                IncreaseAmountOfProduct(item);
+                return new(item, !HaveSelectedProductsAtFirst());
             }
             else
             {
@@ -190,9 +185,9 @@ namespace WebAppAssembly.Client.Service
                     AddItemToOrderWithNewPosition(product);
                     item = items.Last(x => x.ProductId == productId);
                 }
-                IncreaseAmountOfProduct(product, item);
+                IncreaseAmountOfProduct(item);
                 await SendChangedOrderModelToServerAsync();
-                return new(product, item, !HaveSelectedProductsAtFirst());
+                return new(item, !HaveSelectedProductsAtFirst());
             }
         }
 
@@ -203,16 +198,15 @@ namespace WebAppAssembly.Client.Service
         /// <returns></returns>
         public async Task<ProductInfo?> RemoveProductItemInSelectingProductPageAsync(Guid productId)
         {
-            var product = DeliveryGeneralInfo.ProductById(productId, CurrentGroupId);
             var item = OrderInfo.ItemByIdOrDefault(productId);
             if (item is null) return null;
 
             bool isRemoved;
-            if (isRemoved = RemoveOrDecreaseAmountOfProduct(product, item))
+            if (isRemoved = RemoveOrDecreaseAmountOfProduct(item))
                 HaveSelectedItemsInOrder = OrderInfo.HaveSelectedProducts();
 
             await SendChangedOrderModelToServerAsync();
-            return isRemoved ? null : new(product, item, !HaveSelectedProductsAtFirst());
+            return isRemoved ? null : new(item, !HaveSelectedProductsAtFirst());
         }
 
         /// <summary>
@@ -226,11 +220,11 @@ namespace WebAppAssembly.Client.Service
             if (item is null) return null;
 
             bool isRemoved;
-            if (isRemoved = RemoveOrDecreaseAmountOfProduct(product, item))
+            if (isRemoved = RemoveOrDecreaseAmountOfProduct(item))
                 HaveSelectedItemsInOrder = OrderInfo.HaveSelectedProducts();
 
             await SendChangedOrderModelToServerAsync();
-            return isRemoved ? null : new(product, item, !HaveSelectedProductsAtFirst());
+            return isRemoved ? null : new(item, !HaveSelectedProductsAtFirst());
         }
 
         /// <summary>
@@ -240,19 +234,18 @@ namespace WebAppAssembly.Client.Service
         /// <param name="productId"></param>
         /// <param name="positionId"></param>
         /// <returns></returns>
-        public async Task<ProductInfo> AddProductItemInShoppingCartPageAsync(ITwaNet twaNet, Guid productId, Guid? positionId = null)
+        public async Task<ProductInfo> AddProductItemInShoppingCartPageAsync(IJSRuntime jsRuntime, ITwaNet twaNet, Guid productId, Guid? positionId = null)
         {
-            var product = DeliveryGeneralInfo.ProductById(productId, CurrentGroupId);
             var item = OrderInfo.ItemById(productId, positionId);
 
-            IncreaseAmountOfProduct(product, item);
+            IncreaseAmountOfProduct(item);
 
             if (DeliveryGeneralInfo.UseIikoBizProgram)
-                await CalculateLoayltyProgramAndAllowedSumAsync(twaNet);
+                await CalculateLoayltyProgramAndAllowedSumAsync(jsRuntime, twaNet);
 
             // !!! Save changed the order info by using 'CalculateLoyaltyProgramAsync' method !!!
             await SendChangedOrderModelToServerAsync();
-            return new(product, item);
+            return new(item);
         }
 
         /// <summary>
@@ -263,17 +256,16 @@ namespace WebAppAssembly.Client.Service
         /// <returns></returns>
         public async Task<ProductInfo> AddProductItemInShoppingCartPageAsync(Guid productId, Guid? positionId = null)
         {
-            var product = DeliveryGeneralInfo.ProductById(productId, CurrentGroupId);
             var item = OrderInfo.ItemById(productId, positionId);
 
-            IncreaseAmountOfProduct(product, item);
+            IncreaseAmountOfProduct(item);
 
             if (DeliveryGeneralInfo.UseIikoBizProgram)
                 await CalculateLoayltyProgramAndAllowedSumAsync();
 
             // !!! Save changed the order info by using 'CalculateLoyaltyProgramAsync' method !!!
             await SendChangedOrderModelToServerAsync();
-            return new(product, item);
+            return new(item);
         }
 
         /// <summary>
@@ -283,21 +275,21 @@ namespace WebAppAssembly.Client.Service
         /// <param name="productId"></param>
         /// <param name="positionId"></param>
         /// <returns></returns>
-        public async Task<ProductInfo?> RemoveProductItemInShoppingCartPageAsync(ITwaNet twaNet, Guid productId, Guid? positionId = null)
+        public async Task<ProductInfo?> RemoveProductItemInShoppingCartPageAsync(IJSRuntime jsRuntime, ITwaNet twaNet, Guid productId, Guid? positionId = null)
         {
-            var product = DeliveryGeneralInfo.ProductById(productId, CurrentGroupId);
             var item = OrderInfo.ItemById(productId, positionId);
 
-            if (RemoveOrDecreaseAmountOfProduct(product, item))
+            bool isRemoved;
+            if (isRemoved = RemoveOrDecreaseAmountOfProduct(item))
                 HaveSelectedItemsInOrder = OrderInfo.HaveSelectedProducts();
 
             if (HaveSelectedItemsInOrder && DeliveryGeneralInfo.UseIikoBizProgram)
-                await CalculateLoayltyProgramAndAllowedSumAsync(twaNet);
+                await CalculateLoayltyProgramAndAllowedSumAsync(jsRuntime, twaNet);
 
             // !!! Save changed the order info by using 'CalculateLoyaltyProgramAsync' method !!!
             await SendChangedOrderModelToServerAsync();
-            if (item is null) return null;
-            return new(product, item);
+            if (isRemoved) return null;
+            return new(item);
         }
 
         /// <summary>
@@ -309,10 +301,10 @@ namespace WebAppAssembly.Client.Service
         /// <returns></returns>
         public async Task<ProductInfo?> RemoveProductItemInShoppingCartPageAsync(Guid productId, Guid? positionId = null)
         {
-            var product = DeliveryGeneralInfo.ProductById(productId, CurrentGroupId);
             var item = OrderInfo.ItemById(productId, positionId);
 
-            if (RemoveOrDecreaseAmountOfProduct(product, item))
+            bool isRemoved;
+            if (isRemoved = RemoveOrDecreaseAmountOfProduct(item))
                 HaveSelectedItemsInOrder = OrderInfo.HaveSelectedProducts();
 
             if (HaveSelectedItemsInOrder && DeliveryGeneralInfo.UseIikoBizProgram)
@@ -320,8 +312,8 @@ namespace WebAppAssembly.Client.Service
 
             // !!! Save changed the order info by using 'CalculateLoyaltyProgramAsync' method !!!
             await SendChangedOrderModelToServerAsync();
-            if (item is null) return null;
-            return new(product, item);
+            if (isRemoved) return null;
+            return new(item);
         }
 
         /// <summary>
@@ -342,7 +334,7 @@ namespace WebAppAssembly.Client.Service
                 return true;
             }
 
-            RemoveOrDecreaseAmountOfProduct(product, item);
+            RemoveOrDecreaseAmountOfProduct(item);
             await SendChangedOrderModelToServerAsync();
             return false;
         }
@@ -364,7 +356,7 @@ namespace WebAppAssembly.Client.Service
                 return true;
             }
 
-            RemoveOrDecreaseAmountOfProduct(product, item);
+            RemoveOrDecreaseAmountOfProduct(item);
             await SendChangedOrderModelToServerAsync();
             return false;
         }
@@ -379,9 +371,9 @@ namespace WebAppAssembly.Client.Service
         {
             var product = DeliveryGeneralInfo.ProductById(productId, CurrentGroupId);
             var item = OrderInfo.ItemById(productId, positionId);
-            IncreaseAmountOfProduct(product, item);
+            IncreaseAmountOfProduct(item);
             await SendChangedOrderModelToServerAsync();
-            return new(product, item);
+            return new(item);
         }
 
         /// <summary>
@@ -392,11 +384,10 @@ namespace WebAppAssembly.Client.Service
         /// <returns></returns>
         public async Task<ProductInfo?> RemoveProductItemInChangingSelectedProductsWithModifiersPageAsync(Guid productId, Guid positionId)
         {
-            var product = DeliveryGeneralInfo.ProductById(productId, CurrentGroupId);
             var item = OrderInfo.ItemById(productId, positionId);
-            var isRemoved = RemoveOrDecreaseAmountOfProduct(product, item);
+            var isRemoved = RemoveOrDecreaseAmountOfProduct(item);
             await SendChangedOrderModelToServerAsync();
-            return isRemoved ? null : new(product, item);
+            return isRemoved ? null : new(item);
         }
 
         /// <summary>
@@ -437,8 +428,7 @@ namespace WebAppAssembly.Client.Service
         public Item AddProductInSelectingModifiersAndAmountsForProductPageAsync()
         {
             var item = GetCurrItem();
-            var product = GetCurrProductItem();
-            IncreaseAmountOfProduct(product, item);
+            IncreaseAmountOfProduct(item);
             return item;
         }
 
@@ -451,8 +441,8 @@ namespace WebAppAssembly.Client.Service
         public Item? RemoveProductInSelectingModifiersAndAmountsForProductPageAsync()
         {
             var item = GetCurrItem();
-            var product = GetCurrProductItem();
-            RemoveOrDecreaseAmountOfProduct(product, item);
+            if (RemoveOrDecreaseAmountOfProduct(item))
+                return null;
             return item;
         }
 
@@ -476,8 +466,13 @@ namespace WebAppAssembly.Client.Service
                 item = OrderInfo.ItemById(productId);
             }
 
-            IncreaseAmountOfProduct(product, item);
-            return new(product, item);
+            IncreaseAmountOfProduct(item);
+
+            CurrentProduct = new CurrentProduct(item.ProductId);
+            CurrProductItem = product;
+            CurrItem = item;
+
+            return new(item);
         }
 
         /// <summary>
@@ -487,10 +482,9 @@ namespace WebAppAssembly.Client.Service
         /// <returns></returns>
         public ProductInfo AddProductWithoutModifiersInSelectingAmountsForProductsPageAsync()
         {
-            var product = GetCurrProductItem();
             var item = GetCurrItem();
-            IncreaseAmountOfProduct(product, item);
-            return new(product, item);
+            IncreaseAmountOfProduct(item);
+            return new(item);
         }
 
         /// <summary>
@@ -502,12 +496,9 @@ namespace WebAppAssembly.Client.Service
         {
             var product = GetCurrProductItem();
             var item = GetCurrItem();
-            if (RemoveOrDecreaseAmountOfProduct(product, item))
-            {
-                HaveSelectedProductsAtFirst();
+            if (RemoveOrDecreaseAmountOfProduct(item))
                 return null;
-            }
-            return new(product, item, !HaveSelectedProductsAtFirst());
+            return new(item, !HaveSelectedProductsAtFirst());
         }
 
         /// <summary>
@@ -527,10 +518,9 @@ namespace WebAppAssembly.Client.Service
         /// </summary>
         /// <param name="product"></param>
         /// <param name="item"></param>
-        private void IncreaseAmountOfProduct(TransportItemDto product, Item item)
+        private void IncreaseAmountOfProduct(Item item)
         {
             OrderInfo.IncrementTotalAmountWithPrice(item);
-            product.IncrementAmount(); // ??? Remove it ???
         }
 
         /// <summary>
@@ -538,10 +528,10 @@ namespace WebAppAssembly.Client.Service
         /// </summary>
         /// <param name="product"></param>
         /// <param name="item"></param>
-        public void DecreaseAmountOfProduct(TransportItemDto product, Item item)
+        public void DecreaseAmountOfProduct(Item item)
         {
             OrderInfo.DecrementTotalAmountWithPrice(item);
-            product.DecrementAmount(); // ??? Remove it ???
+            HaveSelectedProductsAtFirst();
         }
 
         /// <summary>
@@ -549,9 +539,9 @@ namespace WebAppAssembly.Client.Service
         /// </summary>
         /// <param name="product"></param>
         /// <param name="item"></param>
-        public bool RemoveOrDecreaseAmountOfProduct(TransportItemDto product, Item item)
+        public bool RemoveOrDecreaseAmountOfProduct(Item item)
         {
-            DecreaseAmountOfProduct(product, item);
+            DecreaseAmountOfProduct(item);
             if (!item.HaveItems())
             {
                 OrderInfo.ZeroAmountOfItem(item);
@@ -616,6 +606,9 @@ namespace WebAppAssembly.Client.Service
         /// <returns></returns>
         public async Task CalculateLoayltyProgramAndAllowedSumAsync()
         {
+            var walletBalance = await RetrieveWalletBalanceAsync();
+            OrderInfo.WalletBalance = walletBalance.Balance;
+
             var res = await CalculateLoyaltyProgramAsync();
             if (res.Checkin?.AvailablePayments is not null)
                 CalculateAllowedWalletSum(res.Checkin.AvailablePayments);
@@ -628,9 +621,9 @@ namespace WebAppAssembly.Client.Service
         /// </summary>
         /// <param name="twaNet"></param>
         /// <returns></returns>
-        public async Task CalculateLoayltyProgramAndAllowedSumAsync(ITwaNet twaNet)
+        public async Task CalculateLoayltyProgramAndAllowedSumAsync(IJSRuntime jsRuntime, ITwaNet twaNet)
         {
-            var res = await CalculateLoyaltyProgramAsync(twaNet);
+            var res = await CalculateLoyaltyProgramAsync(jsRuntime, twaNet);
             if (res.Checkin?.AvailablePayments is not null)
                 CalculateAllowedWalletSum(res.Checkin.AvailablePayments);
             else
@@ -643,7 +636,7 @@ namespace WebAppAssembly.Client.Service
         /// <param name="twaNet"></param>
         /// <returns></returns>
         /// <exception cref="InfoException"></exception>
-        private async Task<LoyaltyCheckinInfo> CalculateLoyaltyProgramAsync(ITwaNet twaNet)
+        private async Task<LoyaltyCheckinInfo> CalculateLoyaltyProgramAsync(IJSRuntime jsRuntime, ITwaNet twaNet)
         {
             ResetVariablesOfLoyaltyProgram();
 
@@ -659,8 +652,8 @@ namespace WebAppAssembly.Client.Service
                     var popupMessage = DeliveryGeneralInfo.GetTlgWebAppPopupMessages().LoayltyProgramUnavailable ?? throw new InfoException(typeof(OrderService).FullName!,
                         nameof(CalculateLoyaltyProgramAsync), nameof(Exception), $"{typeof(TlgWebAppPopupMessages).FullName!}.{nameof(TlgWebAppPopupMessages.LoayltyProgramUnavailable)}",
                         ExceptionType.Null);
-                    await twaNet.HideProgressAsync();
-                    await twaNet.ShowOkPopupMessageAsync(popupMessage.Title, popupMessage.Description, HapticFeedBackNotificationType.warning);
+                    await twaNet.HideProgressAsync(jsRuntime);
+                    await twaNet.ShowOkPopupMessageAsync(jsRuntime, popupMessage.Title, popupMessage.Description, HapticFeedBackNotificationType.warning);
                 }
                 return checkinResult;
             }
@@ -673,8 +666,8 @@ namespace WebAppAssembly.Client.Service
 
                 if (IsReleaseMode)
                 {
-                    await twaNet.HideProgressAsync();
-                    await twaNet.ShowOkPopupMessageAsync(string.Empty, checkin.WarningMessage, HapticFeedBackNotificationType.warning);
+                    await twaNet.HideProgressAsync(jsRuntime);
+                    await twaNet.ShowOkPopupMessageAsync(jsRuntime, string.Empty, checkin.WarningMessage, HapticFeedBackNotificationType.warning);
                 }
                 return checkinResult;
             }
@@ -802,9 +795,12 @@ namespace WebAppAssembly.Client.Service
         /// <param name="twaNet"></param>
         /// <returns></returns>
         /// <exception cref="InfoException"></exception>
-        public async Task<bool> CalculateLoyaltyProgramAndAllowedSumAndCheckAvailableMinSumForPayAsync(ITwaNet twaNet)
+        public async Task<bool> CalculateLoyaltyProgramAndAllowedSumAndCheckAvailableMinSumForPayAsync(IJSRuntime jsRuntime, ITwaNet twaNet)
         {
-            var res = await CalculateLoyaltyProgramAsync(twaNet);
+            var walletBalance = await RetrieveWalletBalanceAsync();
+            OrderInfo.WalletBalance = walletBalance.Balance;
+
+            var res = await CalculateLoyaltyProgramAsync(jsRuntime, twaNet);
             if (!res.Ok || res.Checkin is null)
             {
                 ResetWallet();
@@ -820,10 +816,9 @@ namespace WebAppAssembly.Client.Service
                         nameof(CalculateLoyaltyProgramAndAllowedSumAndCheckAvailableMinSumForPayAsync), nameof(Exception), $"{typeof(TlgWebAppPopupMessages).FullName!}." +
                         $"{nameof(TlgWebAppPopupMessages.UnavailableMinSumWithDiscountForPay)}", ExceptionType.Null);
 
-                    popupMessage.Description = string.Format(popupMessage.Description, IntOrTwoNumberOfDigitsFromCurrentCulture(differenceSum),
-                        IntOrTwoNumberOfDigitsFromCurrentCulture(necessarySum));
+                    popupMessage.Description = string.Format(popupMessage.Description, $"{differenceSum:f2}", $"{necessarySum:f2}");
 
-                    await twaNet.ShowOkPopupMessageAsync(popupMessage.Title, popupMessage.Description, HapticFeedBackNotificationType.warning);
+                    await twaNet.ShowOkPopupMessageAsync(jsRuntime, popupMessage.Title, popupMessage.Description, HapticFeedBackNotificationType.warning);
                     return false;
                 }
                 if (res.Checkin?.AvailablePayments is not null)
@@ -840,7 +835,7 @@ namespace WebAppAssembly.Client.Service
         /// <param name="twaNet"></param>
         /// <returns></returns>
         /// <exception cref="InfoException"></exception>
-        public async Task<bool> CheckAvailableMinSumForPayAsync(ITwaNet twaNet)
+        public async Task<bool> CheckAvailableMinSumForPayAsync(IJSRuntime jsRuntime, ITwaNet twaNet)
         {
             if (OrderInfo.TotalSum < DeliveryGeneralInfo.CurrOfRub)
             {
@@ -850,7 +845,7 @@ namespace WebAppAssembly.Client.Service
 
                 popupMessage.Description = string.Format(popupMessage.Description, DeliveryGeneralInfo.CurrOfRub);
 
-                await twaNet.ShowOkPopupMessageAsync(popupMessage.Title, popupMessage.Description, HapticFeedBackNotificationType.warning);
+                await twaNet.ShowOkPopupMessageAsync(jsRuntime, popupMessage.Title, popupMessage.Description, HapticFeedBackNotificationType.warning);
                 return false;
             }
             OrderInfo.FinalSum = OrderInfo.TotalSum;
@@ -971,7 +966,7 @@ namespace WebAppAssembly.Client.Service
         /// <param name="number"></param>
         /// <returns></returns>
         private string IntOrTwoNumberOfDigitsFromCurrentCulture(double number)
-            => ((int)(number * 100) % 100) != 0 ? string.Format("0:F2", number) : ((int)number).ToString();
+            => ((int)(number * 100) % 100) != 0 ? string.Format("{0:F2}", number) : ((int)number).ToString();
 
         /// <summary>
         /// 
@@ -979,7 +974,7 @@ namespace WebAppAssembly.Client.Service
         /// <param name="number"></param>
         /// <returns></returns>
         private string IntOrTwoNumberOfDigitsFromCurrentCulture(float number)
-            => ((int)(number * 100) % 100) != 0 ? string.Format("0:F2", number) : ((int)number).ToString();
+            => ((int)(number * 100) % 100) != 0 ? string.Format("{0:F2}", number) : ((int)number).ToString();
 
 
         /// <summary>
@@ -995,7 +990,7 @@ namespace WebAppAssembly.Client.Service
             var itemId = CurrentProduct.ProductId ?? throw new InfoException(typeof(OrderService).FullName!,
                 nameof(CheckSelectingModifiersInSelectingModifiersAndAmountsForProductPageAsync), nameof(Exception),
                 $"{typeof(CurrentProduct).FullName!}.{nameof(CurrentProduct.ProductId)}", ExceptionType.Null);
-            var itemPositionId = CurrentProduct.ProductId ?? throw new InfoException(typeof(OrderService).FullName!,
+            var itemPositionId = CurrentProduct.PostionId ?? throw new InfoException(typeof(OrderService).FullName!,
                 nameof(CheckSelectingModifiersInSelectingModifiersAndAmountsForProductPageAsync), nameof(Exception),
                 $"{typeof(CurrentProduct).FullName!}.{nameof(CurrentProduct.PostionId)}", ExceptionType.Null);
 
@@ -1011,7 +1006,7 @@ namespace WebAppAssembly.Client.Service
         /// <param name="twaNet"></param>
         /// <returns></returns>
         /// <exception cref="InfoException"></exception>
-        public async Task<bool> IsNecessaryDataOfOrderCorrect(ITwaNet twaNet)
+        public async Task<bool> IsNecessaryDataOfOrderCorrect(IJSRuntime jsRuntime, ITwaNet twaNet)
         {
             if (OrderInfo.FinalSum < DeliveryGeneralInfo.CurrOfRub)
             {
@@ -1020,7 +1015,7 @@ namespace WebAppAssembly.Client.Service
                     $"{nameof(TlgWebAppPopupMessages.UnavailableMinSumtForPay)}", ExceptionType.Null);
 
                 popupMessage.Description = string.Format(popupMessage.Description, DeliveryGeneralInfo.CurrOfRub);
-                await twaNet.ShowOkPopupMessageAsync(popupMessage.Title, popupMessage.Description, HapticFeedBackNotificationType.warning);
+                await twaNet.ShowOkPopupMessageAsync(jsRuntime, popupMessage.Title, popupMessage.Description, HapticFeedBackNotificationType.warning);
                 return false;
             }
             else if (string.IsNullOrEmpty(OrderInfo.Address?.City) && OrderInfo.ByCourier)
@@ -1029,7 +1024,7 @@ namespace WebAppAssembly.Client.Service
                     nameof(IsNecessaryDataOfOrderCorrect), nameof(Exception), $"{typeof(TlgWebAppPopupMessages).FullName!}." +
                     $"{nameof(TlgWebAppPopupMessages.UnavailableMinSumtForPay)}", ExceptionType.Null);
 
-                await twaNet.ShowOkPopupMessageAsync(popupMessage.Title, popupMessage.Description, HapticFeedBackNotificationType.warning);
+                await twaNet.ShowOkPopupMessageAsync(jsRuntime, popupMessage.Title, popupMessage.Description, HapticFeedBackNotificationType.warning);
                 return false;
             }
             else if (string.IsNullOrEmpty(OrderInfo.Address?.Street) && OrderInfo.ByCourier)
@@ -1038,7 +1033,7 @@ namespace WebAppAssembly.Client.Service
                     nameof(IsNecessaryDataOfOrderCorrect), nameof(Exception), $"{typeof(TlgWebAppPopupMessages).FullName!}." +
                     $"{nameof(TlgWebAppPopupMessages.UnavailableMinSumtForPay)}", ExceptionType.Null);
 
-                await twaNet.ShowOkPopupMessageAsync(popupMessage.Title, popupMessage.Description, HapticFeedBackNotificationType.warning);
+                await twaNet.ShowOkPopupMessageAsync(jsRuntime, popupMessage.Title, popupMessage.Description, HapticFeedBackNotificationType.warning);
                 return false;
             }
             else if (string.IsNullOrEmpty(OrderInfo.Address?.House) && OrderInfo.ByCourier)
@@ -1047,7 +1042,7 @@ namespace WebAppAssembly.Client.Service
                     nameof(IsNecessaryDataOfOrderCorrect), nameof(Exception), $"{typeof(TlgWebAppPopupMessages).FullName!}." +
                     $"{nameof(TlgWebAppPopupMessages.UnavailableMinSumtForPay)}", ExceptionType.Null);
 
-                await twaNet.ShowOkPopupMessageAsync(popupMessage.Title, popupMessage.Description, HapticFeedBackNotificationType.warning);
+                await twaNet.ShowOkPopupMessageAsync(jsRuntime, popupMessage.Title, popupMessage.Description, HapticFeedBackNotificationType.warning);
                 return false;
             }
             return true;
@@ -1101,32 +1096,32 @@ namespace WebAppAssembly.Client.Service
         /// <param name="twaNet"></param>
         /// <returns></returns>
         /// <exception cref="InfoException"></exception>
-        public async Task<bool> CreateInvoiceLinkAsync(ITwaNet twaNet)
+        public async Task<bool> CreateInvoiceLinkAsync(IJSRuntime jsRuntime, ITwaNet twaNet)
         {
             try
             {
                 var result = await CreateInvoiceUrlLinkAsync();
                 if (!result.Ok)
                 {
-                    await twaNet.ShowOkPopupMessageAsync(string.Empty, result.Message ?? string.Empty, HapticFeedBackNotificationType.error);
+                    await twaNet.ShowOkPopupMessageAsync(jsRuntime, string.Empty, result.Message ?? string.Empty, HapticFeedBackNotificationType.error);
                     throw new InfoException(typeof(OrderService).FullName!, nameof(CreateInvoiceLinkAsync), nameof(Exception), result.Message ?? string.Empty);
                 }
                 else if (string.IsNullOrEmpty(result.InvoiceLink)) // What to send to an user abount this situation ???
                     throw new InfoException(typeof(OrderService).FullName!, nameof(CreateInvoiceLinkAsync), nameof(Exception), $"{typeof(InvoiceLinkStatus).FullName!}." +
                         $"{nameof(InvoiceLinkStatus.InvoiceLink)}", ExceptionType.NullOrEmpty);
 
-                var invoiceClosedStatus = await twaNet.InvoiceClosedHandlerAsync(result.InvoiceLink);
+                var invoiceClosedStatus = await twaNet.InvoiceClosedHandlerAsync(jsRuntime, result.InvoiceLink);
 
                 switch (invoiceClosedStatus)
                 {
                     case InvoiceClosedStatus.cancelled:
                         {
-                            await twaNet.SetHapticFeedbackImpactOccurredAsync(HapticFeedbackImpactOccurredType.light);
+                            await twaNet.SetHapticFeedbackImpactOccurredAsync(jsRuntime, HapticFeedbackImpactOccurredType.light);
                             break;
                         }
                     case InvoiceClosedStatus.paid:
                         {
-                            await twaNet.CloseWebAppAsync();
+                            await twaNet.CloseWebAppAsync(jsRuntime);
                             break;
                         }
                     default: break;
@@ -1146,9 +1141,7 @@ namespace WebAppAssembly.Client.Service
         public void CancelCurrSelectedItemWithModifiers()
         {
             var currItem = GetCurrProduct();
-            var product = DeliveryGeneralInfo.ProductById(currItem.GetProductId(), CurrentGroupId);
             var item = OrderInfo.ItemById(currItem.GetProductId(), currItem.GetPositionId());
-            product.TotalAmount -= (int)item.Amount;
             OrderInfo.ZeroAmountOfItem(item);
         }
 
@@ -1158,8 +1151,6 @@ namespace WebAppAssembly.Client.Service
         public async Task CancelCurrSimilarSelectedItemsWithModifiersAsync()
         {
             var currItem = GetCurrProduct();
-            var product = DeliveryGeneralInfo.ProductById(currItem.GetProductId(), CurrentGroupId);
-            product.TotalAmount = 0;
             OrderInfo.RemoveItemsById(currItem.GetProductId());
             HaveSelectedProductsAtFirst();
             await SendChangedOrderModelToServerAsync();
@@ -1179,14 +1170,14 @@ namespace WebAppAssembly.Client.Service
         /// <param name="twaNet"></param>
         /// <param name="id"></param>
         /// <returns></returns>
-        public async Task SetPickupTerminalAsync(ITwaNet twaNet, Guid id)
+        public async Task SetPickupTerminalAsync(IJSRuntime jsRuntime, ITwaNet twaNet, Guid id)
         {
             OrderInfo.TerminalId = id;
             var pickupTerminal = DeliveryGeneralInfo.DeliveryTerminals?.FirstOrDefault(x => x.Id == id);
             if (pickupTerminal is not null)
                 OrderInfo.DeliveryTerminal = new(id, pickupTerminal.Name);
             if (DeliveryGeneralInfo.UseIikoBizProgram)
-                await CalculateLoayltyProgramAndAllowedSumAsync(twaNet);
+                await CalculateLoayltyProgramAndAllowedSumAsync(jsRuntime, twaNet);
         }
 
         /// <summary>
@@ -1213,10 +1204,7 @@ namespace WebAppAssembly.Client.Service
             OrderInfo.TotalAmount = 0;
             OrderInfo.Items?.Clear();
 
-            if (DeliveryGeneralInfo?.TransportItemDtos is not null)
-                foreach (var product in DeliveryGeneralInfo.TransportItemDtos)
-                    product.TotalAmount = 0;
-
+            HaveSelectedProductsAtFirst();
             await SendChangedOrderModelToServerAsync();
         }
 
@@ -1249,7 +1237,7 @@ namespace WebAppAssembly.Client.Service
             var product = DeliveryGeneralInfo.ProductById(currItem.GetProductId(), CurrentGroupId);
             var item = OrderInfo.ItemById(currItem.GetProductId(), currItem.GetPositionId());
             item.ProductSizeId = sizeId;
-            item.ChangePriceOfItem(product.Price(sizeId));
+            OrderInfo.ChangeItemsSize(item, product.Price(sizeId));
             return item;
         }
 

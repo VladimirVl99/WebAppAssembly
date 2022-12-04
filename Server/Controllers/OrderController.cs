@@ -37,7 +37,7 @@ namespace WebAppAssembly.Server.Controllers
         {
             try
             {
-                var orderInfoOfCustomer = await ShoppingOrderService.GetOrderModelCashAsync(chatInfo.ChatId);
+                var orderInfoOfCustomer = await ShoppingOrderService.GetOrderModelCashAsync(chatInfo);
                 return Ok(new MainInfoForWebAppOrderOfServerSide(orderInfoOfCustomer, ShoppingOrderService.DeliveryGeneralInfo, ShoppingOrderService.IsReleaseMode));
             }
             catch (Exception ex)

@@ -9,7 +9,7 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationInWebRepository
         bool IsReleaseMode { get; }
 
 
-        Task<OrderModelOfServer> GetOrderModelCashAsync(long chatId);
+        Task<OrderModelOfServer> GetOrderModelCashAsync(ChatInfo chatInfo);
         Task SendOrderInfoToServerAsync(OrderModelOfServer order);
         Task<InvoiceLinkStatus> CreateInvoiceLinkAsync(OrderModelOfServer order);
         Task<LoyaltyCheckinInfo> CalculateCheckinAsync(OrderModelOfServer order);

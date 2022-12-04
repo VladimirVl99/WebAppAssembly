@@ -65,10 +65,10 @@
                             }
 
                             <div class="item">
-                                <div class="row">
+                                <div class="row" style="--bs-gutter-x:0.6rem;">
                                     <img class="img-fluid rounded" src="@category.ButtonImageUrl" alt="@category.Name" @onclick="(e => AddCurrentGroupId(category.Id))"/>
                                 </div>
-                                <div class="row">
+                                <div class="row" style="--bs-gutter-x:0.6rem;">
                                     <h6 style="text-align:center;">@category.Name</h6>
                                 </div>
                             </div>
@@ -102,7 +102,7 @@
                 for (int i = 0; i < productCount; i += columnAmount)
                 {
                     <div>
-                        <div class="row mt-1 mb-1">
+                        <div class="row mt-1 mb-1" style="--bs-gutter-x:0.6rem;">
                         @for (int j = i; j < i + columnAmount; j++)
                         {
                             if (j < productCount)
@@ -128,14 +128,14 @@
                         }
                         </div>
 
-                        <div class="row mb-3">
+                        <div class="row mb-3" style="--bs-gutter-x:0.6rem;">
                             @for (int j = i; j < i + columnAmount; j++)
                             {
                                 if (j < productCount)
                                 {
                                     var product = productsArr[j];
                                     <div class="col">
-                                        @if (!product.HaveItems())
+                                        @if (OrderService.OrderInfo.ItemByIdOrDefault(product.GetItemId()) is null)
                                         {
                                             <div class="TlBlr_div TlBlrCounter_x TlBlrDesktopProductCard_footer TlBlrCounter_y">
                                                 <button @onclick="(e => AddProductItemInSelectingProductPageAsync(product.GetItemId()))" class="TlBlrCounter_btn TlBlrCounter_onlyIncrement"
@@ -153,7 +153,7 @@
                                                         <path fill-rule="evenodd" clip-rule="evenodd" d="M6 12a1 1 0 0 0 1 1h10a1 1 0 1 0 0-2H7a1 1 0 0 0-1 1Z" fill="currentColor"></path>
                                                     </svg>
                                                 </button>
-                                                <span>@product.TotalAmount</span>
+                                                <span>@OrderService.OrderInfo.SelectedTotalAmountByItemId(product.GetItemId())</span>
                                                 <button @onclick="(e => AddProductItemInSelectingProductPageAsync(product.GetItemId()))" class="TlBlrCounter_btn TlBlrCounter_increment"
                     data-testid="amount-select-increment">
                                                     <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
@@ -199,7 +199,7 @@
             @if (!OrderService.IsReleaseMode)
             {
                 <div align="right">
-                        <button @onclick="(e => OrderService.CancelCurrSelectedItemWithModifiers())"
+                        <button @onclick="(e => { OrderService.CancelCurrSelectedItemWithModifiers(); StateOfPage.GoBack(); })"
                 data-toggle="modal" data-target="#productModal" class="btn btn-link btn-sm btn-text-green">Отмена</button>
                 </div>
             }
@@ -209,7 +209,7 @@
             </div>
 
             <h5>@product.Name</h5> <h6 style="color:lightgrey;">@(product.WeightAsString()) г</h6>
-            <div class="row">
+                <div class="row" style="--bs-gutter-x:0.6rem;">
                 <div class="col">
                     <h5>В 100 граммах</h5>
                         <p>@(product.EnergyAsString()) Ккал · @(product.CarbsAsString()) Углеводы</p>
@@ -273,7 +273,7 @@
             {
                 foreach (var groupModifier in modifierGroups)
                 {
-                    <div class="row">
+                        <div class="row" style="--bs-gutter-x:0.6rem;">
                         @{
                             var groupInfo = item.SimpleGroupModifiers?.FirstOrDefault(x => x.Id == groupModifier.ItemGroupId);
                         }
@@ -283,7 +283,7 @@
                     {
                         foreach (var modifier in groupModifier.Items)
                         {
-                            <div class="row mb-1">
+                                <div class="row mb-1" style="--bs-gutter-x:0.6rem;">
                                 <div class="col-5">
 
                                     @if (!item.IsSelectedModifier(modifier.ItemId ?? Guid.Empty, groupModifier.ItemGroupId))
@@ -397,7 +397,7 @@
                 </div>
 
                 <h5>@product.Name</h5> <h6 style="color:lightgrey;">@(product.WeightAsString()) г</h6>
-                <div class="row">
+                <div class="row" style="--bs-gutter-x:0.6rem;">
                     <div class="col">
                         <h5>В 100 граммах</h5>
                         <p>@(product.EnergyAsString()) Ккал · @(product.CarbsAsString()) Углеводы</p>
@@ -461,7 +461,7 @@
                         hr = true;
                     }
 
-                    <div class="row">
+                    <div class="row" style="--bs-gutter-x:0.6rem;">
                         <div class="col">
                             <img class="img-fluid rounded" src="@product!.ImageLink()" alt="@item.ProductName" />
                         </div>
@@ -513,7 +513,7 @@
             <div class="container-fluid">
                 @if (!OrderService.IsReleaseMode)
                 {
-                    <div class="row mt-1 mb-2">
+                    <div class="row mt-1 mb-2" style="--bs-gutter-x:0.6rem;">
                         <div class="col">
                             <h1>Ваш заказ</h1>
                         </div>
@@ -529,7 +529,7 @@
                 }
                 else
                 {
-                    <div class="row mt-1 mb-2">
+                    <div class="row mt-1 mb-2" style="--bs-gutter-x:0.6rem;">
                         <div class="col">
                             <h1>Ваш заказ</h1>
                         </div>
@@ -569,7 +569,7 @@
                         : product.HaveSizesMoreThanOne() ? product.ItemSizes?.FirstOrDefault()?.SizeName : null;
                         if (item.HaveModifiers())
                         {
-                            <div class="row">
+                            <div class="row" style="--bs-gutter-x:0.6rem;">
                                 <div class="col">
                                     <img class="img-fluid rounded" src="@product.ImageLink()" alt="@item.ProductName" />
                                 </div>
@@ -598,7 +598,7 @@
                                         var freeItems = OrderService.OrderInfo.DiscountFreeItems?.Where(id => id == item.PositionId);
                                     }
 
-                                    @if (freeItems is not null)
+                                    @if (freeItems is not null && freeItems.Any())
                                     {
                                         double discountSum = 0;
                                         foreach (var freeItem in freeItems)
@@ -618,7 +618,7 @@
                         }
                         else
                         {
-                            <div class="row">
+                            <div class="row" style="--bs-gutter-x:0.6rem;">
                                 <div class="col">
                                     <img class="img-fluid rounded" src="@product.ImageLink()" alt="@item.ProductName" />
                                 </div>
@@ -642,7 +642,7 @@
                                         var freeItems = OrderService.OrderInfo.DiscountFreeItems?.Where(id => id == item.PositionId);
                                     }
 
-                                    @if (freeItems is not null)
+                                    @if (freeItems is not null && freeItems.Any())
                                     {
                                         double discountSum = 0;
                                         foreach (var freeItem in freeItems)
@@ -669,7 +669,7 @@
                         var product = OrderService.DeliveryGeneralInfo.ProductById(item.ProductId);
 
                         <hr style="color:lightgrey;" />
-                        <div class="row">
+                        <div class="row" style="--bs-gutter-x:0.6rem;">
                             <div class="col">
                                 <img class="img-fluid rounded" src="@product.ImageLink()" alt="@product.Name" />
                             </div>
@@ -691,9 +691,9 @@
 
                 var discountProcent = OrderService.OrderInfo.DiscountProcent;
                 bool isInteger = (int)(discountProcent * 100 % 100) == 0;
-                <h5 style="margin-top:5px;">Скидка: -@string.Format(isInteger ? "{0:F0}" : "{0:F2}", discountProcent)%</h5>
+                <h5 style="margin-top:5px;">Скидка: -@(isInteger ? $"{discountProcent:f0}" : $"{discountProcent:f2}")%</h5>
 
-                <div class="row mb-2">
+                <div class="row mb-2" style="--bs-gutter-x:0.6rem;">
                     <div class="col">
                         <h5>Итого:</h5>
                     </div>
@@ -705,7 +705,7 @@
             }
             @if (OrderService.DeliveryGeneralInfo.UseCoupon)
             {
-                <div class="row" style="padding-bottom:5px;">
+                <div class="row" style="padding-bottom:5px;--bs-gutter-x:0.6rem;">
                         <div class="col">
                         <input class="comment" type="text" name="Coupon" placeholder="Введите промокод" @bind="@OrderService.OrderInfo.Coupon" />
                     </div>
@@ -722,8 +722,8 @@
             {
                 <h5>Бонусные баллы</h5>
                 @* В зависимости от баланса изменять слово "баланс" *@
-                <h6>У Вас накоплено @(OrderService.OrderInfo.WalletBalance) баллов</h6>
-                <div class="row">
+                <h6 style="padding-bottom: 3px;">У Вас накоплено @(OrderService.OrderInfo.WalletBalance) баллов</h6>
+                <div class="row" style="--bs-gutter-x:0.6rem;padding-bottom: 5px;">
                     <div class="col-6" style="position:relative;">
                         <input type="range" class="form-range" style="margin:0;position:absolute;top:50%;left:50%;margin-right:-50%;transform:translate(-50%,-50%);
     padding-left:10px;padding-right:10px;"
@@ -741,25 +741,33 @@
             </div>
             @if (OrderService.OrderInfo.ByCourier)
             {
+                var address = OrderService.OrderInfo.Address!;
+                var city = address.City;
+                var street = address.Street;
+                var house = address.House;
+                var flat = address.Flat;
+                var entrance = address.Entrance;
+                var floor = address.Floor;
+
                 <div class="btn-group" role="group" aria-label="Delivery type">
                     <button type="button" @onclick="(e => ChangeDeliveryTypeFlagAsync(true))" data-toggle="modal" data-target="#productModal" class="btn btn-success disabled">Доставка</button>
                     <button type="button" @onclick="(e => ChangeDeliveryTypeFlagAsync(false))" data-toggle="modal" data-target="#productModal" class="btn btn-secondary"
                         style="background-color:#c2c9cf;border-color: #c2c9cf;">Самовывоз</button>
                 </div>
-                <input class="comment" type="text" name="City" placeholder="Город" value="@OrderService.OrderInfo.Address!.City"
+                <input class="comment" type="text" name="City" placeholder="Город" value="@city"
        @oninput="(e => { var res = e.Value.ToString(); OrderService.OrderInfo.Address!.City = res is null ? OrderService.OrderInfo.Address!.City : res; })" />
-                <input class="comment" type="text" name="Street" placeholder="Улица" value="@OrderService.OrderInfo.Address!.Street"
+                <input class="comment" type="text" name="Street" placeholder="Улица" value="@street"
        @oninput="(e => { var res = e.Value.ToString(); OrderService.OrderInfo.Address!.Street = res is null ? OrderService.OrderInfo.Address!.Street : res; })" />
                 <div style="display: flex;">
-                    <input class="comment" style="width:49%;" type="text" name="House" placeholder="Дом" value="@OrderService.OrderInfo.Address!.House"
+                    <input class="comment" style="width:49%;" type="text" name="House" placeholder="Дом" value="@house"
                     @oninput="(e => { var res = e.Value.ToString(); OrderService.OrderInfo.Address!.House = res is null ? OrderService.OrderInfo.Address!.House : res; })" />
-                    <input class="comment" style="width:49%;margin-left:auto;margin-right:0em;" type="text" name="Flat" placeholder="Квартира" value="@OrderService.OrderInfo.Address!.Flat"
+                    <input class="comment" style="width:49%;margin-left:auto;margin-right:0em;" type="text" name="Flat" placeholder="Квартира" value="@flat"
            @oninput="(e => { var res = e.Value.ToString(); OrderService.OrderInfo.Address!.Flat = res is null ? OrderService.OrderInfo.Address!.Flat : res; })" />
                 </div>
                 <div style="display: flex;">
-                    <input class="comment" style="width:49%;" type="text" name="Entrance" placeholder="Подъезд" value="@OrderService.OrderInfo.Address!.Entrance"
+                    <input class="comment" style="width:49%;" type="text" name="Entrance" placeholder="Подъезд" value="@entrance"
            @oninput="(e => { var res = e.Value.ToString(); OrderService.OrderInfo.Address!.Entrance = res is null ? OrderService.OrderInfo.Address!.Entrance : res; })" />
-                    <input class="comment" style="width:49%;margin-left:auto;margin-right:0em;" type="text" name="Floor" placeholder="Этаж" value="@OrderService.OrderInfo.Address!.Floor"
+                    <input class="comment" style="width:49%;margin-left:auto;margin-right:0em;" type="text" name="Floor" placeholder="Этаж" value="@floor"
            @oninput="(e => { var res = e.Value.ToString(); OrderService.OrderInfo.Address!.Floor = res is null ? OrderService.OrderInfo.Address!.Floor : res; })" />
                 </div>
             }
@@ -865,19 +873,20 @@ else {
 
         try
         {
-            JsHelperService = new JsHelperService(JsRuntime);
-            TwaNet = new TwaNet(JsRuntime);
-            var chatId = await TwaNet.TwaNetInitAsync();
+            JsHelperService = new JsHelperService();
+            TwaNet = new TwaNet();
+            var chatId = await TwaNet.TwaNetInitAsync(JsRuntime);
             OrderService = new OrderService(Http);
             await OrderService.OrderServiceInitAsync(chatId, OrderControllerPaths.RetrieveMainInfoForWebAppOrder);
-            await TwaNet.SetMainBtnColorAsync(OrderService.TlgMainBtnColor);
+            await TwaNet.SetMainBtnColorAsync(JsRuntime, OrderService.TlgMainBtnColor);
+            IsLoadedGeneralInfo = true;
 
             // !!! Initialize and run it block after render page !!!
             StateHasChanged();
             if (OrderService.HaveSelectedProductsAtFirst())
             {
                 var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
-                await TwaNet.SetMainButtonTextAsync(btnText);
+                await TwaNet.SetMainButtonTextAsync(JsRuntime, btnText);
             }
             await ListenTwaBtnsAsync();
         }
@@ -918,7 +927,7 @@ else {
             OrderService!.CurrentGroupId = id;
             if (OrderService!.IsReleaseMode)
             {
-                await TwaNet!.SetHapticFeedbackSelectionChangedAsync();
+                await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
             }
         }
         catch (Exception ex)
@@ -932,28 +941,35 @@ else {
     private async Task AddProductItemInSelectingProductPageAsync(Guid productId)
     {       
         try
-        {        
+        {   
             if (StateOfPage!.IsPageBlocked) return;
-            await TwaNet!.SetHapticFeedbackSelectionChangedAsync();
+            else if (OrderService!.IsReleaseMode)
+            {
+                await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
+            }
 
             var productInfo = await OrderService!.AddProductItemInSelectingProductPageAsync(productId);
+            var product = OrderService.DeliveryGeneralInfo.ProductById(productId);
             if (OrderService.IsReleaseMode)
             {
-                if (productInfo.GeneralProductInfo.HaveModifiers() || productInfo.GeneralProductInfo.HaveSizesMoreThanOne())
+                if (product.HaveModifiersOrSizesMoreThanOne())
                 {
                     StateOfPage.GoToPage(PageTypeOfOrder.SelectingModifiersAndAmountsForProduct);
                     var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingModifiersAndAmountsForProduct;
                     btnText = string.Format(btnText, productInfo.TotalSumOfSelectedProductWithModifiers());
-                    await TwaNet.SetMainButtonTextAsync(btnText);
-                    await TwaNet.ShowBackButtonAsync();
+                    await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
+                    await TwaNet.ShowBackButtonAsync(JsRuntime);
                 }
                 else if (productInfo.IsFirstSelected)
                 {
                     var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
-                    await TwaNet.SetMainButtonTextAsync(btnText);
+                    await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
                 }
             }
-            else StateOfPage.GoToPage(PageTypeOfOrder.SelectingModifiersAndAmountsForProduct);
+            else if (product.HaveModifiersOrSizesMoreThanOne())
+            {
+                StateOfPage.GoToPage(PageTypeOfOrder.SelectingModifiersAndAmountsForProduct);
+            }
         }
         catch (Exception ex)
         {
@@ -967,28 +983,32 @@ else {
         try
         {
             if (StateOfPage!.IsPageBlocked) return;
+            else if (OrderService!.IsReleaseMode)
+            {
+                await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
+            }
 
             var product = OrderService!.DeliveryGeneralInfo.ProductById(productId, OrderService.CurrentGroupId);
 
             if (OrderService!.IsReleaseMode)
             {
-                await TwaNet!.SetHapticFeedbackSelectionChangedAsync();
-
                 if (product.HaveModifiersOrSizesMoreThanOne())
                 {
                     if ((await OrderService.RemoveProductItemWithModifiersInSelectingProductPageAsync(product)))
                     {
                         StateOfPage!.GoToPage(PageTypeOfOrder.ChangingSelectedProductsWithModifiers);
                         var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ChangingSelectedProductsWithModifiers;
-                        await TwaNet!.ShowBackButtonAsync();
-                        await TwaNet!.SetMainButtonTextAsync(btnText);
+                        await TwaNet!.ShowBackButtonAsync(JsRuntime);
+                        await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
                     }
                 }
                 else
                 {
                     await OrderService!.RemoveProductItemInSelectingProductPageAsync(product);                    
-                    if (OrderService.OrderInfo.HaveSelectedProducts())
-                        await TwaNet!.HideMainButtonAsync();
+                    if (!OrderService.OrderInfo.HaveSelectedProducts())
+                    {
+                        await TwaNet!.HideMainButtonAsync(JsRuntime);
+                    }
                 }
             }
             else
@@ -1019,21 +1039,25 @@ else {
 
             if (OrderService!.IsReleaseMode)
             {
-                await TwaNet!.SetHapticFeedbackSelectionChangedAsync();
-                await TwaNet!.ShowProgressAsync();
+                await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
+                await TwaNet!.ShowProgressAsync(JsRuntime);
 
-                await OrderService!.AddProductItemInShoppingCartPageAsync(TwaNet!, productId, positionId);
+                await OrderService!.AddProductItemInShoppingCartPageAsync(JsRuntime, TwaNet!, productId, positionId);
 
                 var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart;
                 btnText = string.Format(btnText, OrderService!.FinalSumOfOrder());
-                await TwaNet!.HideProgressAsync();
-                await TwaNet!.SetMainButtonTextAsync(btnText);
+                await TwaNet!.HideProgressAsync(JsRuntime);
+                await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
             }
             else await OrderService!.AddProductItemInShoppingCartPageAsync(productId, positionId);
         }
         catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
+            if (OrderService!.IsReleaseMode)
+            {
+                await TwaNet!.HideProgressAsync(JsRuntime);
+            }
         }
     }
 
@@ -1046,28 +1070,26 @@ else {
 
             if (OrderService!.IsReleaseMode)
             {
-                await TwaNet!.SetHapticFeedbackSelectionChangedAsync();
-                await TwaNet!.ShowProgressAsync();
+                await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
+                await TwaNet!.ShowProgressAsync(JsRuntime);
 
-                if ((await OrderService!.RemoveProductItemInShoppingCartPageAsync(TwaNet!, productId, positionId)) is not null)
+                if ((await OrderService!.RemoveProductItemInShoppingCartPageAsync(JsRuntime, TwaNet!, productId, positionId)) is null &&
+                !OrderService.OrderInfo.HaveSelectedProducts())
                 {
-                    if (OrderService!.IsReleaseMode)
-                    {
-                        var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart;
-                        btnText = string.Format(btnText, OrderService!.FinalSumOfOrder());
-                        await TwaNet!.HideProgressAsync();
-                        await TwaNet!.SetMainButtonTextAsync(btnText);
-                    }
+                    StateOfPage.GoBack();
+                    await TwaNet!.HideBackButtonAsync(JsRuntime);
+                    await TwaNet!.HideMainButtonAsync(JsRuntime);
                 }
                 else
                 {
-                    StateOfPage.GoBack();
-                    await TwaNet!.HideProgressAsync();
-                    await TwaNet!.HideBackButtonAsync();
-                    await TwaNet!.HideMainButtonAsync();
+                    var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart;
+                    btnText = string.Format(btnText, OrderService!.FinalSumOfOrder());
+                    await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
                 }
+                await TwaNet!.HideProgressAsync(JsRuntime);
             }
-            else if ((await OrderService!.RemoveProductItemInShoppingCartPageAsync(productId, positionId)) is null)
+            else if ((await OrderService!.RemoveProductItemInShoppingCartPageAsync(productId, positionId)) is null &&
+                !OrderService.OrderInfo.HaveSelectedProducts())
             {
                 StateOfPage.GoBack();
             }
@@ -1075,6 +1097,10 @@ else {
         catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
+            if (OrderService!.IsReleaseMode)
+            {
+                await TwaNet!.HideProgressAsync(JsRuntime);
+            }
         }
     }
 
@@ -1085,7 +1111,7 @@ else {
         {
             if (OrderService!.IsReleaseMode)
             {
-                await TwaNet!.SetHapticFeedbackSelectionChangedAsync();
+                await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
             }
 
             await OrderService!.AddProductItemInChangingSelectedProductsWithModifiersPageAsync(productId, positionId);
@@ -1103,23 +1129,23 @@ else {
         {
             if (OrderService!.IsReleaseMode)
             {
-                await TwaNet!.SetHapticFeedbackSelectionChangedAsync();
+                await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
 
                 if ((await OrderService!.RemoveProductItemInChangingSelectedProductsWithModifiersPageAsync(productId, positionId)) is null)
                 {
                     if (!OrderService.OrderInfo.CurrItems().Where(x => x.ProductId == productId).Any())
                     {
                         StateOfPage!.GoBack();
-                        await TwaNet.HideBackButtonAsync();
+                        await TwaNet.HideBackButtonAsync(JsRuntime);
 
                         if (OrderService.OrderInfo.HaveSelectedProducts())
                         {
                             var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
-                            await TwaNet.SetMainButtonTextAsync(btnText);
+                            await TwaNet.SetMainButtonTextAsync(JsRuntime, btnText);
                         }
                         else
                         {
-                            await TwaNet.HideMainButtonAsync();
+                            await TwaNet.HideMainButtonAsync(JsRuntime);
                         }
                     }
                 }
@@ -1148,11 +1174,11 @@ else {
         {
             if (OrderService!.IsReleaseMode)
             {
-                await TwaNet!.SetHapticFeedbackSelectionChangedAsync();
+                await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
                 var item = OrderService!.AddModifierInSelectingModifiersAndAmountsForProductPageAsync(modifierId, modifierGroupId);
                 var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingModifiersAndAmountsForProduct;
                 btnText = string.Format(btnText, item.TotalPrice);
-                await TwaNet!.SetMainButtonTextAsync(btnText);
+                await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
             }
             else
             {
@@ -1172,11 +1198,11 @@ else {
         {
             if (OrderService!.IsReleaseMode)
             {
-                await TwaNet!.SetHapticFeedbackSelectionChangedAsync();
+                await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
                 var item = OrderService!.RemoveModifierInSelectingModifiersAndAmountsForProductPageAsync(modifierId, modifierGroupId);
                 var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingModifiersAndAmountsForProduct;
                 btnText = string.Format(btnText, item.TotalPrice);
-                await TwaNet!.SetMainButtonTextAsync(btnText);
+                await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
             }
             else
             {
@@ -1196,11 +1222,11 @@ else {
         {
             if (OrderService!.IsReleaseMode)
             {
-                await TwaNet!.SetHapticFeedbackSelectionChangedAsync();
+                await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
                 var item = OrderService.AddProductInSelectingModifiersAndAmountsForProductPageAsync();
                 var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingModifiersAndAmountsForProduct;
                 btnText = string.Format(btnText, item.TotalPrice);
-                await TwaNet!.SetMainButtonTextAsync(btnText);
+                await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
             }
             else
             {
@@ -1220,7 +1246,7 @@ else {
         {
             if (OrderService!.IsReleaseMode)
             {
-                await TwaNet!.SetHapticFeedbackSelectionChangedAsync();
+                await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
                 var item = OrderService.RemoveProductInSelectingModifiersAndAmountsForProductPageAsync();
                 if (item is null)
                 {
@@ -1228,19 +1254,19 @@ else {
                     if (OrderService.OrderInfo.HaveSelectedProducts())
                     {
                         var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
-                        await TwaNet.SetMainButtonTextAsync(btnText);
+                        await TwaNet.SetMainButtonTextAsync(JsRuntime, btnText);
                     }
                     else
                     {
-                        await TwaNet.HideMainButtonAsync();
+                        await TwaNet.HideMainButtonAsync(JsRuntime);
                     }
-                    await TwaNet.HideBackButtonAsync();
+                    await TwaNet.HideBackButtonAsync(JsRuntime);
                 }
                 else
                 {
                     var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingModifiersAndAmountsForProduct;
                     btnText = string.Format(btnText, item.TotalPrice);
-                    await TwaNet!.SetMainButtonTextAsync(btnText);
+                    await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
                 }
             }
             else
@@ -1265,16 +1291,17 @@ else {
         {
             if (OrderService!.IsReleaseMode)
             {
+                await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
                 StateOfPage!.GoToPage(PageTypeOfOrder.SelectingAmountsForProducts);
-                await TwaNet!.SetHapticFeedbackSelectionChangedAsync();
                 var res = OrderService.AddProductWithoutModifiersForSelectingAmountsForProductsPageAsync(productId);
                 var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingAmountsForProducts;
                 btnText = string.Format(btnText, res.Item.TotalPrice);
-                await TwaNet!.SetMainButtonTextAsync(btnText);
-                await TwaNet.ShowBackButtonAsync();
+                await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
+                await TwaNet.ShowBackButtonAsync(JsRuntime);
             }
             else
             {
+                StateOfPage!.GoToPage(PageTypeOfOrder.SelectingAmountsForProducts);
                 OrderService.AddProductWithoutModifiersForSelectingAmountsForProductsPageAsync(productId);
             }
         }
@@ -1291,11 +1318,11 @@ else {
         {
             if (OrderService!.IsReleaseMode)
             {
-                await TwaNet!.SetHapticFeedbackSelectionChangedAsync();
+                await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
                 var res = OrderService.AddProductWithoutModifiersInSelectingAmountsForProductsPageAsync();
                 var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingAmountsForProducts;
                 btnText = string.Format(btnText, res.Item.TotalPrice);
-                await TwaNet!.SetMainButtonTextAsync(btnText);
+                await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
             }
             else
             {
@@ -1315,7 +1342,7 @@ else {
         {
             if (OrderService!.IsReleaseMode)
             {
-                await TwaNet!.SetHapticFeedbackSelectionChangedAsync();
+                await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
                 var res = OrderService.RemoveProductWithoutModifiersInSelectingAmountsForProductsPageAsync();
 
                 if (res is null)
@@ -1324,19 +1351,19 @@ else {
                     if (OrderService.OrderInfo.HaveSelectedProducts())
                     {
                         var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
-                        await TwaNet!.SetMainButtonTextAsync(btnText);
+                        await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
                     }
                     else
                     {
-                        await TwaNet.HideMainButtonAsync();
+                        await TwaNet.HideMainButtonAsync(JsRuntime);
                     }
-                    await TwaNet.HideBackButtonAsync();
+                    await TwaNet.HideBackButtonAsync(JsRuntime);
                 }
                 else
                 {
                     var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingAmountsForProducts;
                     btnText = string.Format(btnText, res.Item.TotalPrice);
-                    await TwaNet!.SetMainButtonTextAsync(btnText);
+                    await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
                 }
             }
             else
@@ -1375,30 +1402,33 @@ else {
         while (true)
         {
             StateOfPage!.IsPageBlocked = false;
+            await TwaNet!.HideProgressAsync(JsRuntime);
 
             try
             {
-                await TwaNet!.ListenMainButtonAsync();
-                await TwaNet.SetHapticFeedbackImpactOccurredAsync(HapticFeedbackImpactOccurredType.light);
+                await TwaNet!.ListenMainButtonAsync(JsRuntime);
+                await TwaNet.SetHapticFeedbackImpactOccurredAsync(JsRuntime, HapticFeedbackImpactOccurredType.light);
 
                 if (StateOfPage!.PageTypeOfOrder == PageTypeOfOrder.SelectingProducts)
                 {
+                    await TwaNet!.ShowProgressAsync(JsRuntime);
                     if (OrderService!.DeliveryGeneralInfo.UseIikoBizProgram)
                     {
-                        if (!(await OrderService.CalculateLoyaltyProgramAndAllowedSumAndCheckAvailableMinSumForPayAsync(TwaNet))) continue;
+                        if (!(await OrderService.CalculateLoyaltyProgramAndAllowedSumAndCheckAvailableMinSumForPayAsync(JsRuntime, TwaNet))) continue;
                     }
                     else
                     {
-                        if (!(await OrderService!.CheckAvailableMinSumForPayAsync(TwaNet))) continue;
+                        if (!(await OrderService!.CheckAvailableMinSumForPayAsync(JsRuntime, TwaNet))) continue;
                     }
 
                     StateOfPage.GoToPage(PageTypeOfOrder.ShoppingCart);
                     StateHasChanged();
 
-                    await JsHelperService!.ScrollToTopAsync();
-                    await TwaNet.ShowBackButtonAsync();
+                    await JsHelperService!.ScrollToTopAsync(JsRuntime);
+                    await TwaNet.ShowBackButtonAsync(JsRuntime);
                     var btnTxt = string.Format(OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart, OrderService.OrderInfo.FinalSum);
-                    await TwaNet.SetMainButtonTextAsync(btnTxt);
+                    await TwaNet.SetMainButtonTextAsync(JsRuntime, btnTxt);
+                    await TwaNet!.HideProgressAsync(JsRuntime);
                 }
                 else if (StateOfPage!.PageTypeOfOrder == PageTypeOfOrder.SelectingModifiersAndAmountsForProduct)
                 {
@@ -1408,7 +1438,7 @@ else {
                             nameof(TelegramHandlerMainButtonAsync), nameof(Exception), $"{typeof(TlgWebAppPopupMessages).FullName!}." +
                             $"{nameof(TlgWebAppPopupMessages.IncorrectSelectedModifier)}", ExceptionType.Null);
 
-                        await TwaNet.ShowOkPopupMessageAsync(popupMsg.Title, popupMsg.Title, HapticFeedBackNotificationType.warning);
+                        await TwaNet.ShowOkPopupMessageAsync(JsRuntime, popupMsg.Title, popupMsg.Title, HapticFeedBackNotificationType.warning);
                         continue;
                     }
 
@@ -1416,8 +1446,8 @@ else {
                     StateHasChanged();
 
                     var btnText = OrderService!.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
-                    await TwaNet.SetMainButtonTextAsync(btnText);
-                    await TwaNet.HideBackButtonAsync();
+                    await TwaNet.SetMainButtonTextAsync(JsRuntime, btnText);
+                    await TwaNet.HideBackButtonAsync(JsRuntime);
 
                     await OrderService!.SendChangedOrderModelToServerAsync();
                 }
@@ -1426,9 +1456,9 @@ else {
                     StateOfPage.GoBack();
                     StateHasChanged();
 
-                    await TwaNet.HideBackButtonAsync();
+                    await TwaNet.HideBackButtonAsync(JsRuntime);
                     var btnText = OrderService!.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
-                    await TwaNet.SetMainButtonTextAsync(btnText);
+                    await TwaNet.SetMainButtonTextAsync(JsRuntime, btnText);
                     await OrderService!.SendChangedOrderModelToServerAsync();
                 }
                 else if (StateOfPage!.PageTypeOfOrder == PageTypeOfOrder.ChangingSelectedProductsWithModifiers)
@@ -1436,36 +1466,36 @@ else {
                     StateOfPage.GoBack();
                     StateHasChanged();
 
-                    await TwaNet.HideBackButtonAsync();
+                    await TwaNet.HideBackButtonAsync(JsRuntime);
                     var btnText = OrderService!.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
-                    await TwaNet.SetMainButtonTextAsync(btnText);
+                    await TwaNet.SetMainButtonTextAsync(JsRuntime, btnText);
                     await OrderService!.SendChangedOrderModelToServerAsync();
                 }
                 else if (StateOfPage!.PageTypeOfOrder == PageTypeOfOrder.ShoppingCart)
                 {
                     StateOfPage!.IsPageBlocked = true;
-                    await TwaNet!.ShowProgressAsync();
+                    await TwaNet!.ShowProgressAsync(JsRuntime);
 
-                    if (!(await OrderService!.IsNecessaryDataOfOrderCorrect(TwaNet)))
+                    if (!(await OrderService!.IsNecessaryDataOfOrderCorrect(JsRuntime, TwaNet)))
                     {
-                        await TwaNet!.HideProgressAsync();
+                        await TwaNet!.HideProgressAsync(JsRuntime);
                         continue;
                     }
 
                     if ((await OrderService.IsWalletBalanceChangedInIikoCardAsync()))
                     {
-                        await TwaNet!.HideProgressAsync();
+                        await TwaNet!.HideProgressAsync(JsRuntime);
                         var btnTxt = OrderService.DeliveryGeneralInfo.GetTlgWebAppPopupMessages().WalletBalanceChangedInIikoBiz
                             ?? throw new InfoException(typeof(OrderService).FullName!, nameof(TelegramHandlerMainButtonAsync), nameof(Exception),
                             $"{typeof(TlgWebAppPopupMessages).FullName!}.{nameof(TlgWebAppPopupMessages.WalletBalanceChangedInIikoBiz)}", ExceptionType.Null);
-                        await TwaNet.ShowOkPopupMessageAsync(btnTxt.Title, btnTxt.Description, HapticFeedBackNotificationType.warning);
+                        await TwaNet.ShowOkPopupMessageAsync(JsRuntime, btnTxt.Title, btnTxt.Description, HapticFeedBackNotificationType.warning);
                         continue;
                     }
 
                     // Save changed order info by using CreateInvoiceLinkAsync method
                     await OrderService!.SendChangedOrderModelToServerAsync();
-                    await OrderService!.CreateInvoiceLinkAsync(TwaNet);
-                    await TwaNet!.HideProgressAsync();
+                    await OrderService!.CreateInvoiceLinkAsync(JsRuntime, TwaNet);
+                    await TwaNet!.HideProgressAsync(JsRuntime);
                 }
             }
             catch (Exception ex)
@@ -1488,8 +1518,8 @@ else {
         {
             try
             {
-                await TwaNet!.ListenBackButtonAsync();
-                await TwaNet.SetHapticFeedbackImpactOccurredAsync(HapticFeedbackImpactOccurredType.light);
+                await TwaNet!.ListenBackButtonAsync(JsRuntime);
+                await TwaNet.SetHapticFeedbackImpactOccurredAsync(JsRuntime, HapticFeedbackImpactOccurredType.light);
 
                 if (StateOfPage!.IsPageBlocked)
                 {
@@ -1505,10 +1535,10 @@ else {
                     if (OrderService.OrderInfo.HaveSelectedProducts())
                     {
                         var btnText = OrderService!.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
-                        await TwaNet.SetMainButtonTextAsync(btnText);
+                        await TwaNet.SetMainButtonTextAsync(JsRuntime, btnText);
                     }
-                    else await TwaNet.HideMainButtonAsync();
-                    await TwaNet.HideBackButtonAsync();
+                    else await TwaNet.HideMainButtonAsync(JsRuntime);
+                    await TwaNet.HideBackButtonAsync(JsRuntime);
                 }
                 else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.SelectingAmountsForProducts)
                 {
@@ -1516,8 +1546,8 @@ else {
                     StateHasChanged();
 
                     var btnText = OrderService!.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
-                    await TwaNet.SetMainButtonTextAsync(btnText);
-                    await TwaNet.HideBackButtonAsync();
+                    await TwaNet.SetMainButtonTextAsync(JsRuntime, btnText);
+                    await TwaNet.HideBackButtonAsync(JsRuntime);
                 }
                 else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.ChangingSelectedProductsWithModifiers)
                 {
@@ -1525,8 +1555,8 @@ else {
                     StateHasChanged();
 
                     var btnText = OrderService!.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
-                    await TwaNet.SetMainButtonTextAsync(btnText);
-                    await TwaNet.HideBackButtonAsync();
+                    await TwaNet.SetMainButtonTextAsync(JsRuntime, btnText);
+                    await TwaNet.HideBackButtonAsync(JsRuntime);
                 }
                 else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.ShoppingCart)
                 {
@@ -1534,8 +1564,8 @@ else {
                     StateHasChanged();
 
                     var btnText = OrderService!.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
-                    await TwaNet.SetMainButtonTextAsync(btnText);
-                    await TwaNet.HideBackButtonAsync();
+                    await TwaNet.SetMainButtonTextAsync(JsRuntime, btnText);
+                    await TwaNet.HideBackButtonAsync(JsRuntime);
                     await OrderService!.SendChangedOrderModelToServerAsync();
                 }
             }
@@ -1554,7 +1584,7 @@ else {
     {
         try
         {
-            await TwaNet!.CloseWebAppAsync();
+            await TwaNet!.CloseWebAppAsync(JsRuntime);
         }
         catch (Exception ex)
         {
@@ -1601,17 +1631,24 @@ else {
     {
         try
         {
+            if (OrderService!.IsReleaseMode)
+            {
+                await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
+            }
+
             var arg = Convert.ToString(e.Value);
             if (!string.IsNullOrEmpty(arg))
             {
                 var id = Guid.Parse(arg);
                 if (OrderService!.IsReleaseMode)
                 {
-                    await OrderService!.SetPickupTerminalAsync(TwaNet!, id);
+                    await TwaNet!.ShowProgressAsync(JsRuntime);
+                    await OrderService!.SetPickupTerminalAsync(JsRuntime, TwaNet!, id);
 
                     var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart;
                     btnText = string.Format(btnText, OrderService!.FinalSumOfOrder());
-                    await TwaNet!.SetMainButtonTextAsync(btnText);
+                    await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
+                    await TwaNet!.HideProgressAsync(JsRuntime);
                 }
                 else await OrderService!.SetPickupTerminalAsync(id);
             }
@@ -1619,38 +1656,68 @@ else {
         catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
+            if (OrderService!.IsReleaseMode)
+            {
+                await TwaNet!.HideProgressAsync(JsRuntime);
+            }
         }
     }
 
     // Calculate discount program +
     private async Task CalculateLoyaltyProgramByCouponAsync()
     {
-        if (OrderService!.IsReleaseMode)
+        try
         {
-            await TwaNet!.SetHapticFeedbackSelectionChangedAsync();
-            await OrderService.CalculateLoayltyProgramAndAllowedSumAsync(TwaNet);
+            if (OrderService!.IsReleaseMode)
+            {
+                await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
+                await TwaNet!.ShowProgressAsync(JsRuntime);
+                await OrderService.CalculateLoayltyProgramAndAllowedSumAsync(JsRuntime, TwaNet);
 
-            var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart;
-            btnText = string.Format(btnText, OrderService!.FinalSumOfOrder());
-            await TwaNet!.SetMainButtonTextAsync(btnText);
+                var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart;
+                btnText = string.Format(btnText, OrderService!.FinalSumOfOrder());
+                await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
+                await TwaNet!.HideProgressAsync(JsRuntime);
+            }
+            else await OrderService.CalculateLoayltyProgramAndAllowedSumAsync();
         }
-        else  await OrderService.CalculateLoayltyProgramAndAllowedSumAsync();
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            if (OrderService!.IsReleaseMode)
+            {
+                await TwaNet!.HideProgressAsync(JsRuntime);
+            }
+        }
     }
 
     // +
     private async Task ChangeDeliveryTypeFlagAsync(bool byCourier)
     {
-        OrderService!.OrderInfo.ByCourier = byCourier;
-        if (OrderService!.IsReleaseMode)
+        try
         {
-            await TwaNet!.SetHapticFeedbackSelectionChangedAsync();
-            await OrderService.CalculateLoayltyProgramAndAllowedSumAsync(TwaNet);
+            OrderService!.OrderInfo.ByCourier = byCourier;
+            if (OrderService!.IsReleaseMode)
+            {
+                await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
+                await TwaNet!.ShowProgressAsync(JsRuntime);
+                await OrderService.CalculateLoayltyProgramAndAllowedSumAsync(JsRuntime, TwaNet);
 
-            var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart;
-            btnText = string.Format(btnText, OrderService!.FinalSumOfOrder());
-            await TwaNet!.SetMainButtonTextAsync(btnText);
+                var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart;
+                btnText = string.Format(btnText, OrderService!.FinalSumOfOrder());
+                await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
+                await TwaNet!.HideProgressAsync(JsRuntime);
+            }
+            else await OrderService.CalculateLoayltyProgramAndAllowedSumAsync();
         }
-        else await OrderService.CalculateLoayltyProgramAndAllowedSumAsync();
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            if (OrderService!.IsReleaseMode)
+            {
+                await TwaNet!.HideProgressAsync(JsRuntime);
+            }
+        }
     }
 
     // Remove all selected products in the shopping cart +
@@ -1673,13 +1740,13 @@ else {
                     new PopupButton(no, "Нет", PopupButtonType.destructive)
                 });
 
-                var res = await TwaNet!.ShowPopupParamsAsync(popupPrms, HapticFeedBackNotificationType.warning, HapticFeedbackImpactOccurredType.soft);
+                var res = await TwaNet!.ShowPopupParamsAsync(JsRuntime, popupPrms, HapticFeedBackNotificationType.warning, HapticFeedbackImpactOccurredType.soft);
                 if (res == yes)
                 {
                     StateOfPage!.GoBack();
                     await OrderService.RemoveAllSelectedProductsInShoppingCartPageAsync();
-                    await TwaNet.HideMainButtonAsync();
-                    await TwaNet.HideBackButtonAsync();
+                    await TwaNet.HideMainButtonAsync(JsRuntime);
+                    await TwaNet.HideBackButtonAsync(JsRuntime);
                 }
             }
             else
@@ -1714,7 +1781,7 @@ else {
                     new PopupButton(no, "Нет", PopupButtonType.destructive)
                 });
 
-                var res = await TwaNet!.ShowPopupParamsAsync(popupPrms, HapticFeedBackNotificationType.warning, HapticFeedbackImpactOccurredType.soft);
+                var res = await TwaNet!.ShowPopupParamsAsync(JsRuntime, popupPrms, HapticFeedBackNotificationType.warning, HapticFeedbackImpactOccurredType.soft);
                 if (res == yes)
                 {
                     StateOfPage!.GoBack();
@@ -1722,13 +1789,13 @@ else {
                     if (OrderService.OrderInfo.HaveSelectedProducts())
                     {
                         var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
-                        await TwaNet.SetMainButtonTextAsync(btnText);
+                        await TwaNet.SetMainButtonTextAsync(JsRuntime, btnText);
                     }
                     else
                     {
-                        await TwaNet.HideMainButtonAsync();
+                        await TwaNet.HideMainButtonAsync(JsRuntime);
                     }
-                    await TwaNet.HideBackButtonAsync();
+                    await TwaNet.HideBackButtonAsync(JsRuntime);
                 }
             }
         }
@@ -1743,7 +1810,7 @@ else {
     {
         if (OrderService!.IsReleaseMode)
         {
-            await TwaNet!.SetHapticFeedbackImpactOccurredAsync(HapticFeedbackImpactOccurredType.soft);
+            await TwaNet!.SetHapticFeedbackImpactOccurredAsync(JsRuntime, HapticFeedbackImpactOccurredType.soft);
         }
 
         var value = arg.Value?.ToString();
@@ -1757,7 +1824,7 @@ else {
                 {
                     var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingModifiersAndAmountsForProduct;
                     btnText = string.Format(btnText, item.TotalPrice);
-                    await TwaNet!.SetMainButtonTextAsync(btnText);
+                    await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
                 }
             }
             catch (Exception ex)
@@ -1770,19 +1837,14 @@ else {
     // +
     private async void OnChangeAllowedBonusSum(ChangeEventArgs arg)
     {
-        if (OrderService!.IsReleaseMode)
-        {
-            await TwaNet!.SetHapticFeedbackImpactOccurredAsync(HapticFeedbackImpactOccurredType.soft);
-        }
-
         var value = arg.Value?.ToString();
         if (value is not null && Int32.TryParse(value, out var walletSum))
         {
-            OrderService.OrderInfo.SelectedBonusSum = walletSum;
+            OrderService!.OrderInfo.SelectedBonusSum = walletSum;
             if (OrderService.IsReleaseMode)
             {
                 var btnTxt = string.Format(OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart, OrderService.OrderInfo.FinalSum - walletSum);
-                await TwaNet!.SetMainButtonTextAsync(btnTxt);
+                await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnTxt);
             }
         }
     }

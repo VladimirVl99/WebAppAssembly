@@ -11,23 +11,23 @@ using WebAppAssembly.Shared.Entities.EMenu;
 
 namespace WebAppAssembly.Shared.Entities.WebApp
 {
+    /// <summary>
+    /// ???
+    /// </summary>
     public class ProductInfo
     {
-        public ProductInfo(TransportItemDto generalProductInfo, Item item, bool isFirstSelected)
+        public ProductInfo(Item item, bool isFirstSelected)
         {
-            GeneralProductInfo = generalProductInfo;
             Item = item;
             IsFirstSelected = isFirstSelected;
         }
 
-        public ProductInfo(TransportItemDto generalProductInfo, Item item)
+        public ProductInfo(Item item)
         {
-            GeneralProductInfo = generalProductInfo;
             Item = item;
             IsFirstSelected = false;
         }
 
-        public TransportItemDto GeneralProductInfo { get; set; }
         public Item Item { get; set; }
         public bool IsFirstSelected { get; set; }
 

@@ -153,6 +153,21 @@ namespace WebAppAssembly.Shared.Models.Order
         [JsonPropertyName("discountFreeItems")]
         public List<Guid> DiscountFreeItems { get; set; } = new List<Guid>();
 
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="itemId"></param>
+        /// <returns></returns>
+        public double SelectedTotalAmountByItemId(Guid itemId)
+        {
+            double totalAmount = 0;
+            var items = CurrItems().Where(item => item.ProductId == itemId);
+            foreach (var item in items)
+                totalAmount += item.Amount;
+            return totalAmount;
+        }
+
         /// <summary>
         /// 
         /// </summary>
@@ -243,7 +258,7 @@ namespace WebAppAssembly.Shared.Models.Order
             return DecreaseTotalSumBy(sum);
         }
 
-        public bool HaveSelectedProducts() => TotalAmount != 0;
+        public bool HaveSelectedProducts() => TotalAmount > 0;
         public double TotalAmountByProduct(Guid id)
         {
             if (Items is null || !Items.Any())
@@ -258,7 +273,7 @@ namespace WebAppAssembly.Shared.Models.Order
         {
             try
             {
-                if (Items is null || !Items.Any()) return;
+                if (Items is null) return;
                 var amount = item.Amount;
                 var totalPrice = item.TotalPrice ?? throw new InfoException(typeof(OrderModel).FullName!, nameof(Exception),
                     $"{typeof(Item).FullName!}.{nameof(Item.TotalPrice)}", ExceptionType.Null); ;
@@ -275,7 +290,7 @@ namespace WebAppAssembly.Shared.Models.Order
         {           
             try
             {
-                if (Items is null || !Items.Any()) return;
+                if (Items is null) return;
 
                 var items = new List<Item>(Items.Where(x => x.ProductId == productId));
                 foreach (var item in items) ZeroAmountOfItem(item);
@@ -371,6 +386,17 @@ namespace WebAppAssembly.Shared.Models.Order
             int count = 0;
             foreach (var item in items) if (count++ > 0) return true;
             return false;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="priceOfItemSize"></param>
+        public void ChangeItemsSize(Item item, float priceOfItemSize)
+        {
+            var different = item.ChangePriceOfItem(priceOfItemSize);
+            IncreaseTotalSum(different);
         }
     }
 }

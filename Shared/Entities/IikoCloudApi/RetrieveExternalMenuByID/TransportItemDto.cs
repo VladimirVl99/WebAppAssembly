@@ -45,10 +45,6 @@ namespace ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExtern
         [JsonProperty("modifierSchemaName")]
         [JsonPropertyName("modifierSchemaName")]
         public string? ModifierSchemaName { get; set; }
-        [JsonProperty("totalAmount")]
-        [JsonPropertyName("totalAmount")]
-        public int TotalAmount { get; set; } = 0;
-
 
 
         public string ImageLink() => ItemSizes?.FirstOrDefault()?.ButtonImageUrl ?? string.Empty;
@@ -82,12 +78,8 @@ namespace ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExtern
         /// <exception cref="InfoException"></exception>
         public float Price(Guid? sizeId = null) => PriceOrDefault(sizeId) ?? throw new InfoException(typeof(TransportItemDto).FullName!,
             nameof(Price), nameof(Exception), $"Price of size ID - '{(sizeId is null ? "default ID" : sizeId)}' is null");
-
-        public bool HaveItems() => TotalAmount > 0;
-        public void IncrementAmount() => TotalAmount++;
-        public void DecrementAmount() => TotalAmount = TotalAmount != 0 ? --TotalAmount : TotalAmount;
         private string IntOrTwoNumberOfDigitsFromCurrentCulture(float number)
-            => ((int)(number * 100) % 100) != 0 ? string.Format("0:F2", number) : ((int)number).ToString();
+            => ((int)(number * 100) % 100) != 0 ? string.Format("{0:F2}", number) : ((int)number).ToString();
         public float Weight() => ItemSizes?.FirstOrDefault()?.PortionWeightGrams ?? 0;
         public string WeightAsString() => IntOrTwoNumberOfDigitsFromCurrentCulture(Weight());
         public float Fats() => ItemSizes?.FirstOrDefault()?.NutritionPerHundredGrams?.Fats ?? 0;

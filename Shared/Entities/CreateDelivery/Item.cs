@@ -45,6 +45,7 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
             PositionId = positionId != default && positionId != Guid.Empty ? positionId : Guid.NewGuid();
             Price = product.PriceOrDefault();
             TotalPrice = 0;
+            TotalPriceOfModifiers = 0;
 
             var modifierList = new List<Modifier>();
             var simpleGroups = new List<SimpleGroupModifier>();
@@ -121,6 +122,9 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
         [JsonProperty("totalPrice")]
         [JsonPropertyName("totalPrice")]
         public double? TotalPrice { get; set; }
+        [JsonProperty("totalPriceOfModifiers")]
+        [JsonPropertyName("totalPriceOfModifiers")]
+        public double? TotalPriceOfModifiers { get; set; }
         // Unique identifier of the item in the order. MUST be unique for the whole system. Therefore it must be generated with Guid.NewGuid()
         // If sent null, it generates automatically on iikoTransport side
         [JsonProperty("positionId")]
@@ -164,7 +168,8 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
         private double IncrementTotalPrice()
         {
             TotalPrice ??= 0;
-            var price = PriceBy();
+            TotalPriceOfModifiers ??= 0;
+            double price = PriceBy() + (double)TotalPriceOfModifiers;
             TotalPrice += price;
             return price;
         }
@@ -172,7 +177,8 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
         private double DecrementTotalPrice()
         {
             TotalPrice ??= 0;
-            var price = PriceBy();
+            TotalPriceOfModifiers ??= 0;
+            var price = PriceBy() + (double)TotalPriceOfModifiers;
             TotalPrice = Amount == 0 ? 0 : TotalPrice -= price;
             return price;
         }
@@ -231,7 +237,9 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
         private double IncrementTotalPriceByModifierPrice(Modifier modifier)
         {
             TotalPrice ??= 0;
+            TotalPriceOfModifiers ??= 0;
             var price = modifier.PriceBy();
+            TotalPriceOfModifiers += price;
             TotalPrice += price;
             return price;
         }
@@ -239,7 +247,9 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
         private double DecrementTotalPriceByModifierPrice(Modifier modifier)
         {
             TotalPrice ??= 0;
+            TotalPriceOfModifiers ??= 0;
             var price = modifier.PriceBy();
+            TotalPriceOfModifiers -= price;
             TotalPrice -= price;
             return price;
         }
@@ -427,7 +437,7 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
             });
 
             int _default = modifierRestriction?.ByDefault ?? 0;
-            if (_default > 0) TotalPrice += _default * modifier.Price();
+            if (_default > 0) TotalPriceOfModifiers += _default * modifier.Price();
             int min = modifierRestriction?.MinQuantity is not null ? (int)modifierRestriction.MinQuantity - _default : 0;
             int max = modifierRestriction?.MaxQuantity is not null ? (int)modifierRestriction.MaxQuantity - _default : 0;
 
@@ -449,11 +459,12 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
         /// 
         /// </summary>
         /// <param name="newPrice"></param>
-        public void ChangePriceOfItem(float newPrice)
+        public double ChangePriceOfItem(float newPrice)
         {
             var different = newPrice - Price;
             TotalPrice += different;
             Price = newPrice;
+            return different ?? 0;
         }
 
         public object Clone() => new Item(ProductName ?? string.Empty, ProductId, Modifiers, Price, PositionId, Type ?? string.Empty, Amount, ProductSizeId, ComboInformation, Comment,

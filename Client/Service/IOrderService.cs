@@ -1,4 +1,5 @@
 ﻿using ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExternalMenuByID;
+using Microsoft.JSInterop;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -58,7 +59,7 @@ namespace WebAppAssembly.Client.Service
         /// <param name="productId"></param>
         /// <param name="positionId"></param>
         /// <returns></returns>
-        Task<ProductInfo> AddProductItemInShoppingCartPageAsync(ITwaNet twaNet, Guid productId,
+        Task<ProductInfo> AddProductItemInShoppingCartPageAsync(IJSRuntime jsRuntime, ITwaNet twaNet, Guid productId,
             Guid? positionId = null);
 
         /// <summary>
@@ -77,7 +78,7 @@ namespace WebAppAssembly.Client.Service
         /// <param name="productId"></param>
         /// <param name="positionId"></param>
         /// <returns></returns>
-        Task<ProductInfo?> RemoveProductItemInShoppingCartPageAsync(ITwaNet twaNet, Guid productId,
+        Task<ProductInfo?> RemoveProductItemInShoppingCartPageAsync(IJSRuntime jsRuntime, ITwaNet twaNet, Guid productId,
             Guid? positionId = null);
 
         /// <summary>
@@ -183,7 +184,7 @@ namespace WebAppAssembly.Client.Service
         /// </summary>
         /// <param name="product"></param>
         /// <param name="item"></param>
-        void DecreaseAmountOfProduct(TransportItemDto product, Item item);
+        void DecreaseAmountOfProduct(Item item);
 
         /// <summary>
         /// 
@@ -191,7 +192,7 @@ namespace WebAppAssembly.Client.Service
         /// <param name="product"></param>
         /// <param name="item"></param>
         /// <returns></returns>
-        bool RemoveOrDecreaseAmountOfProduct(TransportItemDto product, Item item);
+        bool RemoveOrDecreaseAmountOfProduct(Item item);
 
         /// <summary>
         /// 
@@ -216,21 +217,21 @@ namespace WebAppAssembly.Client.Service
         /// </summary>
         /// <param name="twaNet"></param>
         /// <returns></returns>
-        Task CalculateLoayltyProgramAndAllowedSumAsync(ITwaNet twaNet);
+        Task CalculateLoayltyProgramAndAllowedSumAsync(IJSRuntime jsRuntime, ITwaNet twaNet);
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="twaNet"></param>
         /// <returns></returns>
-        Task<bool> CalculateLoyaltyProgramAndAllowedSumAndCheckAvailableMinSumForPayAsync(ITwaNet twaNet);
+        Task<bool> CalculateLoyaltyProgramAndAllowedSumAndCheckAvailableMinSumForPayAsync(IJSRuntime jsRuntime, ITwaNet twaNet);
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="twaNet"></param>
         /// <returns></returns>
-        Task<bool> CheckAvailableMinSumForPayAsync(ITwaNet twaNet);
+        Task<bool> CheckAvailableMinSumForPayAsync(IJSRuntime jsRuntime, ITwaNet twaNet);
 
         /// <summary>
         /// 
@@ -255,7 +256,7 @@ namespace WebAppAssembly.Client.Service
         /// </summary>
         /// <param name="twaNet"></param>
         /// <returns></returns>
-        Task<bool> IsNecessaryDataOfOrderCorrect(ITwaNet twaNet);
+        Task<bool> IsNecessaryDataOfOrderCorrect(IJSRuntime jsRuntime, ITwaNet twaNet);
 
         /// <summary>
         /// 
@@ -274,7 +275,7 @@ namespace WebAppAssembly.Client.Service
         /// </summary>
         /// <param name="twaNet"></param>
         /// <returns></returns>
-        Task<bool> CreateInvoiceLinkAsync(ITwaNet twaNet);
+        Task<bool> CreateInvoiceLinkAsync(IJSRuntime jsRuntime, ITwaNet twaNet);
 
         /// <summary>
         /// 
@@ -299,7 +300,7 @@ namespace WebAppAssembly.Client.Service
         /// <param name="twaNet"></param>
         /// <param name="id"></param>
         /// <returns></returns>
-        Task SetPickupTerminalAsync(ITwaNet twaNet, Guid id);
+        Task SetPickupTerminalAsync(IJSRuntime jsRuntime, ITwaNet twaNet, Guid id);
 
         /// <summary>
         /// 

@@ -21,7 +21,7 @@
     <script>
         // object of Telegram app
         const tlg = window.Telegram.WebApp;
-        const allowColor = "#55be61"; // #00A86B
+        var allowColor = "#55be61"; // #00A86B
 
         // Informs the Telegram app that the Web App is ready
         function TelegramWebAppInit() {
@@ -43,6 +43,7 @@
 
         // Set 'View' main button
         function SetMainButtonText(txt, isExpand) {
+            console.log(txt);
             if (isExpand) {
                 tlg.expand();
             }
@@ -141,23 +142,8 @@
             window.scrollTo(0, 0);
         }
 
-        //
-        async function RemoveSelectedProductsWithMofifiers(txt) {
-            var promise = new Promise((resolve, reject) => {
-                tlg.showPopup({
-                    "message": txt, "buttons": [{ "id": "yes", "type": "destructive", "text": "Да" },
-                    { "id": "no", "type": "destructive", "text": "Нет" }]
-                }, callback => {
-                    resolve(callback);
-                });
-            });
-            var result = await promise;
-            tlg.HapticFeedback.impactOccurred("soft");
-            if (result == 'yes') return true;
-            else return false;
-        }
-
         async function ShowPopupParamsAsync(popup) {
+            console.log(popup);
             var promise = new Promise((resolve, reject) => {
                 tlg.showPopup(popup, callback => {
                     resolve(callback);

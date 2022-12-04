@@ -10,19 +10,21 @@ namespace WebAppAssembly.Shared.Entities.WebApp
 {
     public class TlgWebAppPopupMessage
     {
+        private string? _title;
         [JsonProperty("title")]
         [JsonPropertyName("title")]
         public string Title
         {
-            get => Title ?? string.Empty;
-            set { }
+            get => _title ?? string.Empty;
+            set => _title = value;
         }
+        private string? _description;
         [JsonProperty("description")]
         [JsonPropertyName("description")]
         public string Description
         {
-            get => Description ?? string.Empty;
-            set { }
+            get => _description ?? string.Empty;
+            set => _description = value;
         }
     }
 }

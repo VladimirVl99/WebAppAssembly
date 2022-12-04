@@ -1,7 +1,9 @@
-﻿namespace WebAppAssembly.Client.Repositories.JsHelper
+﻿using Microsoft.JSInterop;
+
+namespace WebAppAssembly.Client.Repositories.JsHelper
 {
     public interface IJsHelperService
     {
-        Task ScrollToTopAsync();
+        Task ScrollToTopAsync(IJSRuntime jsRuntime);
     }
 }

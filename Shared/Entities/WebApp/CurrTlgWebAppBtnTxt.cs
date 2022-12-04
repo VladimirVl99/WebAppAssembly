@@ -10,40 +10,45 @@ namespace WebAppAssembly.Shared.Entities.WebApp
 {
     public class TlgWebAppBtnTxts
     {
+        private string? _selectingProducts;
         [JsonProperty("selectingProducts")]
         [JsonPropertyName("selectingProducts")]
         public string SelectingProducts
         {
-            get => SelectingProducts ?? string.Empty;
-            set { }
+            get => _selectingProducts ?? string.Empty;
+            set => _selectingProducts = value;
         }
+        private string? _selectingModifiersAndAmountsForProduct;
         [JsonProperty("selectingModifiersAndAmountsForProduct")]
         [JsonPropertyName("selectingModifiersAndAmountsForProduct")]
         public string SelectingModifiersAndAmountsForProduct
         {
-            get => SelectingModifiersAndAmountsForProduct ?? string.Empty;
-            set { }
+            get => _selectingModifiersAndAmountsForProduct ?? string.Empty;
+            set => _selectingModifiersAndAmountsForProduct = value;
         }
+        private string? _shoppingCart;
         [JsonProperty("shoppingCart")]
         [JsonPropertyName("shoppingCart")]
         public string ShoppingCart
         {
-            get => ShoppingCart ?? string.Empty;
-            set { }
+            get => _shoppingCart ?? string.Empty;
+            set => _shoppingCart = value;
         }
+        private string? _changingSelectedProductsWithModifiers;
         [JsonProperty("changingSelectedProductsWithModifiers")]
         [JsonPropertyName("changingSelectedProductsWithModifiers")]
         public string ChangingSelectedProductsWithModifiers
         {
-            get => ChangingSelectedProductsWithModifiers ?? string.Empty;
-            set { }
+            get => _changingSelectedProductsWithModifiers ?? string.Empty;
+            set => _changingSelectedProductsWithModifiers = value;
         }
+        private string? _selectingAmountsForProducts;
         [JsonProperty("selectingAmountsForProducts")]
         [JsonPropertyName("selectingAmountsForProducts")]
         public string SelectingAmountsForProducts
         {
-            get => SelectingAmountsForProducts ?? string.Empty;
-            set { }
+            get => _selectingAmountsForProducts ?? string.Empty;
+            set => _selectingAmountsForProducts = value;
         }
     }
 }

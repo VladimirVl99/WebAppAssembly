@@ -1,14 +1,10 @@
-﻿using WebAppAssembly.Shared.Entities.EMenu;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System.Net;
 using System.Text;
-using WebAppAssembly.Shared.Entities.CreateDelivery;
 using WebAppAssembly.Shared.Entities.Exceptions;
 using WebAppAssembly.Shared.Entities.Telegram;
 using WebAppAssembly.Shared.LogRepository;
 using WebAppAssembly.Shared.Models.Order;
-using ApiServerForTelegram.Entities.EExceptions;
-using System.Reflection.Metadata.Ecma335;
 using WebAppAssembly.Server.Repositories.OrderCreationInWebRepository;
 
 namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
@@ -73,10 +69,10 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
         /// <param name="chatId"></param>
         /// <returns></returns>
         /// <exception cref="HttpProcessException"></exception>
-        public async Task<OrderModelOfServer> GetOrderModelCashAsync(long chatId)
+        public async Task<OrderModelOfServer> GetOrderModelCashAsync(ChatInfo chatInfo)
         {
             using var httpClient = new HttpClient();
-            var body = JsonConvert.SerializeObject(new { chatId });
+            var body = JsonConvert.SerializeObject(chatInfo);
             var data = new StringContent(body, Encoding.UTF8, "application/json");
             var response = await httpClient.PostAsync(Url.OrderModel, data);
 
