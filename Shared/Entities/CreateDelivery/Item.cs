@@ -240,8 +240,9 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
             TotalPriceOfModifiers ??= 0;
             var price = modifier.PriceBy();
             TotalPriceOfModifiers += price;
-            TotalPrice += price;
-            return price;
+            var diff = price * Amount;
+            TotalPrice += diff;
+            return diff;
         }
 
         private double DecrementTotalPriceByModifierPrice(Modifier modifier)
@@ -250,8 +251,9 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
             TotalPriceOfModifiers ??= 0;
             var price = modifier.PriceBy();
             TotalPriceOfModifiers -= price;
-            TotalPrice -= price;
-            return price;
+            var diff = price * Amount;
+            TotalPrice -= diff;
+            return diff;
         }
 
         /// <summary>
@@ -461,7 +463,7 @@ namespace WebAppAssembly.Shared.Entities.CreateDelivery
         /// <param name="newPrice"></param>
         public double ChangePriceOfItem(float newPrice)
         {
-            var different = newPrice - Price;
+            var different = Amount * (newPrice - Price);
             TotalPrice += different;
             Price = newPrice;
             return different ?? 0;
