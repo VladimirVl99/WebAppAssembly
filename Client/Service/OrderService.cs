@@ -53,6 +53,7 @@ namespace WebAppAssembly.Client.Service
             set => _tlgMainBtnColor = value;
         }
         private bool HaveSelectedItemsInOrder { get; set; }
+        public bool IsLoyaltyProgramAvailableForProcess { get; private set; }
 
 
         /// <summary>
@@ -78,6 +79,7 @@ namespace WebAppAssembly.Client.Service
             TlgMainBtnColor = IsRgbColorFormat(tlgMainBtnClr) ? tlgMainBtnClr : throw new InfoException(typeof(OrderService).FullName!,
                 nameof(Exception), $"Incorrect formant of rgb (#rrggbb) color for the main button of the Telegram. Current value is '{tlgMainBtnClr}'");
             HaveSelectedItemsInOrder = OrderInfo.HaveSelectedProducts();
+            IsLoyaltyProgramAvailableForProcess = DeliveryGeneralInfo.UseIikoBizProgram;
         }
 
         /// <summary>
@@ -240,11 +242,11 @@ namespace WebAppAssembly.Client.Service
 
             IncreaseAmountOfProduct(item);
 
-            if (DeliveryGeneralInfo.UseIikoBizProgram)
+            if (IsLoyaltyProgramAvailableForProcess)
                 await CalculateLoayltyProgramAndAllowedSumAsync(jsRuntime, twaNet);
+            else
+                await SendChangedOrderModelToServerAsync();
 
-            // !!! Save changed the order info by using 'CalculateLoyaltyProgramAsync' method !!!
-            await SendChangedOrderModelToServerAsync();
             return new(item);
         }
 
@@ -260,11 +262,11 @@ namespace WebAppAssembly.Client.Service
 
             IncreaseAmountOfProduct(item);
 
-            if (DeliveryGeneralInfo.UseIikoBizProgram)
+            if (IsLoyaltyProgramAvailableForProcess)
                 await CalculateLoayltyProgramAndAllowedSumAsync();
+            else
+                await SendChangedOrderModelToServerAsync();
 
-            // !!! Save changed the order info by using 'CalculateLoyaltyProgramAsync' method !!!
-            await SendChangedOrderModelToServerAsync();
             return new(item);
         }
 
@@ -283,11 +285,11 @@ namespace WebAppAssembly.Client.Service
             if (isRemoved = RemoveOrDecreaseAmountOfProduct(item))
                 HaveSelectedItemsInOrder = OrderInfo.HaveSelectedProducts();
 
-            if (HaveSelectedItemsInOrder && DeliveryGeneralInfo.UseIikoBizProgram)
+            if (IsLoyaltyProgramAvailableForProcess)
                 await CalculateLoayltyProgramAndAllowedSumAsync(jsRuntime, twaNet);
+            else
+                await SendChangedOrderModelToServerAsync();
 
-            // !!! Save changed the order info by using 'CalculateLoyaltyProgramAsync' method !!!
-            await SendChangedOrderModelToServerAsync();
             if (isRemoved) return null;
             return new(item);
         }
@@ -307,11 +309,11 @@ namespace WebAppAssembly.Client.Service
             if (isRemoved = RemoveOrDecreaseAmountOfProduct(item))
                 HaveSelectedItemsInOrder = OrderInfo.HaveSelectedProducts();
 
-            if (HaveSelectedItemsInOrder && DeliveryGeneralInfo.UseIikoBizProgram)
+            if (IsLoyaltyProgramAvailableForProcess)
                 await CalculateLoayltyProgramAndAllowedSumAsync();
+            else
+                await SendChangedOrderModelToServerAsync();
 
-            // !!! Save changed the order info by using 'CalculateLoyaltyProgramAsync' method !!!
-            await SendChangedOrderModelToServerAsync();
             if (isRemoved) return null;
             return new(item);
         }
@@ -613,7 +615,7 @@ namespace WebAppAssembly.Client.Service
             if (res.Checkin?.AvailablePayments is not null)
                 CalculateAllowedWalletSum(res.Checkin.AvailablePayments);
             else
-                ResetWallet();
+                CalculateAvailableWalletSum();
         }
 
         /// <summary>
@@ -627,7 +629,7 @@ namespace WebAppAssembly.Client.Service
             if (res.Checkin?.AvailablePayments is not null)
                 CalculateAllowedWalletSum(res.Checkin.AvailablePayments);
             else
-                ResetWallet();
+                CalculateAvailableWalletSum();
         }
 
         /// <summary>
@@ -638,84 +640,112 @@ namespace WebAppAssembly.Client.Service
         /// <exception cref="InfoException"></exception>
         private async Task<LoyaltyCheckinInfo> CalculateLoyaltyProgramAsync(IJSRuntime jsRuntime, ITwaNet twaNet)
         {
-            ResetVariablesOfLoyaltyProgram();
-
-            var checkinResult = await CalculateCheckinAsync();
-
-            if (!checkinResult.Ok || checkinResult.Checkin is null)
+            do
             {
-                Console.WriteLine(checkinResult.HttpResponseInfo?.Message);
+                ResetVariablesOfLoyaltyProgram();
 
-                // !!! Need to add check of error message !!!
-                if (IsReleaseMode)
+                var checkinResult = await CalculateCheckinAsync();
+
+                if (!checkinResult.Ok || checkinResult.Checkin is null)
                 {
-                    var popupMessage = DeliveryGeneralInfo.GetTlgWebAppPopupMessages().LoayltyProgramUnavailable ?? throw new InfoException(typeof(OrderService).FullName!,
-                        nameof(CalculateLoyaltyProgramAsync), nameof(Exception), $"{typeof(TlgWebAppPopupMessages).FullName!}.{nameof(TlgWebAppPopupMessages.LoayltyProgramUnavailable)}",
-                        ExceptionType.Null);
-                    await twaNet.HideProgressAsync(jsRuntime);
-                    await twaNet.ShowOkPopupMessageAsync(jsRuntime, popupMessage.Title, popupMessage.Description, HapticFeedBackNotificationType.warning);
-                }
-                return checkinResult;
-            }
+                    Console.WriteLine(checkinResult.HttpResponseInfo?.Message);
 
-            var checkin = checkinResult.Checkin;
-
-            if (!string.IsNullOrEmpty(checkin.WarningMessage))
-            {
-                Console.WriteLine(checkin.WarningMessage);
-
-                if (IsReleaseMode)
-                {
-                    await twaNet.HideProgressAsync(jsRuntime);
-                    await twaNet.ShowOkPopupMessageAsync(jsRuntime, string.Empty, checkin.WarningMessage, HapticFeedBackNotificationType.warning);
-                }
-                return checkinResult;
-            }
-            else if (checkin.LoyaltyProgramResults is not null)
-            {
-                var products = DeliveryGeneralInfo.Products();
-                double discountSum = 0;
-                var discountFreeItems = new List<Guid>();
-                var _freeItems = new List<Item>();
-
-                foreach (var loyaltyProgram in checkin.LoyaltyProgramResults)
-                {
-                    if (loyaltyProgram.Discounts is not null)
+                    // !!! Need to add check of error message !!!
+                    if (IsReleaseMode)
                     {
-                        foreach (var discount in loyaltyProgram.Discounts)
+                        var popupMsg = DeliveryGeneralInfo.GetTlgWebAppPopupMessages().LoayltyProgramUnavailable ?? throw new InfoException(typeof(OrderService).FullName!,
+                            nameof(CalculateLoyaltyProgramAsync), nameof(Exception), $"{typeof(TlgWebAppPopupMessages).FullName!}.{nameof(TlgWebAppPopupMessages.LoayltyProgramUnavailable)}",
+                            ExceptionType.Null);
+
+                        const string skip = "0";
+                        const string repeat = "1";
+                        const string cancel = "2";
+
+                        var popupPrms = new PopupParams(popupMsg.Title, popupMsg.Description, new List<PopupButton>
                         {
-                            discountSum += discount.DiscountSum;
-                            if (discount.Code == (int)DiscountType.FreeProduct && discount.OrderItemId is not null && discount.OrderItemId != Guid.Empty)
-                                discountFreeItems.Add((Guid)discount.OrderItemId);
+                            new PopupButton(skip, "Пропустить", PopupButtonType.destructive),
+                            new PopupButton(repeat, "Повторить", PopupButtonType.destructive),
+                            new PopupButton(cancel, "Отмена", PopupButtonType.destructive)
+                        });
+                        var res = await twaNet!.ShowPopupParamsAsync(jsRuntime, popupPrms, HapticFeedBackNotificationType.warning, HapticFeedbackImpactOccurredType.soft);
+
+                        switch (res)
+                        {
+                            case skip:
+                                await twaNet.HideProgressAsync(jsRuntime);
+                                return new LoyaltyCheckinInfo(ok: false)
+                                {
+                                    LoyaltyProgramProcessedStatus = LoyaltyProgramProcessedStatus.Skipped
+                                };
+                            case repeat:
+                                continue;
+                            default:
+                                await twaNet.HideProgressAsync(jsRuntime);
+                                return new LoyaltyCheckinInfo(ok: false);
                         }
                     }
-                    if (loyaltyProgram.FreeProducts is not null)
+                    return checkinResult;
+                }
+
+                var checkin = checkinResult.Checkin;
+
+                if (!string.IsNullOrEmpty(checkin.WarningMessage))
+                {
+                    Console.WriteLine(checkin.WarningMessage);
+
+                    if (IsReleaseMode)
                     {
-                        foreach (var freeProduct in loyaltyProgram.FreeProducts)
+                        await twaNet.HideProgressAsync(jsRuntime);
+                        await twaNet.ShowOkPopupMessageAsync(jsRuntime, string.Empty, checkin.WarningMessage, HapticFeedBackNotificationType.warning);
+                    }
+                    return checkinResult;
+                }
+                else if (checkin.LoyaltyProgramResults is not null)
+                {
+                    var products = DeliveryGeneralInfo.Products();
+                    double discountSum = 0;
+                    var discountFreeItems = new List<Guid>();
+                    var _freeItems = new List<Item>();
+
+                    foreach (var loyaltyProgram in checkin.LoyaltyProgramResults)
+                    {
+                        if (loyaltyProgram.Discounts is not null)
                         {
-                            if (freeProduct.Products is not null)
+                            foreach (var discount in loyaltyProgram.Discounts)
                             {
-                                foreach (var product in freeProduct.Products)
+                                discountSum += discount.DiscountSum;
+                                if (discount.Code == (int)DiscountType.FreeProduct && discount.OrderItemId is not null && discount.OrderItemId != Guid.Empty)
+                                    discountFreeItems.Add((Guid)discount.OrderItemId);
+                            }
+                        }
+                        if (loyaltyProgram.FreeProducts is not null)
+                        {
+                            foreach (var freeProduct in loyaltyProgram.FreeProducts)
+                            {
+                                if (freeProduct.Products is not null)
                                 {
-                                    var sourceProduct = products.FirstOrDefault(x => x.ItemId == product.Id);
-                                    _freeItems.Add(new Item(
-                                        productId: product.Id,
-                                        productName: sourceProduct?.Name ?? string.Empty,
-                                        amount: 1,
-                                        type: !string.IsNullOrEmpty(sourceProduct?.OrderItemType) ? sourceProduct.OrderItemType : "Product"));
+                                    foreach (var product in freeProduct.Products)
+                                    {
+                                        var sourceProduct = products.FirstOrDefault(x => x.ItemId == product.Id);
+                                        _freeItems.Add(new Item(
+                                            productId: product.Id,
+                                            productName: sourceProduct?.Name ?? string.Empty,
+                                            amount: 1,
+                                            type: !string.IsNullOrEmpty(sourceProduct?.OrderItemType) ? sourceProduct.OrderItemType : "Product"));
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                OrderInfo.DiscountSum = discountSum;
-                OrderInfo.DiscountFreeItems = discountFreeItems;
-                OrderInfo.FreeItems = _freeItems;
-                OrderInfo.FinalSum = OrderInfo.TotalSum - OrderInfo.DiscountSum;
-                OrderInfo.DiscountProcent = OrderInfo.DiscountSum * 100 / OrderInfo.TotalSum;
-            }
-            return checkinResult;
+                    OrderInfo.DiscountSum = discountSum;
+                    OrderInfo.DiscountFreeItems = discountFreeItems;
+                    OrderInfo.FreeItems = _freeItems;
+                    OrderInfo.FinalSum = OrderInfo.TotalSum - OrderInfo.DiscountSum;
+                    OrderInfo.DiscountProcent = OrderInfo.DiscountSum * 100 / OrderInfo.TotalSum;
+                }
+                return checkinResult;
+            } while (true);
         }
 
         /// <summary>
@@ -797,13 +827,30 @@ namespace WebAppAssembly.Client.Service
         /// <exception cref="InfoException"></exception>
         public async Task<bool> CalculateLoyaltyProgramAndAllowedSumAndCheckAvailableMinSumForPayAsync(IJSRuntime jsRuntime, ITwaNet twaNet)
         {
-            var walletBalance = await RetrieveWalletBalanceAsync();
-            OrderInfo.WalletBalance = walletBalance.Balance;
+            IsLoyaltyProgramAvailableForProcess = true;
+            OrderInfo.FinalSum = OrderInfo.TotalSum;
+
+            if (OrderInfo.TotalSum < DeliveryGeneralInfo.CurrOfRub)
+            {
+                await twaNet.HideProgressAsync(jsRuntime);
+                var popupMessage = DeliveryGeneralInfo.GetTlgWebAppPopupMessages().UnavailableMinSumtForPay ?? throw new InfoException(typeof(OrderService).FullName!,
+                    nameof(CalculateLoyaltyProgramAndAllowedSumAndCheckAvailableMinSumForPayAsync), nameof(Exception), $"{typeof(TlgWebAppPopupMessages).FullName!}." +
+                    $"{nameof(TlgWebAppPopupMessages.UnavailableMinSumtForPay)}", ExceptionType.Null);
+
+                popupMessage.Description = string.Format(popupMessage.Description, DeliveryGeneralInfo.CurrOfRub);
+                await twaNet.ShowOkPopupMessageAsync(jsRuntime, popupMessage.Title, popupMessage.Description, HapticFeedBackNotificationType.warning);
+                return false;
+            }
 
             var res = await CalculateLoyaltyProgramAsync(jsRuntime, twaNet);
             if (!res.Ok || res.Checkin is null)
             {
                 ResetWallet();
+                if (res.LoyaltyProgramProcessedStatus == LoyaltyProgramProcessedStatus.Skipped)
+                {
+                    IsLoyaltyProgramAvailableForProcess = false;
+                    return true;
+                }
                 return false;
             }
             else if (OrderInfo.DiscountSum > 0)
@@ -818,14 +865,26 @@ namespace WebAppAssembly.Client.Service
 
                     popupMessage.Description = string.Format(popupMessage.Description, $"{differenceSum:f2}", $"{necessarySum:f2}");
 
+                    await twaNet.HideProgressAsync(jsRuntime);
                     await twaNet.ShowOkPopupMessageAsync(jsRuntime, popupMessage.Title, popupMessage.Description, HapticFeedBackNotificationType.warning);
                     return false;
                 }
+
+                var walletBalance = await RetrieveWalletBalanceAsync();
+                OrderInfo.WalletBalance = walletBalance.Balance;
+
                 if (res.Checkin?.AvailablePayments is not null)
                     CalculateAllowedWalletSum(res.Checkin.AvailablePayments);
                 else
-                    ResetWallet();
+                    CalculateAvailableWalletSum();
             }
+            else
+            {
+                var walletBalance = await RetrieveWalletBalanceAsync();
+                OrderInfo.WalletBalance = walletBalance.Balance;
+                CalculateAvailableWalletSum();
+            }
+
             return true;
         }
 
@@ -878,6 +937,10 @@ namespace WebAppAssembly.Client.Service
                     var value = (int)Math.Floor((double)availableWalletSum);
                     OrderInfo.AllowedWalletSum = OrderInfo.AllowedWalletSum > value ? value : OrderInfo.AllowedWalletSum;
                 }
+
+                if (OrderInfo.SelectedWalletSum > OrderInfo.AllowedWalletSum)
+                    OrderInfo.SelectedWalletSum = OrderInfo.AllowedWalletSum;
+
                 return OrderInfo.AllowedWalletSum;
             }
         }
@@ -913,7 +976,12 @@ namespace WebAppAssembly.Client.Service
             var perhapsWalletSum = OrderInfo.FinalSum - DeliveryGeneralInfo.CurrOfRub;
 
             if (perhapsWalletSum <= 0) OrderInfo.AllowedWalletSum = 0;
-            else OrderInfo.AllowedWalletSum = perhapsWalletSum > OrderInfo.WalletBalance ? (int)OrderInfo.WalletBalance : (int)perhapsWalletSum;
+            else
+            {
+                OrderInfo.AllowedWalletSum = perhapsWalletSum > OrderInfo.WalletBalance ? (int)OrderInfo.WalletBalance : (int)perhapsWalletSum;
+                if (OrderInfo.SelectedWalletSum > OrderInfo.AllowedWalletSum)
+                    OrderInfo.SelectedWalletSum = OrderInfo.AllowedWalletSum;
+            }
         }
 
         /// <summary>
@@ -1100,6 +1168,9 @@ namespace WebAppAssembly.Client.Service
         {
             try
             {
+                if (!IsLoyaltyProgramAvailableForProcess)
+                    OrderInfo.FinalSum = OrderInfo.TotalSum;
+
                 var result = await CreateInvoiceUrlLinkAsync();
                 if (!result.Ok)
                 {
@@ -1170,7 +1241,7 @@ namespace WebAppAssembly.Client.Service
         /// <param name="twaNet"></param>
         /// <param name="id"></param>
         /// <returns></returns>
-        public async Task SetPickupTerminalAsync(IJSRuntime jsRuntime, ITwaNet twaNet, Guid id)
+        public async Task SetPickupTerminalWithLoyaltyProgramProcessAsync(IJSRuntime jsRuntime, ITwaNet twaNet, Guid id)
         {
             OrderInfo.TerminalId = id;
             var pickupTerminal = DeliveryGeneralInfo.DeliveryTerminals?.FirstOrDefault(x => x.Id == id);
@@ -1185,7 +1256,7 @@ namespace WebAppAssembly.Client.Service
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        public async Task SetPickupTerminalAsync(Guid id)
+        public async Task SetPickupTerminalWithLoyaltyProgramProcessAsync(Guid id)
         {
             OrderInfo.TerminalId = id;
             var pickupTerminal = DeliveryGeneralInfo.DeliveryTerminals?.FirstOrDefault(x => x.Id == id);
@@ -1198,10 +1269,23 @@ namespace WebAppAssembly.Client.Service
         /// <summary>
         /// 
         /// </summary>
+        /// <param name="id"></param>
+        public void SetPickupTerminal(Guid id)
+        {
+            OrderInfo.TerminalId = id;
+            var pickupTerminal = DeliveryGeneralInfo.DeliveryTerminals?.FirstOrDefault(x => x.Id == id);
+            if (pickupTerminal is not null)
+                OrderInfo.DeliveryTerminal = new(id, pickupTerminal.Name);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
         /// <returns></returns>
         public async Task RemoveAllSelectedProductsInShoppingCartPageAsync()
         {
             OrderInfo.TotalAmount = 0;
+            OrderInfo.TotalSum = OrderInfo.FinalSum = 0;
             OrderInfo.Items?.Clear();
 
             HaveSelectedProductsAtFirst();

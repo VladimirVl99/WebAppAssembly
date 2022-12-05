@@ -23,6 +23,7 @@ namespace WebAppAssembly.Client.Service
         public Guid? CurrentGroupId { get; set; }
         public bool IsReleaseMode { get; set; }
         public string TlgMainBtnColor { get; set; }
+        public bool IsLoyaltyProgramAvailableForProcess { get; }
 
 
         /// <summary>
@@ -300,14 +301,20 @@ namespace WebAppAssembly.Client.Service
         /// <param name="twaNet"></param>
         /// <param name="id"></param>
         /// <returns></returns>
-        Task SetPickupTerminalAsync(IJSRuntime jsRuntime, ITwaNet twaNet, Guid id);
+        Task SetPickupTerminalWithLoyaltyProgramProcessAsync(IJSRuntime jsRuntime, ITwaNet twaNet, Guid id);
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        Task SetPickupTerminalAsync(Guid id);
+        Task SetPickupTerminalWithLoyaltyProgramProcessAsync(Guid id);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="id"></param>
+        void SetPickupTerminal(Guid id);
 
         /// <summary>
         /// 

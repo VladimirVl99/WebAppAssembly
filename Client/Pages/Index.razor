@@ -703,7 +703,7 @@
                     </div>
                 </div>
             }
-            @if (OrderService.DeliveryGeneralInfo.UseCoupon)
+            @if (OrderService.DeliveryGeneralInfo.UseCoupon && OrderService.IsLoyaltyProgramAvailableForProcess)
             {
                 <div class="row" style="padding-bottom:5px;--bs-gutter-x:0.6rem;">
                         <div class="col">
@@ -718,7 +718,7 @@
             }
 
             @* !!! Change sum of pay on the main button of Telegram by using the wallet balance !!! *@
-            if (OrderService.OrderInfo.WalletBalance > 0)
+            if (OrderService.OrderInfo.WalletBalance > 0 && OrderService.OrderInfo.AllowedWalletSum > 0 && OrderService.IsLoyaltyProgramAvailableForProcess)
             {
                 <h5>Бонусные баллы</h5>
                 @* В зависимости от баланса изменять слово "баланс" *@
@@ -727,11 +727,11 @@
                     <div class="col-6" style="position:relative;">
                         <input type="range" class="form-range" style="margin:0;position:absolute;top:50%;left:50%;margin-right:-50%;transform:translate(-50%,-50%);
     padding-left:10px;padding-right:10px;"
-               min="0" max="@(OrderService.OrderInfo.AllowedWalletSum)" id="customRangeForWalletBalance" value="@OrderService.OrderInfo.SelectedBonusSum"
-                            @oninput="OnChangeAllowedBonusSum">
+               min="0" max="@(OrderService.OrderInfo.AllowedWalletSum)" id="customRangeForWalletBalance" value="@OrderService.OrderInfo.SelectedWalletSum"
+                            @oninput="OnChangeAllowedWalletSum">
                     </div>
                     <div class="col-2" style="position:relative;">
-                        <h5 style="margin:0;position:absolute;top:50%;left:50%;margin-right:-50%;transform:translate(-50%,-50%);">@(OrderService.OrderInfo.SelectedBonusSum)</h5>
+                        <h5 style="margin:0;position:absolute;top:50%;left:50%;margin-right:-50%;transform:translate(-50%,-50%);">@(OrderService.OrderInfo.SelectedWalletSum)</h5>
                     </div>
                 </div>
             }
@@ -1642,15 +1642,19 @@ else {
                 var id = Guid.Parse(arg);
                 if (OrderService!.IsReleaseMode)
                 {
-                    await TwaNet!.ShowProgressAsync(JsRuntime);
-                    await OrderService!.SetPickupTerminalAsync(JsRuntime, TwaNet!, id);
+                    if (OrderService.IsLoyaltyProgramAvailableForProcess)
+                    {
+                        await TwaNet!.ShowProgressAsync(JsRuntime);
+                        await OrderService!.SetPickupTerminalWithLoyaltyProgramProcessAsync(JsRuntime, TwaNet!, id);
 
-                    var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart;
-                    btnText = string.Format(btnText, OrderService!.FinalSumOfOrder());
-                    await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
-                    await TwaNet!.HideProgressAsync(JsRuntime);
+                        var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart;
+                        btnText = string.Format(btnText, OrderService!.FinalSumOfOrder());
+                        await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
+                        await TwaNet!.HideProgressAsync(JsRuntime);
+                    }
+                    else OrderService.SetPickupTerminal(id);
                 }
-                else await OrderService!.SetPickupTerminalAsync(id);
+                else await OrderService!.SetPickupTerminalWithLoyaltyProgramProcessAsync(id);
             }
         }
         catch (Exception ex)
@@ -1700,13 +1704,16 @@ else {
             if (OrderService!.IsReleaseMode)
             {
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
-                await TwaNet!.ShowProgressAsync(JsRuntime);
-                await OrderService.CalculateLoayltyProgramAndAllowedSumAsync(JsRuntime, TwaNet);
+                if (OrderService.IsLoyaltyProgramAvailableForProcess)
+                {
+                    await TwaNet!.ShowProgressAsync(JsRuntime);
+                    await OrderService.CalculateLoayltyProgramAndAllowedSumAsync(JsRuntime, TwaNet);
 
-                var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart;
-                btnText = string.Format(btnText, OrderService!.FinalSumOfOrder());
-                await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
-                await TwaNet!.HideProgressAsync(JsRuntime);
+                    var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart;
+                    btnText = string.Format(btnText, OrderService!.FinalSumOfOrder());
+                    await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
+                    await TwaNet!.HideProgressAsync(JsRuntime);
+                }
             }
             else await OrderService.CalculateLoayltyProgramAndAllowedSumAsync();
         }
@@ -1737,7 +1744,7 @@ else {
                 var popupPrms = new PopupParams(popupMsg.Title, popupMsg.Description, new List<PopupButton>
                 {
                     new PopupButton(yes, "Да", PopupButtonType.destructive),
-                    new PopupButton(no, "Нет", PopupButtonType.destructive)
+                    new PopupButton(no, "Отмена", PopupButtonType.destructive)
                 });
 
                 var res = await TwaNet!.ShowPopupParamsAsync(JsRuntime, popupPrms, HapticFeedBackNotificationType.warning, HapticFeedbackImpactOccurredType.soft);
@@ -1778,7 +1785,7 @@ else {
                 var popupPrms = new PopupParams(popupMsg.Title, popupMsg.Description, new List<PopupButton>
                 {
                     new PopupButton(yes, "Да", PopupButtonType.destructive),
-                    new PopupButton(no, "Нет", PopupButtonType.destructive)
+                    new PopupButton(no, "Отмена", PopupButtonType.destructive)
                 });
 
                 var res = await TwaNet!.ShowPopupParamsAsync(JsRuntime, popupPrms, HapticFeedBackNotificationType.warning, HapticFeedbackImpactOccurredType.soft);
@@ -1835,12 +1842,12 @@ else {
     }
 
     // +
-    private async void OnChangeAllowedBonusSum(ChangeEventArgs arg)
+    private async void OnChangeAllowedWalletSum(ChangeEventArgs arg)
     {
         var value = arg.Value?.ToString();
         if (value is not null && Int32.TryParse(value, out var walletSum))
         {
-            OrderService!.OrderInfo.SelectedBonusSum = walletSum;
+            OrderService!.OrderInfo.SelectedWalletSum = walletSum;
             if (OrderService.IsReleaseMode)
             {
                 var btnTxt = string.Format(OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart, OrderService.OrderInfo.FinalSum - walletSum);

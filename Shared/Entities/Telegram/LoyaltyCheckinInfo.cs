@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using WebAppAssembly.Shared.Entities.WebApp;
 
 namespace WebAppAssembly.Shared.Entities.Telegram
 {
@@ -37,5 +38,6 @@ namespace WebAppAssembly.Shared.Entities.Telegram
         [JsonProperty("httpResponseInfo")]
         [JsonPropertyName("httpResponseInfo")]
         public HttpResponseInfo? HttpResponseInfo { get; set; }
+        public LoyaltyProgramProcessedStatus LoyaltyProgramProcessedStatus { get; set; }
     }
 }

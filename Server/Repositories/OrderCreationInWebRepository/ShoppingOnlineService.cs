@@ -190,6 +190,9 @@ namespace WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository
             try
             {
                 using var client = new HttpClient();
+                if (DeliveryGeneralInfo.TimeOutForLoyaltyProgramProcessing is not null)
+                    client.Timeout = TimeSpan.FromSeconds((double)DeliveryGeneralInfo.TimeOutForLoyaltyProgramProcessing);
+
                 string body = JsonConvert.SerializeObject(chatInfo);
                 var data = new StringContent(body, Encoding.UTF8, "application/json");
                 var response = await client.PostAsync(Url.WalletBalance, data);
