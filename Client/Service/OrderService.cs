@@ -142,7 +142,7 @@ namespace WebAppAssembly.Client.Service
         /// </summary>
         /// <param name="orderInfo"></param>
         /// <returns></returns>
-        private OrderModel OrderInfoInit(OrderModel? orderInfo = null)
+        private static OrderModel OrderInfoInit(OrderModel? orderInfo = null)
         {
             if (orderInfo is not null)
             {
@@ -395,9 +395,7 @@ namespace WebAppAssembly.Client.Service
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="productId"></param>
         /// <param name="modifierId"></param>
-        /// <param name="positionId"></param>
         /// <param name="modifierGroupId"></param>
         public Item AddModifierInSelectingModifiersAndAmountsForProductPageAsync(Guid modifierId, Guid? modifierGroupId = null)
         {
@@ -409,9 +407,7 @@ namespace WebAppAssembly.Client.Service
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="productId"></param>
         /// <param name="modifierId"></param>
-        /// <param name="positionId"></param>
         /// <param name="modifierGroupId"></param>
         /// <returns></returns>
         public Item RemoveModifierInSelectingModifiersAndAmountsForProductPageAsync(Guid modifierId, Guid? modifierGroupId = null)
@@ -480,7 +476,6 @@ namespace WebAppAssembly.Client.Service
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="productId"></param>
         /// <returns></returns>
         public ProductInfo AddProductWithoutModifiersInSelectingAmountsForProductsPageAsync()
         {
@@ -492,11 +487,9 @@ namespace WebAppAssembly.Client.Service
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="productId"></param>
         /// <returns></returns>
         public ProductInfo? RemoveProductWithoutModifiersInSelectingAmountsForProductsPageAsync()
         {
-            var product = GetCurrProductItem();
             var item = GetCurrItem();
             if (RemoveOrDecreaseAmountOfProduct(item))
                 return null;
@@ -547,6 +540,7 @@ namespace WebAppAssembly.Client.Service
             if (!item.HaveItems())
             {
                 OrderInfo.ZeroAmountOfItem(item);
+                HaveSelectedProductsAtFirst();
                 return true;
             }
             return false;
@@ -952,7 +946,7 @@ namespace WebAppAssembly.Client.Service
         /// <returns></returns>
         private double? CalculateAvailableWalletSum(IEnumerable<AvailablePayment> availablePayments)
         {
-            OrderInfo.AvailableWalletSum = null;
+            OrderInfo.AllowedWalletSum = 0;
             double minAvailableSum = double.MaxValue;
 
             foreach (var availablePayment in availablePayments)
@@ -964,8 +958,8 @@ namespace WebAppAssembly.Client.Service
                 }
                 minAvailableSum = availablePayment.MaxSum <= minAvailableSum ? availablePayment.MaxSum : minAvailableSum;
             }
-            if (minAvailableSum != double.MaxValue) return OrderInfo.AvailableWalletSum = minAvailableSum;
-            return OrderInfo.AvailableWalletSum;
+            if (minAvailableSum != double.MaxValue) return OrderInfo.AllowedWalletSum = (int)minAvailableSum;
+            return OrderInfo.AllowedWalletSum;
         }
 
         /// <summary>
@@ -1009,7 +1003,8 @@ namespace WebAppAssembly.Client.Service
         /// 
         /// </summary>
         /// <returns></returns>
-        public double FinalSumOfOrder() => DeliveryGeneralInfo.UseIikoBizProgram ? OrderInfo.FinalSum : OrderInfo.TotalSum;
+        public double FinalSumOfOrder()
+            => IsLoyaltyProgramAvailableForProcess ? (OrderInfo.SelectedWalletSum > 0 ? OrderInfo.FinalSum - OrderInfo.SelectedWalletSum : OrderInfo.FinalSum) : OrderInfo.TotalSum;
 
         /// <summary>
         /// 
@@ -1214,6 +1209,7 @@ namespace WebAppAssembly.Client.Service
             var currItem = GetCurrProduct();
             var item = OrderInfo.ItemById(currItem.GetProductId(), currItem.GetPositionId());
             OrderInfo.ZeroAmountOfItem(item);
+            HaveSelectedProductsAtFirst();
         }
 
         /// <summary>
