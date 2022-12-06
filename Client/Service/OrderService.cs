@@ -876,7 +876,11 @@ namespace WebAppAssembly.Client.Service
             {
                 var walletBalance = await RetrieveWalletBalanceAsync();
                 OrderInfo.WalletBalance = walletBalance.Balance;
-                CalculateAvailableWalletSum();
+
+                if (res.Checkin?.AvailablePayments is not null)
+                    CalculateAllowedWalletSum(res.Checkin.AvailablePayments);
+                else
+                    CalculateAvailableWalletSum();
             }
 
             return true;
@@ -918,6 +922,7 @@ namespace WebAppAssembly.Client.Service
             var perhapsWalletSum = OrderInfo.FinalSum - DeliveryGeneralInfo.CurrOfRub;
             if (perhapsWalletSum <= 0)
             {
+                OrderInfo.SelectedWalletSum = 0;
                 return OrderInfo.AllowedWalletSum = 0;
             }
             else
@@ -946,7 +951,7 @@ namespace WebAppAssembly.Client.Service
         /// <returns></returns>
         private double? CalculateAvailableWalletSum(IEnumerable<AvailablePayment> availablePayments)
         {
-            OrderInfo.AllowedWalletSum = 0;
+            OrderInfo.AvailableWalletSum = 0;
             double minAvailableSum = double.MaxValue;
 
             foreach (var availablePayment in availablePayments)
@@ -958,8 +963,8 @@ namespace WebAppAssembly.Client.Service
                 }
                 minAvailableSum = availablePayment.MaxSum <= minAvailableSum ? availablePayment.MaxSum : minAvailableSum;
             }
-            if (minAvailableSum != double.MaxValue) return OrderInfo.AllowedWalletSum = (int)minAvailableSum;
-            return OrderInfo.AllowedWalletSum;
+            if (minAvailableSum != double.MaxValue) return OrderInfo.AvailableWalletSum = (int)minAvailableSum;
+            return OrderInfo.AvailableWalletSum;
         }
 
         /// <summary>
@@ -969,7 +974,11 @@ namespace WebAppAssembly.Client.Service
         {
             var perhapsWalletSum = OrderInfo.FinalSum - DeliveryGeneralInfo.CurrOfRub;
 
-            if (perhapsWalletSum <= 0) OrderInfo.AllowedWalletSum = 0;
+            if (perhapsWalletSum <= 0)
+            {
+                OrderInfo.SelectedWalletSum = 0;
+                OrderInfo.AllowedWalletSum = 0;
+            }
             else
             {
                 OrderInfo.AllowedWalletSum = perhapsWalletSum > OrderInfo.WalletBalance ? (int)OrderInfo.WalletBalance : (int)perhapsWalletSum;

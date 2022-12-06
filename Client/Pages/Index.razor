@@ -831,7 +831,7 @@
                         }
                         else
                         {
-                            var sum = OrderService.OrderInfo.FinalSum;
+                            var sum = OrderService.FinalSumOfOrder();
                             <button @onclick="(e => PayOrderForTestAsync())" data-toggle="modal" data-target="#productModal" class="btn btn-success">Оплатить ₽@(sum)</button>
                         }
                     </central>
@@ -1426,7 +1426,7 @@ else {
 
                     await JsHelperService!.ScrollToTopAsync(JsRuntime);
                     await TwaNet.ShowBackButtonAsync(JsRuntime);
-                    var btnTxt = string.Format(OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart, OrderService.OrderInfo.FinalSum);
+                    var btnTxt = string.Format(OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart, OrderService.FinalSumOfOrder());
                     await TwaNet.SetMainButtonTextAsync(JsRuntime, btnTxt);
                     await TwaNet!.HideProgressAsync(JsRuntime);
                 }
