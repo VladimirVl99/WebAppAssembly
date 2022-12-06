@@ -1,7 +1,6 @@
 ﻿using ApiServerForTelegram.Entities.EExceptions;
 using ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExternalMenuByID;
 using Microsoft.JSInterop;
-using MySqlX.XDevAPI;
 using Newtonsoft.Json;
 using System.Net;
 using System.Text;

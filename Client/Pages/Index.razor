@@ -28,22 +28,27 @@
 
 <PageTitle>Index</PageTitle>
 
-@*Page for orders*@
+@* Show the main page of shopping online after downloading the data *@
 @if (IsLoadedGeneralInfo)
 {
+    // Show an error message when the following conditions occur
     if (OrderService is null || (OrderService.IsReleaseMode && TwaNet is null) || StateOfPage is null || StateOfPage.HaveErrors || JsHelperService is null)
     {
         <div>
-            <center>
-                <h6>Happened something wrong:(</h6>
-            </center>
+            <h6 style="text-align:center;">Happened something wrong :(</h6>
         </div>
     }
+    // Show operating states in case of successful data upload from the API server
     else
     {
+        // General data that is used for a shopping online
         var dgi = OrderService.DeliveryGeneralInfo;
 
-        // Show the page for selecting products
+        // Show the main page for:
+        // - selecting products
+        // - selecting categories of products
+        // - selecting the number of products
+        // This page is showing categories and products with simple info
         if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.SelectingProducts)
         {
             var itemCategories = dgi.ItemCategories;
@@ -845,7 +850,9 @@
         }
     }
 }
+@* Waiting for the necessary data to be loaded from the API server *@
 else {
+    @* Show the preloader *@
     <div class=container4>
         <div class="dots-bars-2"></div>
     </div>
