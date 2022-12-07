@@ -48,12 +48,15 @@
         // - selecting products
         // - selecting categories of products
         // - selecting the number of products
-        // This page is showing categories and products with simple info
+        // This page is showing categories and products with simple info (images, prices, chosed amounts and restrictions)
         if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.SelectingProducts)
         {
+            // Info of categories of menu
             var itemCategories = dgi.ItemCategories;
+            // Info of a some category
             TransportMenuCategoryDto? itemCategory = null;
 
+            // Show all categories of menu
             if (itemCategories is not null)
             {
                 <h1 style="padding-top: 5px;margin-bottom: 0px;text-align: center;">
