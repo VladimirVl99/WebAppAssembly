@@ -57,7 +57,7 @@
             TransportMenuCategoryDto? itemCategory = null;
 
             // Show all categories of menu
-            if (itemCategories is not null)
+            if (itemCategories is not null && itemCategories.Any())
             {
                 <h1 style="padding-top: 5px;margin-bottom: 0px;text-align: center;">
                     Категории
@@ -65,8 +65,10 @@
                 <hr style="color:grey;margin-bottom:0px;margin-top:10px;"/>
                 <div class="horizontal_slider" style="padding-left: 0px;padding-right: 0px;padding-top:5px;margin-top: 0px;padding-bottom:10px;">
                     <div class="slider_container">
+                        @* When the category image is been clicked, the menu of the selected category will been shown *@
                         @foreach (var category in itemCategories)
                         {
+                            // Save the category info if the some category has been selected
                             if (OrderService.CurrentGroupId is not null && category.Id == (Guid)OrderService.CurrentGroupId)
                             {
                                 itemCategory = category;
@@ -85,14 +87,17 @@
                 </div>
             }
 
+            // If no category in the menu has been selected, then the entire menu is shown, otherwise the menu of the selected category is shown
             var products = itemCategory is null ? dgi.TransportItemDtos : itemCategory.Items;
 
+            // Show the menu of the selected category
             if (itemCategory is not null)
             {
                 <h1 style="padding-top: 0px;margin-bottom: 0px;text-align:center;">
                     @itemCategory.Name
                 </h1>
             }
+            // Show the entire menu
             else
             {
                 <h1 style="padding-top: 0px;margin-bottom: 0px;text-align:center;">
@@ -101,15 +106,18 @@
             }
             <hr style="color:grey;"/>
 
+            // Show positions in three columns
             if (products is not null)
             {
                 var productsArr = products.ToArray();
-                int columnAmount = 3;
-                int productCount = products.Count();
+                // Number of columns
+                const int columnAmount = 3;
+                int productCount = productsArr.Length;
 
                 for (int i = 0; i < productCount; i += columnAmount)
                 {
                     <div>
+                        @* Notice! Width of each column needs to changing otherwise of it. So space of each column needs to be changing (#0001) *@
                         <div class="row mt-1 mb-1" style="--bs-gutter-x:0.6rem;">
                         @for (int j = i; j < i + columnAmount; j++)
                         {
@@ -183,6 +191,7 @@
                 }
             }
 
+            // Show the button for to go the shopping cart (only for test)
             if (!OrderService.IsReleaseMode)
             {
                 if (OrderService.OrderInfo.HaveSelectedProducts())
@@ -196,26 +205,34 @@
                 }
             }
         }
-        // Show the page for to select modifiers for the selected product
+        // Show the page for:
+        // - selecting modifiers
+        // - selecting the number of the product
+        // - selecting sizes of the product
+        // - This page is showing the product description and restrictions of the product
+        // Notice! #0002
         else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.SelectingModifiersAndAmountsForProduct
         && OrderService.CurrItem is not null && OrderService.CurrProductItem is not null)
         {
+            // Info of the selected product with modifiers or sizes
             var item = OrderService.CurrItem;
             var product = OrderService.CurrProductItem;
 
             <div class="container">
+            @* Button for to cancel selected product and to go back in the main page (only for test) *@
             @if (!OrderService.IsReleaseMode)
             {
                 <div align="right">
-                        <button @onclick="(e => { OrderService.CancelCurrSelectedItemWithModifiers(); StateOfPage.GoBack(); })"
+                    <button @onclick="(e => { OrderService.CancelCurrSelectedItemWithModifiers(); StateOfPage.GoBack(); })"
                 data-toggle="modal" data-target="#productModal" class="btn btn-link btn-sm btn-text-green">Отмена</button>
                 </div>
             }
             <div align="center">
                 <img class="img-thumbnail" style="margin-top:5px;margin-bottom:5px;" src="@product.ImageLink()"
-        alt="@product.Name" />
+                    alt="@product.Name" />
             </div>
 
+            @* Restrictions of the selected product *@
             <h5>@product.Name</h5> <h6 style="color:lightgrey;">@(product.WeightAsString()) г</h6>
                 <div class="row" style="--bs-gutter-x:0.6rem;">
                 <div class="col">
@@ -223,14 +240,19 @@
                         <p>@(product.EnergyAsString()) Ккал · @(product.CarbsAsString()) Углеводы</p>
                 </div>
                 <div class="col">
+                    @* Button for to decrease amount of the selected product *@
                     <div class="TlBlr_div TlBlrCounter_x TlBlrDesctopProductCard TlBlrCounter_y" style="height:48px;">
-                            <button @onclick="(e => RemoveProductInSelectingModifiersAndAmountsForProductPageAsync())" class="TlBlrCounter_btn TlBlrCounter_decrement"
-        data-testid="amount-select-decrement">
-                            <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
-                                <path fill-rule="evenodd" clip-rule="evenodd" d="M6 12a1 1 0 0 0 1 1h10a1 1 0 1 0 0-2H7a1 1 0 0 0-1 1Z" fill="currentColor"></path>
-                            </svg>
+                        <button @onclick="(e => RemoveProductInSelectingModifiersAndAmountsForProductPageAsync())" class="TlBlrCounter_btn TlBlrCounter_decrement"
+    data-testid="amount-select-decrement">
+                        <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M6 12a1 1 0 0 0 1 1h10a1 1 0 1 0 0-2H7a1 1 0 0 0-1 1Z" fill="currentColor"></path>
+                        </svg>
                         </button>
+
+                        @* Number of the selected product *@
                         <span>@item.Amount</span>
+
+                        @* Button for to increase amount of the selected product *@
                         <button @onclick="(e => AddProductInSelectingModifiersAndAmountsForProductPageAsync())" class="TlBlrCounter_btn TlBlrCounter_increment"
         data-testid="amount-select-increment">
                             <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
@@ -241,12 +263,15 @@
                     </div>
                 </div>
             </div>
+
+            @* Description of the selected product *@
             @if (!string.IsNullOrEmpty(product.Description))
             {
                 <h4>Описание</h4>
                 <p>@product.Description</p>
             }
 
+            @* Choosing sizes of the selected product *@
             @if (product.HaveSizesMoreThanOne())
             {
                 <div style="padding-bottom: 3px;">
@@ -277,23 +302,22 @@
             @{
                 var modifierGroups = product.ModifierGroups();
             }
+            @* Show modifiers groups *@
             @if (modifierGroups is not null)
             {
                 foreach (var groupModifier in modifierGroups)
                 {
-                        <div class="row" style="--bs-gutter-x:0.6rem;">
-                        @{
-                            var groupInfo = item.SimpleGroupModifiers?.FirstOrDefault(x => x.Id == groupModifier.ItemGroupId);
-                        }
-                        <h5>@(groupInfo is not null ? groupInfo.Name : "#UnknownGroupName")</h5>
+                    <div class="row" style="--bs-gutter-x:0.6rem;">
+                        <h5>@groupModifier.Name</h5>
                     </div>
                     @if (groupModifier.Items is not null)
                     {
                         foreach (var modifier in groupModifier.Items)
                         {
-                                <div class="row mb-1" style="--bs-gutter-x:0.6rem;">
+                            <div class="row mb-1" style="--bs-gutter-x:0.6rem;">
                                 <div class="col-5">
 
+                                    @* Just to add modifier to the selected product *@
                                     @if (!item.IsSelectedModifier(modifier.ItemId ?? Guid.Empty, groupModifier.ItemGroupId))
                                     {
                                         <div class="TlBlr_div TlBlrCounter_x TlBlrDesktopProductCard_footer TlBlrCounter_y">
@@ -312,6 +336,7 @@
                                             }
                                         </div>
                                     }
+                                    @* Remove/add modifier to/from the selected product *@
                                     else
                                     {
                                         <div class="TlBlr_div TlBlrCounter_x TlBlrDesctopProductCard TlBlrCounter_y">
@@ -348,6 +373,7 @@
 
                                 </div>
 
+                                @* Price of the modifier *@
                                 <div class="col">
                                     @{
                                         var modifierD = item.Modifiers?.FirstOrDefault(x => x.ProductId == modifier.ItemId);
@@ -366,10 +392,12 @@
                 }
             }
 
+            @* Complete adding the product with modifiers/sizes then to go back in the main page (only for test) *@
             @if (!OrderService.IsReleaseMode)
             {
                 <br />
                 <div>
+                    @* If necessary modifiers has been selected then can go in the main page *@
                     @if (item.IsReachedMinAmountOfGroupModifiers() && item.IsReachedMinAmountOfModifiers())
                     {
                         <button @onclick="(e => StateOfPage.GoBack())" id="@OrderService.CurrItem.ProductId" data-toggle="modal" data-target="#productModal"
