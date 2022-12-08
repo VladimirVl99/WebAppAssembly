@@ -584,6 +584,7 @@
         // - adding a comment
         // - This page is showing selected products and positions wiht amounts, choosen modifiers and sizes, prices.
         // Final pay sum with discount procent too. Delivery method with typed address
+        // Notice! #0005
         else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.ShoppingCart)
         {   
             <div class="container-fluid">
@@ -645,6 +646,7 @@
                         var sizeName = item.ProductSizeId is not null ? product.ItemSizes?.FirstOrDefault(x => x.SizeId == item.ProductSizeId)?.SizeName
                         : product.HaveSizesMoreThanOne() ? product.ItemSizes?.FirstOrDefault()?.SizeName : null;
 
+                        // Show the position with modifiers
                         if (item.HaveModifiers())
                         {
                             <div class="row" style="--bs-gutter-x:0.6rem;">
@@ -670,6 +672,7 @@
                                     </div>
                                 </div>
 
+                                @* 100% discount on one of these items is displayed *@
                                 <div align="right" class="col-2">
                                     @{
                                         var totalSum = item.TotalPrice;
@@ -694,6 +697,7 @@
                                 </div>
                             </div>
                         }
+                        // Show the position without modifiers
                         else
                         {
                             <div class="row" style="--bs-gutter-x:0.6rem;">
@@ -715,6 +719,7 @@
                                     </div>
                                 </div>
 
+                                @* 100% discount on one of these items is displayed *@
                                 <div align="right" class="col-2">
                                     @{
                                         var freeItems = OrderService.OrderInfo.DiscountFreeItems?.Where(id => id == item.PositionId);
@@ -740,6 +745,7 @@
                     }
                 }
 
+                @* Show free items *@
                 @if (OrderService.OrderInfo.FreeItems is not null)
                 {
                     foreach (var item in OrderService.OrderInfo.FreeItems)
@@ -760,13 +766,12 @@
                         </div>
                     }
                 }
-
             </div>
             <br />
 
+            @* Show the discount amount *@
             @if (OrderService.OrderInfo.DiscountSum > 0)
             {
-
                 var discountProcent = OrderService.OrderInfo.DiscountProcent;
                 bool isInteger = (int)(discountProcent * 100 % 100) == 0;
                 <h5 style="margin-top:5px;">Скидка: -@(isInteger ? $"{discountProcent:f0}" : $"{discountProcent:f2}")%</h5>
@@ -781,6 +786,8 @@
                     </div>
                 </div>
             }
+
+            @* Using the coupon *@
             @if (OrderService.DeliveryGeneralInfo.UseCoupon && OrderService.IsLoyaltyProgramAvailableForProcess)
             {
                 <div class="row" style="padding-bottom:5px;--bs-gutter-x:0.6rem;">
@@ -795,11 +802,11 @@
                 </div>
             }
 
-            @* !!! Change sum of pay on the main button of Telegram by using the wallet balance !!! *@
+            @* The ability to use bonuses under certain conditions *@
             if (OrderService.OrderInfo.WalletBalance > 0 && OrderService.OrderInfo.AllowedWalletSum > 0 && OrderService.IsLoyaltyProgramAvailableForProcess)
             {
                 <h5>Бонусные баллы</h5>
-                @* В зависимости от баланса изменять слово "баланс" *@
+                @* Notice! Depending on the balance, change the word "balance" (#0005) *@
                 <h6 style="padding-bottom: 3px;">У Вас накоплено @(OrderService.OrderInfo.WalletBalance) баллов</h6>
                 <div class="row" style="--bs-gutter-x:0.6rem;padding-bottom: 5px;">
                     <div class="col-6" style="position:relative;">
@@ -817,6 +824,7 @@
             <div>
                 <h5>Способ доставки</h5>
             </div>
+            @* Filling in the delivery address *@
             @if (OrderService.OrderInfo.ByCourier)
             {
                 var address = OrderService.OrderInfo.Address!;
@@ -827,11 +835,13 @@
                 var entrance = address.Entrance;
                 var floor = address.Floor;
 
+                @* Choosing a delivery method *@
                 <div class="btn-group" role="group" aria-label="Delivery type">
                     <button type="button" @onclick="(e => ChangeDeliveryTypeFlagAsync(true))" data-toggle="modal" data-target="#productModal" class="btn btn-success disabled">Доставка</button>
                     <button type="button" @onclick="(e => ChangeDeliveryTypeFlagAsync(false))" data-toggle="modal" data-target="#productModal" class="btn btn-secondary"
                         style="background-color:#c2c9cf;border-color: #c2c9cf;">Самовывоз</button>
                 </div>
+
                 <input class="comment" type="text" name="City" placeholder="Город" value="@city"
        @oninput="(e => { var res = e.Value.ToString(); OrderService.OrderInfo.Address!.City = res is null ? OrderService.OrderInfo.Address!.City : res; })" />
                 <input class="comment" type="text" name="Street" placeholder="Улица" value="@street"
@@ -849,8 +859,10 @@
            @oninput="(e => { var res = e.Value.ToString(); OrderService.OrderInfo.Address!.Floor = res is null ? OrderService.OrderInfo.Address!.Floor : res; })" />
                 </div>
             }
+            @* Choosing the pickup address *@
             else
             {
+                @* Choosing a delivery method *@
                 <div class="btn-group" role="group" aria-label="Delivery type">
                     <button @onclick="(e => ChangeDeliveryTypeFlagAsync(true))" data-toggle="modal" data-target="#productModal" class="btn btn-secondary"
                         style="background-color:#c2c9cf;border-color: #c2c9cf;">
@@ -858,19 +870,17 @@
                     </button>
                     <button @onclick="(e => ChangeDeliveryTypeFlagAsync(false))" data-toggle="modal" data-target="#productModal" class="btn btn-success disabled">Самовывоз</button>
                 </div>
+
                 <div style="margin-top:10px;">
                     <select class="form-select" style="box-shadow:none;" aria-label="Default select example" @onchange="@OnSelectTerminalAsync">
-                    @{
-                        var delTerminal = OrderService.OrderInfo.DeliveryTerminal;
-                    }
-                    @if (delTerminal is not null)
-                    {
-                        <option id="@delTerminal.Id" selected>@(delTerminal.Name)</option>
-                    }
-                    else if (OrderService.OrderInfo.TerminalId is not null && OrderService.OrderInfo.TerminalId != Guid.Empty)
-                    {
-                        delTerminal = OrderService.DeliveryGeneralInfo.DeliveryTerminals?.FirstOrDefault(x => x.Id == OrderService.OrderInfo.TerminalId);
-                        if (delTerminal is not null)
+                        @{
+                            var delTerminal = OrderService.OrderInfo.DeliveryTerminal;
+                            if (delTerminal is null && OrderService.OrderInfo.TerminalId is not null && OrderService.OrderInfo.TerminalId != Guid.Empty)
+                            {
+                                delTerminal = OrderService.DeliveryGeneralInfo.DeliveryTerminals?.FirstOrDefault(x => x.Id == OrderService.OrderInfo.TerminalId);
+                            }
+                        }
+                        @if (delTerminal is not null)
                         {
                             <option id="@delTerminal.Id" selected>@(delTerminal.Name)</option>
                         }
@@ -878,25 +888,22 @@
                         {
                             <option selected>Выберите улицу</option>
                         }
-                    }
-                    else
-                    {
-                        <option selected>Выберите улицу</option>
-                    }
-                    @if (OrderService.DeliveryGeneralInfo.DeliveryTerminals is not null)
-                    {
-                        foreach (var terminal in OrderService.DeliveryGeneralInfo.DeliveryTerminals)
+
+                        @if (OrderService.DeliveryGeneralInfo.DeliveryTerminals is not null)
                         {
-                            <option value="@terminal.Id">@terminal.Name</option>
+                            foreach (var terminal in OrderService.DeliveryGeneralInfo.DeliveryTerminals)
+                            {
+                                <option value="@terminal.Id">@terminal.Name</option>
+                            }
                         }
-                    }
                     </select>
                 </div>
             }
 
-            @*Comment field*@
+            @* Comment field *@
             <input class="comment" type="text" name="Comment" placeholder="Ваш комментарий..." @bind="@OrderService.OrderInfo.Comment"/>
 
+            @* A button to pay order (only for test) *@
             <div>
                 <br/>
                 @if (!OrderService.IsReleaseMode)
@@ -916,7 +923,7 @@
                 }
             </div>
         }
-        // Page to show information about the created order
+        // Show information about the created order
         else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.InfoAboutCreatedOrder && !OrderService.IsReleaseMode)
         {
             <p>@OrderService.InfoAboutCreatedOrderForTest()</p>
@@ -932,21 +939,21 @@ else {
 }
 
 @code {
-    //
+    // Responsible for all operations and calculations on orders, there is also a connection with the API server from where all necessary data is taken
     private IOrderService? OrderService { get; set; }
-    //
+    // This library responsible for interacting with the Telegram interface using JavaScript language
     private ITwaNet? TwaNet { get; set; }
-    //
+    // A library that facilitates interaction with JavaScript language
     private IJsHelperService? JsHelperService { get; set; }
-    //
+    // Responsible for states and statuses of this Web App
     private StateOfPage? StateOfPage { get; set; }
-    //
+    // Test chat ID, it's mine;)
     private long TestChatId { get; } = 2098619539;
-    //
+    // Flag indicating completion of data loading from the API server
     private bool IsLoadedGeneralInfo { get; set; } = false;
 
 
-    // +
+    // Initialization of this page
     protected override async Task OnInitializedAsync()
     {
         StateOfPage = new StateOfPage();
@@ -955,25 +962,32 @@ else {
         {
             JsHelperService = new JsHelperService();
             TwaNet = new TwaNet();
+            // Get chat ID from the Telegram
             var chatId = await TwaNet.TwaNetInitAsync(JsRuntime);
             OrderService = new OrderService(Http);
+            // Retrive general data and personal data by chat ID from API server and initialize this service
             await OrderService.OrderServiceInitAsync(chatId, OrderControllerPaths.RetrieveMainInfoForWebAppOrder);
+            // Set a color button that has been received from API server
             await TwaNet.SetMainBtnColorAsync(JsRuntime, OrderService.TlgMainBtnColor);
+            // Downloading necessary data and initializing all modeles for the operation this Web App is finished
             IsLoadedGeneralInfo = true;
-
-            // !!! Initialize and run it block after render page !!!
+            // Render the page
             StateHasChanged();
+
+            // Show the main button if there are selected items in the order
             if (OrderService.HaveSelectedProductsAtFirst())
             {
+                // Notice! #0006
                 var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
                 await TwaNet.SetMainButtonTextAsync(JsRuntime, btnText);
             }
+            // Listen the main and back buttons by click
             await ListenTwaBtnsAsync();
         }
         catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
-            // !!! Check error message for test chat ID !!!
+            // Catch it in the test mode
             if (ex.Message.Contains("Cannot read properties of undefined (reading 'id')"))
             {
                 try
@@ -988,6 +1002,7 @@ else {
             }
             else
             {
+                // There are unacceptable errors, any actions in this page is impossible
                 StateOfPage.SetErrorStateForWebApp();
             }
         }
@@ -997,9 +1012,10 @@ else {
         }
     }
 
-    // Select group +
+    // Add the choosen group ID like a main
     private async Task AddCurrentGroupId(Guid id)
     {
+        // Any actions in the page is forbidden
         if (StateOfPage!.IsPageBlocked) return;
 
         try
@@ -1007,6 +1023,7 @@ else {
             OrderService!.CurrentGroupId = id;
             if (OrderService!.IsReleaseMode)
             {
+                // Call the haptic feedback in a Web App
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
             }
         }
@@ -1017,18 +1034,21 @@ else {
         }
     }
 
-    // Add product in the main menu +
+    // Add a position by product ID
     private async Task AddProductItemInSelectingProductPageAsync(Guid productId)
-    {       
+    {
         try
         {   
             if (StateOfPage!.IsPageBlocked) return;
+
             else if (OrderService!.IsReleaseMode)
             {
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
             }
 
+            // Add position or increase amount of the product, get back an item info
             var productInfo = await OrderService!.AddProductItemInSelectingProductPageAsync(productId);
+            // Get a general info about a product by ID
             var product = OrderService.DeliveryGeneralInfo.ProductById(productId);
             if (OrderService.IsReleaseMode)
             {
