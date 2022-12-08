@@ -209,7 +209,7 @@
         // - selecting modifiers
         // - selecting the number of the product
         // - selecting sizes of the product
-        // - This page is showing the product description and restrictions of the product
+        // This page is showing the product description and restrictions of the product
         // Notice! #0002
         else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.SelectingModifiersAndAmountsForProduct
         && OrderService.CurrItem is not null && OrderService.CurrProductItem is not null)
@@ -412,14 +412,19 @@
             }
         </div>
         }
-        // Show the page to add products
+        // Show the page for:
+        // - selecting the number of the product
+        // This page is showing the product description and restrictions of the product
+        // Notice! #0003
         else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.SelectingAmountsForProducts
         && OrderService.CurrItem is not null && OrderService.CurrProductItem is not null)
         {
+            // Info of the selected product with modifiers or sizes
             var item = OrderService.CurrItem;
             var product = OrderService.CurrProductItem;
 
             <div class="container">
+                @* Button for to cancel selected product and to go back in the main page (only for test) *@
                 @if (!OrderService.IsReleaseMode)
                 {
                     <div align="right">
@@ -432,6 +437,7 @@
             alt="@product.Name" />
                 </div>
 
+                @* Restrictions of the selected product *@
                 <h5>@product.Name</h5> <h6 style="color:lightgrey;">@(product.WeightAsString()) г</h6>
                 <div class="row" style="--bs-gutter-x:0.6rem;">
                     <div class="col">
@@ -439,6 +445,7 @@
                         <p>@(product.EnergyAsString()) Ккал · @(product.CarbsAsString()) Углеводы</p>
                     </div>
                     <div class="col">
+                        @* Button for to decrease amount of the selected product *@
                         <div class="TlBlr_div TlBlrCounter_x TlBlrDesctopProductCard TlBlrCounter_y" style="height:48px;">
                             <button @onclick="(e => RemoveProductWithoutModifiersInSelectingAmountsForProductsPageAsync())" class="TlBlrCounter_btn TlBlrCounter_decrement"
             data-testid="amount-select-decrement">
@@ -446,7 +453,11 @@
                                     <path fill-rule="evenodd" clip-rule="evenodd" d="M6 12a1 1 0 0 0 1 1h10a1 1 0 1 0 0-2H7a1 1 0 0 0-1 1Z" fill="currentColor"></path>
                                 </svg>
                             </button>
+
+                            @* Number of the selected product *@
                             <span>@item.Amount</span>
+
+                            @* Button for to increase amount of the selected product *@
                             <button @onclick="(e => AddProductWithoutModifiersInSelectingAmountsForProductsPageAsync())" class="TlBlrCounter_btn TlBlrCounter_increment"
             data-testid="amount-select-increment">
                                 <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
@@ -458,12 +469,14 @@
                     </div>
                 </div>     
 
+                @* Description of the selected product *@
                 @if (!string.IsNullOrEmpty(product.Description))
                 {
                     <h4>Описание</h4>
                     <p>@product.Description</p>
                 }
 
+                @* Complete adding the product then to go back in the main page (only for test) *@
                 @if (!OrderService.IsReleaseMode)
                 {
                     <br />
@@ -474,13 +487,20 @@
                 }
             </div>
         }
-        // Show the page to remove selected products with modifiers
+        // Show the page for:
+        // - changing the number of the products with sample IDs wich have modifiers/sizes
+        // - empty selected positions
+        // Notice! #0004
         else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.ChangingSelectedProductsWithModifiers
         && OrderService.CurrentProduct is not null && OrderService.CurrProductItem is not null)
         {
+            // To separate positions in this page
             bool hr = false;
+            // Choose positions by only the product which being modified
             var items = OrderService.OrderInfo.CurrItems().Where(x => x.ProductId == OrderService.CurrentProduct.GetProductId());
+            // Information about the product which being modified
             var product = OrderService.CurrProductItem;
+            // Final sum of selected positions
             double totalSum = 0;
 
             <br />
@@ -503,14 +523,21 @@
                         </div>
                         <div class="col-6">
                             @{
+                                // Get product name and size name if there is one
                                 var sizeName = item.ProductSizeId is not null ? product!.ItemSizes?.FirstOrDefault(x => x.SizeId == item.ProductSizeId)?.SizeName
                                     : product!.HaveSizesMoreThanOne() ? product.ItemSizes?.FirstOrDefault()?.SizeName : null;
                             }
+
+                            @* Product and size name *@
                             <p>@item.ProductName @sizeName</p>
+
+                            @* Modifier names *@
                             @foreach (var modifier in item.SelectedModifiers())
                             {
                                 <p> • @modifier.Name x@(modifier.Amount)</p>
                             }
+
+                            @* Change the number of position *@
                             <div style="display: flex;">
                                 <button @onclick="(e => RemoveProductItemInChangingSelectedProductsWithModifiersPageAsync(item.ProductId, item.PositionId ?? Guid.Empty))"
                                     data-toggle="modal" data-target="#productModal" class="btn btn-light" style="box-shadow:none;width:35px;border-radius:50%;background-color: #F5F4F2;">
@@ -523,6 +550,8 @@
                                 </button>
                             </div>
                         </div>
+
+                        @* Calculate total sum *@
                         <div align="right" class="col-2">
                             @{    
                                 totalSum += item.TotalPrice ?? 0;           
@@ -534,6 +563,7 @@
             }
         <h5 align="right" style="margin-top:20px;margin-bottom:5px;">Итого: ₽@totalSum</h5>
 
+        @* Empty all selected positions and to go in the main page *@
         <br />
         <center>
             <button @onclick="(e => CancelCurrSimilarSelectedItemsWithModifiersAsync())" style="background-color:rgba(28,28,28,0);outline:none;border:0;width:42px;height:32px;">
@@ -543,10 +573,21 @@
             </button>
         </center>
         }
-        // Show the page for view and check selected products in the order
+        // Show the page for:
+        // - changing the number for whole selected products and positions
+        // - empty selected products and positions
+        // - using coupons 
+        // - spending bonuses
+        // - selecting type of the delivery method
+        // - filling in the address
+        // - selecting the place of pickup
+        // - adding a comment
+        // - This page is showing selected products and positions wiht amounts, choosen modifiers and sizes, prices.
+        // Final pay sum with discount procent too. Delivery method with typed address
         else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.ShoppingCart)
         {   
             <div class="container-fluid">
+                @* Just to show 'Trash' for a test *@
                 @if (!OrderService.IsReleaseMode)
                 {
                     <div class="row mt-1 mb-2" style="--bs-gutter-x:0.6rem;">
@@ -554,7 +595,6 @@
                             <h1>Ваш заказ</h1>
                         </div>
                         <div align="right" class="col" style="padding-right:0px;padding-left:0px;">
-            @*Show the button for to edit the created order if the page isn't going to open in the Telegram app*@
                             <button style="background-color:rgba(28,28,28,0);outline:none;border:0;width:42px;height:32px;">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="Trash" viewBox="0 0 16 18.286" width="16" height="18.286">
                                     <path d="M1.143 16.571a1.714 1.714 0 0 0 1.714 1.714h10.286a1.714 1.714 0 0 0 1.714 -1.714V4.571H1.143zm9.714 -9.143a0.571 0.571 0 0 1 1.143 0v8a0.571 0.571 0 0 1 -1.143 0zm-3.429 0a0.571 0.571 0 0 1 1.143 0v8a0.571 0.571 0 0 1 -1.143 0zm-3.429 0a0.571 0.571 0 0 1 1.143 0v8a0.571 0.571 0 0 1 -1.143 0zM15.429 1.143H11.143l-0.336 -0.668A0.857 0.857 0 0 0 10.039 0H5.957a0.847 0.847 0 0 0 -0.764 0.475L4.857 1.143H0.571A0.571 0.571 0 0 0 0 1.714v1.143a0.571 0.571 0 0 0 0.571 0.571h14.857a0.571 0.571 0 0 0 0.571 -0.571V1.714a0.571 0.571 0 0 0 -0.571 -0.571z"></path>
@@ -563,6 +603,7 @@
                         </div>
                     </div>
                 }
+                @* Call the method to empty shopping cart *@
                 else
                 {
                     <div class="row mt-1 mb-2" style="--bs-gutter-x:0.6rem;">
@@ -570,7 +611,6 @@
                             <h1>Ваш заказ</h1>
                         </div>
                         <div align="right" class="col" style="padding-right:0px;padding-left:0px;">
-            @*Show the button for to edit the created order if the page isn't going to open in the Telegram app*@
                             <button @onclick="(e => RemoveAllSelectedProductsInShoppingCartAsync())" style="background-color:rgba(28,28,28,0);outline:none;border:0;width:42px;height:32px;">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="Trash" viewBox="0 0 16 18.286" width="16" height="18.286">
                                     <path d="M1.143 16.571a1.714 1.714 0 0 0 1.714 1.714h10.286a1.714 1.714 0 0 0 1.714 -1.714V4.571H1.143zm9.714 -9.143a0.571 0.571 0 0 1 1.143 0v8a0.571 0.571 0 0 1 -1.143 0zm-3.429 0a0.571 0.571 0 0 1 1.143 0v8a0.571 0.571 0 0 1 -1.143 0zm-3.429 0a0.571 0.571 0 0 1 1.143 0v8a0.571 0.571 0 0 1 -1.143 0zM15.429 1.143H11.143l-0.336 -0.668A0.857 0.857 0 0 0 10.039 0H5.957a0.847 0.847 0 0 0 -0.764 0.475L4.857 1.143H0.571A0.571 0.571 0 0 0 0 1.714v1.143a0.571 0.571 0 0 0 0.571 0.571h14.857a0.571 0.571 0 0 0 0.571 -0.571V1.714a0.571 0.571 0 0 0 -0.571 -0.571z"></path>
@@ -581,11 +621,11 @@
                 }
 
                 @{
+                    // To separate positions in this page
                     bool hr = false;
                 }
 
-                @*Get the selected products in the order
-                    Output all selected products*@
+                @* Show contents of the shopping cart *@
                 @if (OrderService.OrderInfo.Items is not null)
                 {
                     foreach (var item in OrderService.OrderInfo.Items)
@@ -601,8 +641,10 @@
                             hr = true;
                         }
 
+                        // Get a size name of the position
                         var sizeName = item.ProductSizeId is not null ? product.ItemSizes?.FirstOrDefault(x => x.SizeId == item.ProductSizeId)?.SizeName
                         : product.HaveSizesMoreThanOne() ? product.ItemSizes?.FirstOrDefault()?.SizeName : null;
+
                         if (item.HaveModifiers())
                         {
                             <div class="row" style="--bs-gutter-x:0.6rem;">
