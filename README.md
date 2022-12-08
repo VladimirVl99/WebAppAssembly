@@ -14,3 +14,10 @@ Needs to change the appearance of the 'SelectingAmountsForProducts' page in the 
 
 #0004:
 Needs to change the appearance of the 'ChangingSelectedProductsWithModifiers' page in the WebApp
+
+#0005:
+Needs to change the appearance of the 'ShoppingCart' page in the WebApp
+- Depending on the balance, change the word "balance"
+
+#0006:
+DeliveryGeneralInfo: remove 'GetTlgWebAppBtnTxts()' method, and init this object without null result
