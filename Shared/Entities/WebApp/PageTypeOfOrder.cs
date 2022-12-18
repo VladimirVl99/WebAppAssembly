@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace WebAppAssembly.Shared.Entities.WebApp
 {
-    public enum PageTypeOfOrder
+    public enum PageViewType
     {
         SelectingProducts,
         SelectingModifiersAndAmountsForProduct,

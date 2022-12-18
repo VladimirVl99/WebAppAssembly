@@ -8,7 +8,7 @@ using WebAppAssembly.Shared.Models.Order;
 
 namespace WebAppAssembly.Shared.Entities.Telegram
 {
-    public class DeliveryGeneralInfo
+    public class GeneralInfoOfOnlineStore
     {
         [JsonProperty("itemCategories")]
         [JsonPropertyName("itemCategories")]
@@ -67,7 +67,7 @@ namespace WebAppAssembly.Shared.Entities.Telegram
         /// <returns></returns>
         /// <exception cref="InfoException"></exception>
         public TlgWebAppPopupMessages GetTlgWebAppPopupMessages()
-            => TlgWebAppPopupMessages ?? throw new InfoException(typeof(DeliveryGeneralInfo).FullName!, nameof(GetTlgWebAppPopupMessages),
+            => TlgWebAppPopupMessages ?? throw new InfoException(typeof(GeneralInfoOfOnlineStore).FullName!, nameof(GetTlgWebAppPopupMessages),
                 nameof(Exception), typeof(TlgWebAppPopupMessages).FullName!, ExceptionType.Null);
 
         /// <summary>
@@ -98,13 +98,13 @@ namespace WebAppAssembly.Shared.Entities.Telegram
         {
             if (groupId is null)
                 return ProductById(productId);
-            var itemCategories = ItemCategories ?? throw new InfoException(typeof(DeliveryGeneralInfo).FullName!, nameof(ProductById),
+            var itemCategories = ItemCategories ?? throw new InfoException(typeof(GeneralInfoOfOnlineStore).FullName!, nameof(ProductById),
                 nameof(Exception), $"{nameof(Enumerable)}<{typeof(TransportMenuCategoryDto).FullName!}>", ExceptionType.Null);
-            var itemCategory = itemCategories.FirstOrDefault(x => x.Id == groupId) ?? throw new InfoException(typeof(DeliveryGeneralInfo).FullName!,
+            var itemCategory = itemCategories.FirstOrDefault(x => x.Id == groupId) ?? throw new InfoException(typeof(GeneralInfoOfOnlineStore).FullName!,
                 nameof(ProductById), nameof(Exception), $"No found the menu category by GroupId - '{groupId}'");
-            var itemProducts = itemCategory.Items ?? throw new InfoException(typeof(DeliveryGeneralInfo).FullName!,
+            var itemProducts = itemCategory.Items ?? throw new InfoException(typeof(GeneralInfoOfOnlineStore).FullName!,
                 nameof(ProductById), nameof(Exception), $"{nameof(Enumerable)}<{typeof(TransportItemDto).FullName!}>", ExceptionType.Null);
-            return itemProducts.FirstOrDefault(x => x.ItemId == productId) ?? throw new InfoException(typeof(DeliveryGeneralInfo).FullName!,
+            return itemProducts.FirstOrDefault(x => x.ItemId == productId) ?? throw new InfoException(typeof(GeneralInfoOfOnlineStore).FullName!,
                 nameof(ProductById), nameof(Exception), $"No found the product item by ProductId - '{productId}'");
         }
 
@@ -117,7 +117,7 @@ namespace WebAppAssembly.Shared.Entities.Telegram
         public TransportItemDto ProductById(Guid productId)
         {
             var itemProducts = Products();
-            return itemProducts.FirstOrDefault(x => x.ItemId == productId) ?? throw new InfoException(typeof(DeliveryGeneralInfo).FullName!,
+            return itemProducts.FirstOrDefault(x => x.ItemId == productId) ?? throw new InfoException(typeof(GeneralInfoOfOnlineStore).FullName!,
                 nameof(ProductById), nameof(Exception), $"No found the product item by ProductId - '{productId}'");
         }
 
@@ -127,7 +127,7 @@ namespace WebAppAssembly.Shared.Entities.Telegram
         /// <returns></returns>
         /// <exception cref="InfoException"></exception>
         public IEnumerable<TransportItemDto> Products()
-            => TransportItemDtos ?? throw new InfoException(typeof(DeliveryGeneralInfo).FullName!,
+            => TransportItemDtos ?? throw new InfoException(typeof(GeneralInfoOfOnlineStore).FullName!,
                 nameof(Products), nameof(Exception), $"{nameof(Enumerable)}<{typeof(TransportItemDto).FullName!}>", ExceptionType.Null);
 
         /// <summary>
@@ -136,7 +136,7 @@ namespace WebAppAssembly.Shared.Entities.Telegram
         /// <returns></returns>
         /// <exception cref="InfoException"></exception>
         public TlgWebAppBtnTxts GetTlgWebAppBtnTxts()
-            => TlgWebAppBtnTxts ?? throw new InfoException(typeof(DeliveryGeneralInfo).FullName!,
+            => TlgWebAppBtnTxts ?? throw new InfoException(typeof(GeneralInfoOfOnlineStore).FullName!,
                 nameof(GetTlgWebAppBtnTxts), nameof(Exception), typeof(TlgWebAppBtnTxts).FullName!, ExceptionType.Null);
 
         /// <summary>
@@ -144,7 +144,7 @@ namespace WebAppAssembly.Shared.Entities.Telegram
         /// </summary>
         /// <returns></returns>
         /// <exception cref="InfoException"></exception>
-        public IEnumerable<TransportMenuCategoryDto> GetItemCategories() => ItemCategories ?? throw new InfoException(typeof(DeliveryGeneralInfo).FullName!,
+        public IEnumerable<TransportMenuCategoryDto> GetItemCategories() => ItemCategories ?? throw new InfoException(typeof(GeneralInfoOfOnlineStore).FullName!,
                 nameof(GetItemCategories), nameof(Exception), $"{nameof(Enumerable)}<{typeof(TransportMenuCategoryDto).FullName!}>", ExceptionType.Null);
     }
 }

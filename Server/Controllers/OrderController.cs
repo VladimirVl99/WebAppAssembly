@@ -13,32 +13,35 @@ namespace WebAppAssembly.Server.Controllers
     public class OrderController : ControllerBase
     {
         /// <summary>
-        /// 
+        /// Initializes the object for working with order infos
         /// </summary>
-        /// <param name="logger"></param>
         /// <param name="configuration"></param>
-        public OrderController(ILogger<OrderController> logger, IConfiguration configuration)
+        public OrderController(IConfiguration configuration)
         {
-            _logger = logger;
             ShoppingOrderService = new ShoppingOnlineService(configuration);
         }
 
-        private readonly ILogger<OrderController> _logger;
+        /// <summary>
+        /// For working with order infos
+        /// </summary>
         private readonly IShoppingOnlineService ShoppingOrderService;
 
 
         /// <summary>
-        /// 
+        /// Gets a necessary general data for the operation of the web application and gets a personal data of a customer,
+        /// for example: selected products, a selected delivery method, an address and etc.
         /// </summary>
         /// <param name="chatInfo"></param>
         /// <returns></returns>
         [HttpPost("mainInfoForWebAppOrder")]
-        public async Task<ActionResult<MainInfoForWebAppOrderOfServerSide>> MainInfoForWebAppOrderAsync(ChatInfo chatInfo)
+        public async Task<ActionResult<MainInfoForWebAppOrderOfServerSide>> GeneralInfoForWorkingWithOrderInWebAppAsync(ChatInfo chatInfo)
         {
             try
             {
-                var orderInfoOfCustomer = await ShoppingOrderService.GetOrderModelCashAsync(chatInfo);
-                return Ok(new MainInfoForWebAppOrderOfServerSide(orderInfoOfCustomer, ShoppingOrderService.DeliveryGeneralInfo, ShoppingOrderService.IsReleaseMode));
+                // Gets a personal data of a customer via API server
+                var orderInfoOfCustomer = await ShoppingOrderService.GetPersonalDataOfOrderAsync(chatInfo);
+                // Returns the gotten personal data of a customer, the general data for the operation of the web app and the web app operation mode
+                return Ok(new MainInfoForWebAppOrderOfServerSide(orderInfoOfCustomer, ShoppingOrderService.GeneralInfoOfOnlineStore, ShoppingOrderService.IsReleaseMode));
             }
             catch (Exception ex)
             {
@@ -48,12 +51,12 @@ namespace WebAppAssembly.Server.Controllers
         }
 
         /// <summary>
-        /// Receive the wallet balance by chat ID
+        /// Receives the wallet balance of a customer by the chat info
         /// </summary>
         /// <param name="chatInfo"></param>
         /// <returns></returns>
         [HttpPost("walletBalance")]
-        public async Task<ActionResult<WalletBalance>> WalletBalanceAsync(ChatInfo chatInfo)
+        public async Task<ActionResult<WalletBalance>> WalletBalanceOfCustomerAsync(ChatInfo chatInfo)
         {
             try
             {
@@ -67,16 +70,16 @@ namespace WebAppAssembly.Server.Controllers
         }
 
         /// <summary>
-        /// 
+        /// Saves the changed personal data in API server
         /// </summary>
         /// <param name="order"></param>
         /// <returns></returns>
         [HttpPost("saveOrderInfoInServer")]
-        public async Task<IActionResult> SendOrderInfoToServerAsync(OrderModelOfServer order)
+        public async Task<IActionResult> SavePersonalDataOfOrderInServerAsync(PersonalInfoOfOrderByServerSide order)
         {
             try
             {
-                await ShoppingOrderService.SendOrderInfoToServerAsync(order);
+                await ShoppingOrderService.SavePersonalDataOfOrderInServerAsync(order);
                 return Ok();
             }
             catch (Exception ex)
@@ -87,12 +90,12 @@ namespace WebAppAssembly.Server.Controllers
         }
 
         /// <summary>
-        /// 
+        /// Caluculates the checkin for the order (loaylty program)
         /// </summary>
         /// <param name="order"></param>
         /// <returns></returns>
         [HttpPost("calculateCheckin")]
-        public async Task<ActionResult<LoyaltyCheckinInfo>> CalculateCheckinAsync(OrderModelOfServer order)
+        public async Task<ActionResult<LoyaltyCheckinInfo>> CalculateCheckinAsync(PersonalInfoOfOrderByServerSide order)
         {
             try
             {
@@ -106,16 +109,16 @@ namespace WebAppAssembly.Server.Controllers
         }
 
         /// <summary>
-        /// 
+        /// Gets an invoice link to pay the order in the Telegram interface
         /// </summary>
         /// <param name="order"></param>
         /// <returns></returns>
         [HttpPost("createInvoiceLink")]
-        public async Task<ActionResult<InvoiceLinkStatus>> CreateInvoiceLinkAsync(OrderModelOfServer order)
+        public async Task<ActionResult<InvoiceLinkStatus>> RetrieveInvoiceLinkAsync(PersonalInfoOfOrderByServerSide order)
         {
             try
             {
-                return Ok(await ShoppingOrderService.CreateInvoiceLinkAsync(order));
+                return Ok(await ShoppingOrderService.RetrieveInvoiceLinkAsync(order));
             }
             catch (Exception ex)
             {

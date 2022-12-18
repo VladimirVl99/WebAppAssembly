@@ -42,14 +42,14 @@
     else
     {
         // General data that is used for a shopping online
-        var dgi = OrderService.DeliveryGeneralInfo;
+        var dgi = OrderService.GeneralInfoOfOnlineStore;
 
         // Show the main page for:
         // - selecting products
         // - selecting categories of products
         // - selecting the number of products
         // This page is showing categories and products with simple info (images, prices, chosed amounts and restrictions)
-        if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.SelectingProducts)
+        if (StateOfPage.PageTypeOfOrder == PageViewType.SelectingProducts)
         {
             // Info of categories of menu
             var itemCategories = dgi.ItemCategories;
@@ -151,7 +151,7 @@
                                 {
                                     var product = productsArr[j];
                                     <div class="col">
-                                        @if (OrderService.OrderInfo.ItemByIdOrDefault(product.GetItemId()) is null)
+                                        @if (OrderService.PersonalInfoOfOrder.ItemByIdOrDefault(product.GetItemId()) is null)
                                         {
                                             <div class="TlBlr_div TlBlrCounter_x TlBlrDesktopProductCard_footer TlBlrCounter_y">
                                                 <button @onclick="(e => AddProductItemInSelectingProductPageAsync(product.GetItemId()))" class="TlBlrCounter_btn TlBlrCounter_onlyIncrement"
@@ -169,7 +169,7 @@
                                                         <path fill-rule="evenodd" clip-rule="evenodd" d="M6 12a1 1 0 0 0 1 1h10a1 1 0 1 0 0-2H7a1 1 0 0 0-1 1Z" fill="currentColor"></path>
                                                     </svg>
                                                 </button>
-                                                <span>@OrderService.OrderInfo.SelectedTotalAmountByItemId(product.GetItemId())</span>
+                                                <span>@OrderService.PersonalInfoOfOrder.SelectedTotalAmountByItemId(product.GetItemId())</span>
                                                 <button @onclick="(e => AddProductItemInSelectingProductPageAsync(product.GetItemId()))" class="TlBlrCounter_btn TlBlrCounter_increment"
                     data-testid="amount-select-increment">
                                                     <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" class="TlBlrIcon_y TlBlrIcon_root TlBlrCounter_icon">
@@ -194,7 +194,7 @@
             // Show the button for to go the shopping cart (only for test)
             if (!OrderService.IsReleaseMode)
             {
-                if (OrderService.OrderInfo.HaveSelectedProducts())
+                if (OrderService.PersonalInfoOfOrder.HaveSelectedProducts())
                 {
                     <div>
                         <center>
@@ -211,7 +211,7 @@
         // - selecting sizes of the product
         // This page is showing the product description and restrictions of the product
         // Notice! #0002
-        else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.SelectingModifiersAndAmountsForProduct
+        else if (StateOfPage.PageTypeOfOrder == PageViewType.SelectingModifiersAndAmountsForProduct
         && OrderService.CurrItem is not null && OrderService.CurrProductItem is not null)
         {
             // Info of the selected product with modifiers or sizes
@@ -416,7 +416,7 @@
         // - selecting the number of the product
         // This page is showing the product description and restrictions of the product
         // Notice! #0003
-        else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.SelectingAmountsForProducts
+        else if (StateOfPage.PageTypeOfOrder == PageViewType.SelectingAmountsForProducts
         && OrderService.CurrItem is not null && OrderService.CurrProductItem is not null)
         {
             // Info of the selected product with modifiers or sizes
@@ -491,13 +491,13 @@
         // - changing the number of the products with sample IDs wich have modifiers/sizes
         // - empty selected positions
         // Notice! #0004
-        else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.ChangingSelectedProductsWithModifiers
+        else if (StateOfPage.PageTypeOfOrder == PageViewType.ChangingSelectedProductsWithModifiers
         && OrderService.CurrentProduct is not null && OrderService.CurrProductItem is not null)
         {
             // To separate positions in this page
             bool hr = false;
             // Choose positions by only the product which being modified
-            var items = OrderService.OrderInfo.CurrItems().Where(x => x.ProductId == OrderService.CurrentProduct.GetProductId());
+            var items = OrderService.PersonalInfoOfOrder.CurrItems().Where(x => x.ProductId == OrderService.CurrentProduct.GetProductId());
             // Information about the product which being modified
             var product = OrderService.CurrProductItem;
             // Final sum of selected positions
@@ -585,7 +585,7 @@
         // - This page is showing selected products and positions wiht amounts, choosen modifiers and sizes, prices.
         // Final pay sum with discount procent too. Delivery method with typed address
         // Notice! #0005
-        else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.ShoppingCart)
+        else if (StateOfPage.PageTypeOfOrder == PageViewType.ShoppingCart)
         {   
             <div class="container-fluid">
                 @* Just to show 'Trash' for a test *@
@@ -627,11 +627,11 @@
                 }
 
                 @* Show contents of the shopping cart *@
-                @if (OrderService.OrderInfo.Items is not null)
+                @if (OrderService.PersonalInfoOfOrder.Items is not null)
                 {
-                    foreach (var item in OrderService.OrderInfo.Items)
+                    foreach (var item in OrderService.PersonalInfoOfOrder.Items)
                     {
-                        var product = OrderService.DeliveryGeneralInfo.ProductById(item.ProductId);
+                        var product = OrderService.GeneralInfoOfOnlineStore.ProductById(item.ProductId);
 
                         if (hr)
                         {
@@ -676,7 +676,7 @@
                                 <div align="right" class="col-2">
                                     @{
                                         var totalSum = item.TotalPrice;
-                                        var freeItems = OrderService.OrderInfo.DiscountFreeItems?.Where(id => id == item.PositionId);
+                                        var freeItems = OrderService.PersonalInfoOfOrder.DiscountFreeItems?.Where(id => id == item.PositionId);
                                     }
 
                                     @if (freeItems is not null && freeItems.Any())
@@ -722,7 +722,7 @@
                                 @* 100% discount on one of these items is displayed *@
                                 <div align="right" class="col-2">
                                     @{
-                                        var freeItems = OrderService.OrderInfo.DiscountFreeItems?.Where(id => id == item.PositionId);
+                                        var freeItems = OrderService.PersonalInfoOfOrder.DiscountFreeItems?.Where(id => id == item.PositionId);
                                     }
 
                                     @if (freeItems is not null && freeItems.Any())
@@ -746,11 +746,11 @@
                 }
 
                 @* Show free items *@
-                @if (OrderService.OrderInfo.FreeItems is not null)
+                @if (OrderService.PersonalInfoOfOrder.FreeItems is not null)
                 {
-                    foreach (var item in OrderService.OrderInfo.FreeItems)
+                    foreach (var item in OrderService.PersonalInfoOfOrder.FreeItems)
                     {
-                        var product = OrderService.DeliveryGeneralInfo.ProductById(item.ProductId);
+                        var product = OrderService.GeneralInfoOfOnlineStore.ProductById(item.ProductId);
 
                         <hr style="color:lightgrey;" />
                         <div class="row" style="--bs-gutter-x:0.6rem;">
@@ -770,9 +770,9 @@
             <br />
 
             @* Show the discount amount *@
-            @if (OrderService.OrderInfo.DiscountSum > 0)
+            @if (OrderService.PersonalInfoOfOrder.DiscountSum > 0)
             {
-                var discountProcent = OrderService.OrderInfo.DiscountProcent;
+                var discountProcent = OrderService.PersonalInfoOfOrder.DiscountProcent;
                 bool isInteger = (int)(discountProcent * 100 % 100) == 0;
                 <h5 style="margin-top:5px;">Скидка: -@(isInteger ? $"{discountProcent:f0}" : $"{discountProcent:f2}")%</h5>
 
@@ -781,18 +781,18 @@
                         <h5>Итого:</h5>
                     </div>
                     <div class="col" style="flex:0 0 auto;width:80%;">
-                        <h6 align="left" style="padding-top:5px;"><del>₽@OrderService.OrderInfo.TotalSum</del></h6>
-                        <h6 align="left">₽@(OrderService.OrderInfo.FinalSum)</h6>
+                        <h6 align="left" style="padding-top:5px;"><del>₽@OrderService.PersonalInfoOfOrder.TotalSum</del></h6>
+                        <h6 align="left">₽@(OrderService.PersonalInfoOfOrder.FinalSum)</h6>
                     </div>
                 </div>
             }
 
             @* Using the coupon *@
-            @if (OrderService.DeliveryGeneralInfo.UseCoupon && OrderService.IsLoyaltyProgramAvailableForProcess)
+            @if (OrderService.GeneralInfoOfOnlineStore.UseCoupon && OrderService.IsLoyaltyProgramAvailableForProcess)
             {
                 <div class="row" style="padding-bottom:5px;--bs-gutter-x:0.6rem;">
                         <div class="col">
-                        <input class="comment" type="text" name="Coupon" placeholder="Введите промокод" @bind="@OrderService.OrderInfo.Coupon" />
+                        <input class="comment" type="text" name="Coupon" placeholder="Введите промокод" @bind="@OrderService.PersonalInfoOfOrder.Coupon" />
                     </div>
                     <div class="col">
                         <button @onclick="CalculateLoyaltyProgramByCouponAsync" class="btn btn-light TlBlrCouponApply" style="box-shadow:none;background-color:#F5F4F2;height:100%;">
@@ -803,20 +803,20 @@
             }
 
             @* The ability to use bonuses under certain conditions *@
-            if (OrderService.OrderInfo.WalletBalance > 0 && OrderService.OrderInfo.AllowedWalletSum > 0 && OrderService.IsLoyaltyProgramAvailableForProcess)
+            if (OrderService.PersonalInfoOfOrder.WalletBalance > 0 && OrderService.PersonalInfoOfOrder.AllowedWalletSum > 0 && OrderService.IsLoyaltyProgramAvailableForProcess)
             {
                 <h5>Бонусные баллы</h5>
                 @* Notice! Depending on the balance, change the word "balance" (#0005) *@
-                <h6 style="padding-bottom: 3px;">У Вас накоплено @(OrderService.OrderInfo.WalletBalance) баллов</h6>
+                <h6 style="padding-bottom: 3px;">У Вас накоплено @(OrderService.PersonalInfoOfOrder.WalletBalance) баллов</h6>
                 <div class="row" style="--bs-gutter-x:0.6rem;padding-bottom: 5px;">
                     <div class="col-6" style="position:relative;">
                         <input type="range" class="form-range" style="margin:0;position:absolute;top:50%;left:50%;margin-right:-50%;transform:translate(-50%,-50%);
     padding-left:10px;padding-right:10px;"
-               min="0" max="@(OrderService.OrderInfo.AllowedWalletSum)" id="customRangeForWalletBalance" value="@OrderService.OrderInfo.SelectedWalletSum"
+               min="0" max="@(OrderService.PersonalInfoOfOrder.AllowedWalletSum)" id="customRangeForWalletBalance" value="@OrderService.PersonalInfoOfOrder.SelectedWalletSum"
                             @oninput="OnChangeAllowedWalletSum">
                     </div>
                     <div class="col-2" style="position:relative;">
-                        <h5 style="margin:0;position:absolute;top:50%;left:50%;margin-right:-50%;transform:translate(-50%,-50%);">@(OrderService.OrderInfo.SelectedWalletSum)</h5>
+                        <h5 style="margin:0;position:absolute;top:50%;left:50%;margin-right:-50%;transform:translate(-50%,-50%);">@(OrderService.PersonalInfoOfOrder.SelectedWalletSum)</h5>
                     </div>
                 </div>
             }
@@ -825,9 +825,9 @@
                 <h5>Способ доставки</h5>
             </div>
             @* Filling in the delivery address *@
-            @if (OrderService.OrderInfo.ByCourier)
+            @if (OrderService.PersonalInfoOfOrder.ByCourier)
             {
-                var address = OrderService.OrderInfo.Address!;
+                var address = OrderService.PersonalInfoOfOrder.Address!;
                 var city = address.City;
                 var street = address.Street;
                 var house = address.House;
@@ -843,20 +843,20 @@
                 </div>
 
                 <input class="comment" type="text" name="City" placeholder="Город" value="@city"
-       @oninput="(e => { var res = e.Value.ToString(); OrderService.OrderInfo.Address!.City = res is null ? OrderService.OrderInfo.Address!.City : res; })" />
+       @oninput="(e => { var res = e.Value.ToString(); OrderService.PersonalInfoOfOrder.Address!.City = res is null ? OrderService.PersonalInfoOfOrder.Address!.City : res; })" />
                 <input class="comment" type="text" name="Street" placeholder="Улица" value="@street"
-       @oninput="(e => { var res = e.Value.ToString(); OrderService.OrderInfo.Address!.Street = res is null ? OrderService.OrderInfo.Address!.Street : res; })" />
+       @oninput="(e => { var res = e.Value.ToString(); OrderService.PersonalInfoOfOrder.Address!.Street = res is null ? OrderService.PersonalInfoOfOrder.Address!.Street : res; })" />
                 <div style="display: flex;">
                     <input class="comment" style="width:49%;" type="text" name="House" placeholder="Дом" value="@house"
-                    @oninput="(e => { var res = e.Value.ToString(); OrderService.OrderInfo.Address!.House = res is null ? OrderService.OrderInfo.Address!.House : res; })" />
+                    @oninput="(e => { var res = e.Value.ToString(); OrderService.PersonalInfoOfOrder.Address!.House = res is null ? OrderService.PersonalInfoOfOrder.Address!.House : res; })" />
                     <input class="comment" style="width:49%;margin-left:auto;margin-right:0em;" type="text" name="Flat" placeholder="Квартира" value="@flat"
-           @oninput="(e => { var res = e.Value.ToString(); OrderService.OrderInfo.Address!.Flat = res is null ? OrderService.OrderInfo.Address!.Flat : res; })" />
+           @oninput="(e => { var res = e.Value.ToString(); OrderService.PersonalInfoOfOrder.Address!.Flat = res is null ? OrderService.PersonalInfoOfOrder.Address!.Flat : res; })" />
                 </div>
                 <div style="display: flex;">
                     <input class="comment" style="width:49%;" type="text" name="Entrance" placeholder="Подъезд" value="@entrance"
-           @oninput="(e => { var res = e.Value.ToString(); OrderService.OrderInfo.Address!.Entrance = res is null ? OrderService.OrderInfo.Address!.Entrance : res; })" />
+           @oninput="(e => { var res = e.Value.ToString(); OrderService.PersonalInfoOfOrder.Address!.Entrance = res is null ? OrderService.PersonalInfoOfOrder.Address!.Entrance : res; })" />
                     <input class="comment" style="width:49%;margin-left:auto;margin-right:0em;" type="text" name="Floor" placeholder="Этаж" value="@floor"
-           @oninput="(e => { var res = e.Value.ToString(); OrderService.OrderInfo.Address!.Floor = res is null ? OrderService.OrderInfo.Address!.Floor : res; })" />
+           @oninput="(e => { var res = e.Value.ToString(); OrderService.PersonalInfoOfOrder.Address!.Floor = res is null ? OrderService.PersonalInfoOfOrder.Address!.Floor : res; })" />
                 </div>
             }
             @* Choosing the pickup address *@
@@ -874,10 +874,10 @@
                 <div style="margin-top:10px;">
                     <select class="form-select" style="box-shadow:none;" aria-label="Default select example" @onchange="@OnSelectTerminalAsync">
                         @{
-                            var delTerminal = OrderService.OrderInfo.DeliveryTerminal;
-                            if (delTerminal is null && OrderService.OrderInfo.TerminalId is not null && OrderService.OrderInfo.TerminalId != Guid.Empty)
+                            var delTerminal = OrderService.PersonalInfoOfOrder.DeliveryTerminal;
+                            if (delTerminal is null && OrderService.PersonalInfoOfOrder.TerminalId is not null && OrderService.PersonalInfoOfOrder.TerminalId != Guid.Empty)
                             {
-                                delTerminal = OrderService.DeliveryGeneralInfo.DeliveryTerminals?.FirstOrDefault(x => x.Id == OrderService.OrderInfo.TerminalId);
+                                delTerminal = OrderService.GeneralInfoOfOnlineStore.DeliveryTerminals?.FirstOrDefault(x => x.Id == OrderService.PersonalInfoOfOrder.TerminalId);
                             }
                         }
                         @if (delTerminal is not null)
@@ -889,9 +889,9 @@
                             <option selected>Выберите улицу</option>
                         }
 
-                        @if (OrderService.DeliveryGeneralInfo.DeliveryTerminals is not null)
+                        @if (OrderService.GeneralInfoOfOnlineStore.DeliveryTerminals is not null)
                         {
-                            foreach (var terminal in OrderService.DeliveryGeneralInfo.DeliveryTerminals)
+                            foreach (var terminal in OrderService.GeneralInfoOfOnlineStore.DeliveryTerminals)
                             {
                                 <option value="@terminal.Id">@terminal.Name</option>
                             }
@@ -901,7 +901,7 @@
             }
 
             @* Comment field *@
-            <input class="comment" type="text" name="Comment" placeholder="Ваш комментарий..." @bind="@OrderService.OrderInfo.Comment"/>
+            <input class="comment" type="text" name="Comment" placeholder="Ваш комментарий..." @bind="@OrderService.PersonalInfoOfOrder.Comment"/>
 
             @* A button to pay order (only for test) *@
             <div>
@@ -910,13 +910,13 @@
                 {
                     <central>
                         @*The button for to pay the created order if the page isn't going to open in the Telegram app*@
-                        @if (OrderService.OrderInfo.TotalSum < OrderService.DeliveryGeneralInfo.CurrOfRub)
+                        @if (OrderService.PersonalInfoOfOrder.TotalSum < OrderService.GeneralInfoOfOnlineStore.CurrOfRub)
                         {
-                            <button data-toggle="modal" data-target="#productModal" class="btn btn-success" disabled>Pay ₽@(OrderService.OrderInfo.TotalSum)</button>
+                            <button data-toggle="modal" data-target="#productModal" class="btn btn-success" disabled>Pay ₽@(OrderService.PersonalInfoOfOrder.TotalSum)</button>
                         }
                         else
                         {
-                            var sum = OrderService.OrderInfo.FinalSum;
+                            var sum = OrderService.PersonalInfoOfOrder.FinalSum;
                             <button @onclick="(e => PayOrderForTestAsync())" data-toggle="modal" data-target="#productModal" class="btn btn-success">Оплатить ₽@(sum)</button>
                         }
                     </central>
@@ -924,7 +924,7 @@
             </div>
         }
         // Show information about the created order
-        else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.InfoAboutCreatedOrder && !OrderService.IsReleaseMode)
+        else if (StateOfPage.PageTypeOfOrder == PageViewType.InfoAboutCreatedOrder && !OrderService.IsReleaseMode)
         {
             <p>@OrderService.InfoAboutCreatedOrderForTest()</p>
         }
@@ -940,10 +940,10 @@ else {
 
 @code {
     // Responsible for all operations and calculations on orders, there is also a connection with the API server from where all necessary data is taken
-    private IOrderService? OrderService { get; set; }
-    // This library responsible for interacting with the Telegram interface using JavaScript language
+    private IOnlineStoreService? OrderService { get; set; }
+    // This interface responsible for interacting with the Telegram interface using JavaScript language
     private ITwaNet? TwaNet { get; set; }
-    // A library that facilitates interaction with JavaScript language
+    // The interface that facilitates interaction with JavaScript language
     private IJsHelperService? JsHelperService { get; set; }
     // Responsible for states and statuses of this Web App
     private StateOfPage? StateOfPage { get; set; }
@@ -964,9 +964,9 @@ else {
             TwaNet = new TwaNet();
             // Get chat ID from the Telegram
             var chatId = await TwaNet.TwaNetInitAsync(JsRuntime);
-            OrderService = new OrderService(Http);
+            OrderService = new OnlineStoreService(Http);
             // Retrive general data and personal data by chat ID from API server and initialize this service
-            await OrderService.OrderServiceInitAsync(chatId, OrderControllerPaths.RetrieveMainInfoForWebAppOrder);
+            await OrderService.InitOnlineStoreServiceAsync(chatId, OrderControllerPaths.RetrieveMainInfoForWebAppOrder);
             // Set a color button that has been received from API server
             await TwaNet.SetMainBtnColorAsync(JsRuntime, OrderService.TlgMainBtnColor);
             // Downloading necessary data and initializing all modeles for the operation this Web App is finished
@@ -978,7 +978,7 @@ else {
             if (OrderService.HaveSelectedProductsAtFirst())
             {
                 // Notice! #0006
-                var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
+                var btnText = OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().SelectingProducts;
                 await TwaNet.SetMainButtonTextAsync(JsRuntime, btnText);
             }
             // Listen the main and back buttons by click
@@ -992,8 +992,8 @@ else {
             {
                 try
                 {
-                    OrderService = new OrderService(Http);
-                    await OrderService.OrderServiceInitAsync(TestChatId, OrderControllerPaths.RetrieveMainInfoForWebAppOrder);
+                    OrderService = new OnlineStoreService(Http);
+                    await OrderService.InitOnlineStoreServiceAsync(TestChatId, OrderControllerPaths.RetrieveMainInfoForWebAppOrder);
                 }
                 catch (Exception iex)
                 {
@@ -1012,7 +1012,7 @@ else {
         }
     }
 
-    // Add the choosen group ID like a main
+    // Adds the choosen group ID like a main group among others
     private async Task AddCurrentGroupId(Guid id)
     {
         // Any actions in the page is forbidden
@@ -1021,6 +1021,7 @@ else {
         try
         {
             OrderService!.CurrentGroupId = id;
+            // Available to use the Telegram WebApp interface in this mode (WebApp have to be loaded via the Telegram)
             if (OrderService!.IsReleaseMode)
             {
                 // Call the haptic feedback in a Web App
@@ -1034,41 +1035,52 @@ else {
         }
     }
 
-    // Add a position by product ID
+    // Adds a position by product ID
     private async Task AddProductItemInSelectingProductPageAsync(Guid productId)
     {
         try
-        {   
+        {
+            // Any actions in the page is forbidden
             if (StateOfPage!.IsPageBlocked) return;
 
+            // Available to use the Telegram WebApp interface in this mode (WebApp have to be loaded via the Telegram)
             else if (OrderService!.IsReleaseMode)
             {
+                // Call the haptic feedback in a Web App
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
             }
 
             // Add position or increase amount of the product, get back an item info
-            var productInfo = await OrderService!.AddProductItemInSelectingProductPageAsync(productId);
+            var productInfo = await OrderService!.AddOrIncreaseItemPositionForSelectingProductPageAsync(productId);
             // Get a general info about a product by ID
-            var product = OrderService.DeliveryGeneralInfo.ProductById(productId);
+            var product = OrderService.GeneralInfoOfOnlineStore.ProductById(productId);
+
             if (OrderService.IsReleaseMode)
             {
-                if (product.HaveModifiersOrSizesMoreThanOne())
+                if (product.HaveModifiersOrSeveralSizes())
                 {
-                    StateOfPage.GoToPage(PageTypeOfOrder.SelectingModifiersAndAmountsForProduct);
-                    var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingModifiersAndAmountsForProduct;
+                    // Go to the page view where can be choosen the number of positions, modifiers and sizes
+                    StateOfPage.GoToPage(PageViewType.SelectingModifiersAndAmountsForProduct);
+                    // Text of the Tg (Telegram) main button for the next page view
+                    var btnText = OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().SelectingModifiersAndAmountsForProduct;
+                    // Add to the text the total cost of the selected product with modifiers and sizes
                     btnText = string.Format(btnText, productInfo.TotalSumOfSelectedProductWithModifiers());
+                    // Display the done text on the Tg main button
                     await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
+                    // Show the Tg button to go back
                     await TwaNet.ShowBackButtonAsync(JsRuntime);
                 }
+                // Show the Tg main button if at least one position has been selected 
                 else if (productInfo.IsFirstSelected)
                 {
-                    var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
+                    // Text of the Tg main button for the current page view
+                    var btnText = OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().SelectingProducts;
                     await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
                 }
             }
-            else if (product.HaveModifiersOrSizesMoreThanOne())
+            else if (product.HaveModifiersOrSeveralSizes())
             {
-                StateOfPage.GoToPage(PageTypeOfOrder.SelectingModifiersAndAmountsForProduct);
+                StateOfPage.GoToPage(PageViewType.SelectingModifiersAndAmountsForProduct);
             }
         }
         catch (Exception ex)
@@ -1077,35 +1089,48 @@ else {
         }
     }
 
-    // Remove product in the main menu +
+    // Removes a position by product ID / change the number of product positions (more than one position) that has modifiers or sizes
     private async Task RemoveProductItemInSelectingProductPageAsync(Guid productId)
     {
         try
         {
+            // Any actions in the page is forbidden
             if (StateOfPage!.IsPageBlocked) return;
+
+            // Available to use the Telegram WebApp interface in this mode (WebApp have to be loaded via the Telegram)
             else if (OrderService!.IsReleaseMode)
             {
+                // Call the haptic feedback in a Web App
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
             }
 
-            var product = OrderService!.DeliveryGeneralInfo.ProductById(productId, OrderService.CurrentGroupId);
+            // Get a general info about a product by ID
+            var product = OrderService!.GeneralInfoOfOnlineStore.ProductById(productId, OrderService.CurrentGroupId);
 
             if (OrderService!.IsReleaseMode)
             {
-                if (product.HaveModifiersOrSizesMoreThanOne())
+                if (product.HaveModifiersOrSeveralSizes())
                 {
-                    if ((await OrderService.RemoveProductItemWithModifiersInSelectingProductPageAsync(product)))
+                    // If the number of positions is more than one, the 'true' flag is returned, otherwise the number of product positions is
+                    // simply decreased
+                    if ((await OrderService.RemoveOrDecreaseItemPositionWithModifiersOrSizesForSelectingProductPageAsync(product)))
                     {
-                        StateOfPage!.GoToPage(PageTypeOfOrder.ChangingSelectedProductsWithModifiers);
-                        var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ChangingSelectedProductsWithModifiers;
+                        // Go to the page view where can be changed the number of product positions
+                        StateOfPage!.GoToPage(PageViewType.ChangingSelectedProductsWithModifiers);
+                        // Text of the Tg main button for the next page view
+                        var btnText = OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().ChangingSelectedProductsWithModifiers;
+                        // Display the done text on the Tg main button
                         await TwaNet!.ShowBackButtonAsync(JsRuntime);
+                        // Show the Tg button to go back
                         await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
                     }
                 }
                 else
                 {
-                    await OrderService!.RemoveProductItemInSelectingProductPageAsync(product);                    
-                    if (!OrderService.OrderInfo.HaveSelectedProducts())
+                    // Decrease the number of product position
+                    await OrderService!.RemoveOrDecreaseItemPositionForSelectingProductPageAsync(product);       
+                    // If there are no selected products, then to hide the Tg main button
+                    if (!OrderService.PersonalInfoOfOrder.HaveSelectedProducts())
                     {
                         await TwaNet!.HideMainButtonAsync(JsRuntime);
                     }
@@ -1113,14 +1138,20 @@ else {
             }
             else
             {
-                if (product.HaveModifiersOrSizesMoreThanOne())
+                if (product.HaveModifiersOrSeveralSizes())
                 {
-                    if ((await OrderService.RemoveProductItemWithModifiersInSelectingProductPageAsync(product)))
-                        StateOfPage!.GoToPage(PageTypeOfOrder.ChangingSelectedProductsWithModifiers);
+                    // If the number of positions is more than one, the 'true' flag is returned, otherwise the number of product positions is
+                    // simply decreased
+                    if ((await OrderService.RemoveOrDecreaseItemPositionWithModifiersOrSizesForSelectingProductPageAsync(product)))
+                    {
+                        // Go to the page view where can be changed the number of product positions
+                        StateOfPage!.GoToPage(PageViewType.ChangingSelectedProductsWithModifiers);
+                    }
                 }
                 else
                 {
-                    await OrderService!.RemoveProductItemInSelectingProductPageAsync(product);
+                    // Decrease the number of product position
+                    await OrderService!.RemoveOrDecreaseItemPositionForSelectingProductPageAsync(product);
                 }
             }
         }
@@ -1130,26 +1161,36 @@ else {
         }
     }
 
-    // Increase an amount of product by ID in the shopping cart +
+    // Increases the number of product position in the shopping cart. If a loaylty program is used, then also a discount is calculated
+    // when increasing position
     private async Task AddProductItemInShoppingCartPageAsync(Guid productId, Guid? positionId = null)
     {
         try
         {
+            // Any actions in the page is forbidden
             if (StateOfPage!.IsPageBlocked) return;
 
+            // Available to use the Telegram WebApp interface in this mode (WebApp have to be loaded via the Telegram)
             if (OrderService!.IsReleaseMode)
             {
+                // Call the haptic feedback in a Web App
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
+                // Display a loading indicator on the Tg main button
                 await TwaNet!.ShowProgressAsync(JsRuntime);
+                // Increase the number of product position and if a loaylty program is used then can caluculate that
+                await OrderService!.IncreaseItemPositionForShoppingCartPageAsync(JsRuntime, TwaNet!, productId, positionId);
 
-                await OrderService!.AddProductItemInShoppingCartPageAsync(JsRuntime, TwaNet!, productId, positionId);
-
-                var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart;
+                // Text of the Tg main button that shows the amount to be paid
+                var btnText = OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().ShoppingCart;
+                // Add to the text the total cost of the selected products and discounts
                 btnText = string.Format(btnText, OrderService!.FinalSumOfOrder());
+                // Hide a loading indicator on the Tg main button
                 await TwaNet!.HideProgressAsync(JsRuntime);
+                // Show the resulting text on the Tg main button
                 await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
             }
-            else await OrderService!.AddProductItemInShoppingCartPageAsync(productId, positionId);
+            // Increase the number of product position and if a loaylty program is used then can caluculate that
+            else await OrderService!.IncreaseItemPositionForShoppingCartPageAsync(productId, positionId);
         }
         catch (Exception ex)
         {
@@ -1161,35 +1202,53 @@ else {
         }
     }
 
-    // Decrease an amount of product by ID in the shopping cart +
+    // Decreases the number of product position in the shopping cart. If a loaylty program is used, then also a discount is calculated
+    // when increasing position. If no products is remained in the shopping cart, then go back to the main page view
     private async Task RemoveProductItemInShoppingCartPageAsync(Guid productId, Guid? positionId = null)
     {
         try
         {
+            // Any actions in the page is forbidden
             if (StateOfPage!.IsPageBlocked) return;
 
+            // Available to use the Telegram WebApp interface in this mode (WebApp have to be loaded via the Telegram)
             if (OrderService!.IsReleaseMode)
             {
+                // Call the haptic feedback in a Web App
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
+                // Display a loading indicator on the Tg main button
                 await TwaNet!.ShowProgressAsync(JsRuntime);
 
-                if ((await OrderService!.RemoveProductItemInShoppingCartPageAsync(JsRuntime, TwaNet!, productId, positionId)) is null &&
-                !OrderService.OrderInfo.HaveSelectedProducts())
+                // If after decreasing the number of product positions there are none left, then remove this product position.
+                // Also, if there are no products left in the shopping cart, then get back to the main page view.
+                // If a loaylty program is used then can caluculate that
+                if ((await OrderService!.RemoveOrDecreaseItemPositionForShoppingCartPageAsync(JsRuntime, TwaNet!, productId, positionId)) is null &&
+                !OrderService.PersonalInfoOfOrder.HaveSelectedProducts())
                 {
+                    // Go back to the preview page
                     StateOfPage.GoBack();
+                    // Hide the Tg back button
                     await TwaNet!.HideBackButtonAsync(JsRuntime);
+                    // Hide the Tg main button
                     await TwaNet!.HideMainButtonAsync(JsRuntime);
                 }
                 else
                 {
-                    var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart;
+                    // Text of the Tg main button that shows the amount to be paid
+                    var btnText = OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().ShoppingCart;
+                    // Add to the text the total cost of the selected products and discounts
                     btnText = string.Format(btnText, OrderService!.FinalSumOfOrder());
+                    // Show the resulting text on the Tg main button
                     await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
                 }
+                // Hide a loading indicator on the Tg main button
                 await TwaNet!.HideProgressAsync(JsRuntime);
             }
-            else if ((await OrderService!.RemoveProductItemInShoppingCartPageAsync(productId, positionId)) is null &&
-                !OrderService.OrderInfo.HaveSelectedProducts())
+            // If after decreasing the number of product positions there are none left, then remove this product position.
+            // Also, if there are no products left in the shopping cart, then get back to the main page view.
+            // If a loaylty program is used then can caluculate that
+            else if ((await OrderService!.RemoveOrDecreaseItemPositionForShoppingCartPageAsync(productId, positionId)) is null &&
+                !OrderService.PersonalInfoOfOrder.HaveSelectedProducts())
             {
                 StateOfPage.GoBack();
             }
@@ -1204,17 +1263,20 @@ else {
         }
     }
 
-    // Increase an amount of product with modifiers by ID +
+    // Increase the number of product position in the 'ChangingSelectedProductsWithModifiers' page view
     private async Task AddProductItemInChangingSelectedProductsWithModifiersPageAsync(Guid productId, Guid positionId)
     {
         try
         {
+            // Available to use the Telegram WebApp interface in this mode (WebApp have to be loaded via the Telegram)
             if (OrderService!.IsReleaseMode)
             {
+                // Call the haptic feedback in a Web App
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
             }
 
-            await OrderService!.AddProductItemInChangingSelectedProductsWithModifiersPageAsync(productId, positionId);
+            // Increase the number of product position by product and position ID
+            await OrderService!.IncreaseItemPositionWithModifiersOrSizesForChangingSelectedProductsWithModifiersPageAsync(productId, positionId);
         }
         catch (Exception ex)
         {
@@ -1222,29 +1284,40 @@ else {
         }
     }
 
-    // Decrease an amount of product with modifiers by ID +
+    // Increases the number of product position in the 'ChangingSelectedProductsWithModifiers' page view.
+    // If there are no product positions left, then go back to the main page veiw
     private async Task RemoveProductItemInChangingSelectedProductsWithModifiersPageAsync(Guid productId, Guid positionId)
     {
         try
         {
+            // Available to use the Telegram WebApp interface in this mode (WebApp have to be loaded via the Telegram)
             if (OrderService!.IsReleaseMode)
             {
+                // Call the haptic feedback in a Web App
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
 
-                if ((await OrderService!.RemoveProductItemInChangingSelectedProductsWithModifiersPageAsync(productId, positionId)) is null)
+                // If after decreasing the number of product positions by product and position ID there are none left, then remove this product position
+                if ((await OrderService!.RemoveOrDecreaseItemPositionWithModifiersOrSizesForChangingSelectedProductsWithModifiersPageAsync(productId, positionId)) is null)
                 {
-                    if (!OrderService.OrderInfo.CurrItems().Where(x => x.ProductId == productId).Any())
+                    // If there are no product positions left by product ID, then go back to the main page view
+                    if (!OrderService.PersonalInfoOfOrder.CurrItems().Where(x => x.ProductId == productId).Any())
                     {
+                        // Go back to the preview page
                         StateOfPage!.GoBack();
+                        // Hide the back button of Tg
                         await TwaNet.HideBackButtonAsync(JsRuntime);
 
-                        if (OrderService.OrderInfo.HaveSelectedProducts())
+                        // If there are any selected products left, then show the Tg's main button of the main page view
+                        if (OrderService.PersonalInfoOfOrder.HaveSelectedProducts())
                         {
-                            var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
+                            // Text of Tg's main button of the main page view
+                            var btnText = OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().SelectingProducts;
+                            // Show the resulting text on the button
                             await TwaNet.SetMainButtonTextAsync(JsRuntime, btnText);
                         }
                         else
                         {
+                            // Hide Tg's main button
                             await TwaNet.HideMainButtonAsync(JsRuntime);
                         }
                     }
@@ -1252,9 +1325,10 @@ else {
             }
             else
             {
-                if ((await OrderService!.RemoveProductItemInChangingSelectedProductsWithModifiersPageAsync(productId, positionId)) is null)
+                // If after decreasing the number of product positions by product and position ID there are none left, then remove this product position
+                if ((await OrderService!.RemoveOrDecreaseItemPositionWithModifiersOrSizesForChangingSelectedProductsWithModifiersPageAsync(productId, positionId)) is null)
                 {
-                    if (!OrderService.OrderInfo.CurrItems().Where(x => x.ProductId == productId).Any())
+                    if (!OrderService.PersonalInfoOfOrder.CurrItems().Where(x => x.ProductId == productId).Any())
                     {
                         StateOfPage!.GoBack();
                     }
@@ -1267,22 +1341,29 @@ else {
         }
     }
 
-    // Add a modifier to product by id +
+    // Increases the modifier's number position of the current product position in the 'SelectingModifiersAndAmountsForProduct' page view
     private async Task AddModifierInSelectingModifiersAndAmountsForProductPageAsync(Guid modifierId, Guid? modifierGroupId = null)
     {
         try
         {
+            // Available to use the Telegram WebApp interface in this mode (WebApp have to be loaded via the Telegram)
             if (OrderService!.IsReleaseMode)
             {
+                // Call the haptic feedback in a Web App
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
-                var item = OrderService!.AddModifierInSelectingModifiersAndAmountsForProductPageAsync(modifierId, modifierGroupId);
-                var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingModifiersAndAmountsForProduct;
+                // Increase the modifiers's number position
+                var item = OrderService!.IncreaseModifierItemPositionForSelectingModifiersAndAmountsForProductPageAsync(modifierId, modifierGroupId);
+                // Text of Tg's main button that shows the amount to be added
+                var btnText = OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().SelectingModifiersAndAmountsForProduct;
+                // Add to the text the total cost of the seleted product positions and modifiers
                 btnText = string.Format(btnText, item.TotalPrice);
+                // Show the resulting text on the button
                 await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
             }
             else
             {
-                OrderService!.AddModifierInSelectingModifiersAndAmountsForProductPageAsync(modifierId, modifierGroupId);
+                // Increase the modifiers's number position
+                OrderService!.IncreaseModifierItemPositionForSelectingModifiersAndAmountsForProductPageAsync(modifierId, modifierGroupId);
             }
         }
         catch (Exception ex)
@@ -1291,22 +1372,29 @@ else {
         }
     }
 
-    // Remove a modifier from product by id +
+    // Decreases the modifier's number position of the current product position in the 'SelectingModifiersAndAmountsForProduct' page view
     private async Task RemoveModifierInSelectingModifiersAndAmountsForProductPageAsync(Guid modifierId, Guid? modifierGroupId = null)
     {
         try
         {
+            // Available to use the Tg WebApp interface in this mode (WebApp have to be loaded via the Telegram)
             if (OrderService!.IsReleaseMode)
             {
+                // Call the haptic feedback in Web App
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
-                var item = OrderService!.RemoveModifierInSelectingModifiersAndAmountsForProductPageAsync(modifierId, modifierGroupId);
-                var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingModifiersAndAmountsForProduct;
+                // Decrease the modifier's number position
+                var item = OrderService!.DecreaseModifierItemPositionForSelectingModifiersAndAmountsForProductPageAsync(modifierId, modifierGroupId);
+                // Text of Tg's main button that shows the amount to be added
+                var btnText = OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().SelectingModifiersAndAmountsForProduct;
+                // Add to the text the total cost of the selected product positions and modifiers
                 btnText = string.Format(btnText, item.TotalPrice);
+                // Show the resulting text on the button
                 await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
             }
             else
             {
-                OrderService!.RemoveModifierInSelectingModifiersAndAmountsForProductPageAsync(modifierId, modifierGroupId);
+                // Decrease the modifier's number position
+                OrderService!.DecreaseModifierItemPositionForSelectingModifiersAndAmountsForProductPageAsync(modifierId, modifierGroupId);
             }
         }
         catch (Exception ex)
@@ -1315,22 +1403,29 @@ else {
         }
     }
 
-    // Add product in the modifier menu +
+    // Increase the current product's number position in the 'SelectingModifiersAndAmountsForProduct' page view
     private async Task AddProductInSelectingModifiersAndAmountsForProductPageAsync()
     {
         try
         {
+            // Available to use the Tg WebApp interface in this mode (WebApp have to be loaded via the Telegram)
             if (OrderService!.IsReleaseMode)
             {
+                // Call the haptic feedback in Web App
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
-                var item = OrderService.AddProductInSelectingModifiersAndAmountsForProductPageAsync();
-                var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingModifiersAndAmountsForProduct;
+                // Increase the product's number position
+                var item = OrderService.IncreaseItemPositionForSelectingModifiersAndAmountsForProductPageAsync();
+                // Text of Tg's main button that shows the amount to be added
+                var btnText = OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().SelectingModifiersAndAmountsForProduct;
+                // Add to the text the total cost of the selected product positions and modifiers
                 btnText = string.Format(btnText, item.TotalPrice);
+                // Show the resulting text on the button
                 await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
             }
             else
             {
-                OrderService.AddProductInSelectingModifiersAndAmountsForProductPageAsync();
+                // Increase the product's number position
+                OrderService.IncreaseItemPositionForSelectingModifiersAndAmountsForProductPageAsync();
             }
         }
         catch (Exception ex)
@@ -1339,44 +1434,61 @@ else {
         }
     }
 
-    // Remove product in the modifier menu +
+    // Decreases the current product's number position in the 'SelectingModifiersAndAmountsForProduct' page view.
+    // If after decreasing, there are no product position left, then go back to the main page view
     private async Task RemoveProductInSelectingModifiersAndAmountsForProductPageAsync()
     {
         try
         {
+            // Available to use the Tg WebApp interface in this mode (WebApp have to be loaded via the Telegram)
             if (OrderService!.IsReleaseMode)
             {
+                // Call the haptic feedback in Web App
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
-                var item = OrderService.RemoveProductInSelectingModifiersAndAmountsForProductPageAsync();
+                // If after decreasing the number of product positions there are none left, then remove this product position
+                var item = OrderService.RemoveOrDecreaseItemPositionForSelectingModifiersAndAmountsForProductPageAsync();
+                // If the current product position has been removed, then go back to the main page view
                 if (item is null)
                 {
+                    // Go back to the preview page
                     StateOfPage!.GoBack();
-                    if (OrderService.OrderInfo.HaveSelectedProducts())
+                    // If there are any selected products left, then show the Tg's main button of the main page view
+                    if (OrderService.PersonalInfoOfOrder.HaveSelectedProducts())
                     {
-                        var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
+                        // Text of Tg's main button of the main page view
+                        var btnText = OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().SelectingProducts;
+                        // Show the resulting text on the button
                         await TwaNet.SetMainButtonTextAsync(JsRuntime, btnText);
                     }
                     else
                     {
+                        // Hide the Tg's main button
                         await TwaNet.HideMainButtonAsync(JsRuntime);
                     }
+                    // Hide the Tg's back button
                     await TwaNet.HideBackButtonAsync(JsRuntime);
+                    // Save the action data of this web app in a API server
+                    await OrderService.SendChangedOrderModelToServerAsync();
                 }
                 else
                 {
-                    var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingModifiersAndAmountsForProduct;
+                    // Text of Tg's main button that shows the amount to be added
+                    var btnText = OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().SelectingModifiersAndAmountsForProduct;
+                    // Add to the text the total cost of the selected product positions and modifiers
                     btnText = string.Format(btnText, item.TotalPrice);
+                    // Show the resulting text on the button
                     await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
                 }
             }
             else
             {
-                if (OrderService.RemoveProductInSelectingModifiersAndAmountsForProductPageAsync() is null)
+                // If after decreasing the number of product positions there are none left, then remove this product position
+                if (OrderService.RemoveOrDecreaseItemPositionForSelectingModifiersAndAmountsForProductPageAsync() is null)
                 {
                     StateOfPage!.GoBack();
+                    await OrderService.SendChangedOrderModelToServerAsync();
                 }
             }
-            await OrderService.SendChangedOrderModelToServerAsync();
         }
         catch (Exception ex)
         {
@@ -1384,24 +1496,32 @@ else {
         }
     }
 
-    // +
+    // Increases the product's number position by product ID in the 'SelectingProducts' page view for the 'SelectingAmountsForProducts' page
     public async Task AddProductWithoutModifiersForSelectingAmountsForProductsPageAsync(Guid productId)
     {
         try
         {
+            // Available to use the Tg WebApp interface in this mode (WebApp have to be loaded via the Telegram)
             if (OrderService!.IsReleaseMode)
             {
+                // Call the haptic feedback in Web App
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
-                StateOfPage!.GoToPage(PageTypeOfOrder.SelectingAmountsForProducts);
+                // Go to the 'SelectingAmountsForProducts' page view
+                StateOfPage!.GoToPage(PageViewType.SelectingAmountsForProducts);
+                // Increase the product's number position
                 var res = OrderService.AddProductWithoutModifiersForSelectingAmountsForProductsPageAsync(productId);
-                var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingAmountsForProducts;
+                // Text of Tg's main button that shows the amount to be added
+                var btnText = OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().SelectingAmountsForProducts;
+                // Add to the text the total cost of the selected product positions
                 btnText = string.Format(btnText, res.Item.TotalPrice);
+                // Show the resulting text on the button
                 await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
+                // Show the Tg's back button
                 await TwaNet.ShowBackButtonAsync(JsRuntime);
             }
             else
             {
-                StateOfPage!.GoToPage(PageTypeOfOrder.SelectingAmountsForProducts);
+                StateOfPage!.GoToPage(PageViewType.SelectingAmountsForProducts);
                 OrderService.AddProductWithoutModifiersForSelectingAmountsForProductsPageAsync(productId);
             }
         }
@@ -1411,17 +1531,23 @@ else {
         }
     }
 
-    // Add product +
+    // Increases the current product's number position in the 'SelectingAmountsForProducts' page view
     private async Task AddProductWithoutModifiersInSelectingAmountsForProductsPageAsync()
     {
         try
         {
+            // Available to use the Tg WebApp interface in this mode (WebApp have to be loaded via the Telegram)
             if (OrderService!.IsReleaseMode)
             {
+                // Call the haptic feedback in Web App
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
+                // Increase the product's number position
                 var res = OrderService.AddProductWithoutModifiersInSelectingAmountsForProductsPageAsync();
-                var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingAmountsForProducts;
+                // Text of Tg's main button that shows the amount to be added
+                var btnText = OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().SelectingAmountsForProducts;
+                // Add to the text the total cost of the selected product positions
                 btnText = string.Format(btnText, res.Item.TotalPrice);
+                // Show the resulting text on the button
                 await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
             }
             else
@@ -1435,34 +1561,48 @@ else {
         }
     }
 
-    // Remove product +
+    // Decreases the current product's number position in the 'SelectingAmountsForProducts' page view
+    // If after decreasing the current product's number position there are none left, then go to the main page view
     private async Task RemoveProductWithoutModifiersInSelectingAmountsForProductsPageAsync()
     {
         try
         {
+            // Available to use the Tg WebApp interface in this mode (WebApp have to be loaded via the Telegram)
             if (OrderService!.IsReleaseMode)
             {
+                // Calls the haptic feedback in Web App
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
+                // If after decreasing the number of product positions there are none left, then remove this product position
                 var res = OrderService.RemoveProductWithoutModifiersInSelectingAmountsForProductsPageAsync();
 
+                // If the current product position has been removed, then go back to the main page view
                 if (res is null)
                 {
+                    // Goes to the preview page
                     StateOfPage!.GoBack();
-                    if (OrderService.OrderInfo.HaveSelectedProducts())
+                    // If there are any selected products left, then show the Tg's main button of the main page view
+                    if (OrderService.PersonalInfoOfOrder.HaveSelectedProducts())
                     {
-                        var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
+                        // Text of Tg's main button of the main page view
+                        var btnText = OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().SelectingProducts;
+                        // Shows the resulting text on the button
                         await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
                     }
                     else
                     {
+                        // Hides the Tg's main button
                         await TwaNet.HideMainButtonAsync(JsRuntime);
                     }
+                    // Hides the Tg's back button
                     await TwaNet.HideBackButtonAsync(JsRuntime);
                 }
                 else
                 {
-                    var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingAmountsForProducts;
+                    // Text of Tg's main button that shows the amount to be added
+                    var btnText = OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().SelectingAmountsForProducts;
+                    // Adds to the text the total cost of the selected product positions
                     btnText = string.Format(btnText, res.Item.TotalPrice);
+                    // Shows the resulting text on the button
                     await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
                 }
             }
@@ -1480,12 +1620,15 @@ else {
         }
     }
 
-    // Set the order to view status (use only in web mode) +
+    // Checks the order, if loyalty program is used, then to calculate checkin.
+    // After that shopping cart will shown (only for test)
     private async Task ViewOrderOfTestMode()
     {
         try
         {
-            StateOfPage!.GoToPage(PageTypeOfOrder.ShoppingCart);
+            // Go to the next page
+            StateOfPage!.GoToPage(PageViewType.ShoppingCart);
+            // Calucate a loyalty program and allowed bonus sum to pay
             await OrderService!.CalculateLoayltyProgramAndAllowedSumAsync();
         }
         catch (Exception ex)
@@ -1494,107 +1637,140 @@ else {
         }
     }
 
-    // Tracking the click of the main telegram button +
-    private async Task TelegramHandlerMainButtonAsync()
+    // Listens the Tg's main button. When the button is clicked, the operations described inside the method are performed
+    private async Task TelegramHandlerOfMainButtonAsync()
     {
-        Console.WriteLine(typeof(Index).FullName!, nameof(TelegramHandlerMainButtonAsync), "Listening the TelegramBot main button");
+        Console.WriteLine(typeof(Index).FullName!, nameof(TelegramHandlerOfMainButtonAsync), "Listening the TelegramBot main button");
 
+        // Listens the button until the web app is closed or until a critical error occurs
         while (true)
         {
+            // Resets the flag of block state
             StateOfPage!.IsPageBlocked = false;
+            // Hides a loading indicator on the Tg main button
             await TwaNet!.HideProgressAsync(JsRuntime);
 
             try
             {
+                // Listens tha main button
                 await TwaNet!.ListenMainButtonAsync(JsRuntime);
+                // Calls the haptic feedback in Web App
                 await TwaNet.SetHapticFeedbackImpactOccurredAsync(JsRuntime, HapticFeedbackImpactOccurredType.light);
 
-                if (StateOfPage!.PageTypeOfOrder == PageTypeOfOrder.SelectingProducts)
+                if (StateOfPage!.PageTypeOfOrder == PageViewType.SelectingProducts)
                 {
+                    // Displays a loading indicator on the Tg main button
                     await TwaNet!.ShowProgressAsync(JsRuntime);
-                    if (OrderService!.DeliveryGeneralInfo.UseIikoBizProgram)
+
+                    // Calculates loyalty program if that is used
+                    if (OrderService!.GeneralInfoOfOnlineStore.UseIikoBizProgram)
                     {
+                        // Caluclates checkin of final order.
+                        // Also if a final sum with discounts are less than available min sum to pay, then notice a customer about it
+                        // and finishes remaining operations
+                        // Calculates an allowed bonus sum for the order
                         if (!(await OrderService.CalculateLoyaltyProgramAndAllowedSumAndCheckAvailableMinSumForPayAsync(JsRuntime, TwaNet))) continue;
                     }
                     else
                     {
+                        // If a final sum of order is less than available min sum to pay, then notice a customer about it
+                        // and finishes remaining operations
                         if (!(await OrderService!.CheckAvailableMinSumForPayAsync(JsRuntime, TwaNet))) continue;
                     }
 
-                    StateOfPage.GoToPage(PageTypeOfOrder.ShoppingCart);
+                    // Goes to the shopping cart page
+                    StateOfPage.GoToPage(PageViewType.ShoppingCart);
+                    // Renders the page
                     StateHasChanged();
 
+                    // Scrolls to a top of page
                     await JsHelperService!.ScrollToTopAsync(JsRuntime);
+                    // Shows the Tg's back button
                     await TwaNet.ShowBackButtonAsync(JsRuntime);
-                    var btnTxt = string.Format(OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart, OrderService.OrderInfo.FinalSum);
+                    // Text of the shopping cart page with a final sum
+                    var btnTxt = string.Format(OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().ShoppingCart, OrderService.PersonalInfoOfOrder.FinalSum);
+                    // Shows the resulting text on the button
                     await TwaNet.SetMainButtonTextAsync(JsRuntime, btnTxt);
+                    // Hides the Tg's back button
                     await TwaNet!.HideProgressAsync(JsRuntime);
                 }
-                else if (StateOfPage!.PageTypeOfOrder == PageTypeOfOrder.SelectingModifiersAndAmountsForProduct)
+                else if (StateOfPage!.PageTypeOfOrder == PageViewType.SelectingModifiersAndAmountsForProduct)
                 {
-                    if (!OrderService!.CheckSelectingModifiersInSelectingModifiersAndAmountsForProductPageAsync())
+                    // If mandatory modifiers are not selected then notice a customer about it and skip the remaining operations
+                    if (!OrderService!.CheckSelectedModifiersInSelectingModifiersAndAmountsForProductPageAsync())
                     {
-                        var popupMsg = OrderService.DeliveryGeneralInfo.GetTlgWebAppPopupMessages().IncorrectSelectedModifier ?? throw new InfoException(typeof(OrderService).FullName!,
-                            nameof(TelegramHandlerMainButtonAsync), nameof(Exception), $"{typeof(TlgWebAppPopupMessages).FullName!}." +
+                        // Popup message of an incorrect selected modifiers
+                        var popupMsg = OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppPopupMessages().IncorrectSelectedModifier ?? throw new InfoException(typeof(OnlineStoreService).FullName!,
+                            nameof(TelegramHandlerOfMainButtonAsync), nameof(Exception), $"{typeof(TlgWebAppPopupMessages).FullName!}." +
                             $"{nameof(TlgWebAppPopupMessages.IncorrectSelectedModifier)}", ExceptionType.Null);
 
+                        // Shows the popup message for a customer
                         await TwaNet.ShowOkPopupMessageAsync(JsRuntime, popupMsg.Title, popupMsg.Title, HapticFeedBackNotificationType.warning);
                         continue;
                     }
 
+                    // Goes back to the main page view
                     StateOfPage.GoBack();
+                    // Renders the page
                     StateHasChanged();
 
-                    var btnText = OrderService!.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
+                    // Text of Tg's main button of the main page view
+                    var btnText = OrderService!.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().SelectingProducts;
                     await TwaNet.SetMainButtonTextAsync(JsRuntime, btnText);
                     await TwaNet.HideBackButtonAsync(JsRuntime);
 
+                    // Save the action data of this web app in a API server
                     await OrderService!.SendChangedOrderModelToServerAsync();
                 }
-                else if (StateOfPage!.PageTypeOfOrder == PageTypeOfOrder.SelectingAmountsForProducts)
+                else if (StateOfPage!.PageTypeOfOrder == PageViewType.SelectingAmountsForProducts)
                 {
                     StateOfPage.GoBack();
                     StateHasChanged();
 
                     await TwaNet.HideBackButtonAsync(JsRuntime);
-                    var btnText = OrderService!.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
+                    var btnText = OrderService!.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().SelectingProducts;
                     await TwaNet.SetMainButtonTextAsync(JsRuntime, btnText);
                     await OrderService!.SendChangedOrderModelToServerAsync();
                 }
-                else if (StateOfPage!.PageTypeOfOrder == PageTypeOfOrder.ChangingSelectedProductsWithModifiers)
+                else if (StateOfPage!.PageTypeOfOrder == PageViewType.ChangingSelectedProductsWithModifiers)
                 {
                     StateOfPage.GoBack();
                     StateHasChanged();
 
                     await TwaNet.HideBackButtonAsync(JsRuntime);
-                    var btnText = OrderService!.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
+                    var btnText = OrderService!.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().SelectingProducts;
                     await TwaNet.SetMainButtonTextAsync(JsRuntime, btnText);
                     await OrderService!.SendChangedOrderModelToServerAsync();
                 }
-                else if (StateOfPage!.PageTypeOfOrder == PageTypeOfOrder.ShoppingCart)
+                else if (StateOfPage!.PageTypeOfOrder == PageViewType.ShoppingCart)
                 {
+                    // Sets the page in a blocked state
                     StateOfPage!.IsPageBlocked = true;
                     await TwaNet!.ShowProgressAsync(JsRuntime);
 
+                    // If the order's data is incorrect then notice a customer about error and stop processing
                     if (!(await OrderService!.IsNecessaryDataOfOrderCorrect(JsRuntime, TwaNet)))
                     {
                         await TwaNet!.HideProgressAsync(JsRuntime);
                         continue;
                     }
 
+                    // If a customer's wallet balance has been changed recently then notice a customer about it and
+                    // recalculate the order's final sum to pay
                     if ((await OrderService.IsWalletBalanceChangedInIikoCardAsync()))
                     {
                         await TwaNet!.HideProgressAsync(JsRuntime);
-                        var btnTxt = OrderService.DeliveryGeneralInfo.GetTlgWebAppPopupMessages().WalletBalanceChangedInIikoBiz
-                            ?? throw new InfoException(typeof(OrderService).FullName!, nameof(TelegramHandlerMainButtonAsync), nameof(Exception),
+                        // Popup message of a changed wallet balance of a customer
+                        var btnTxt = OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppPopupMessages().WalletBalanceChangedInIikoBiz
+                            ?? throw new InfoException(typeof(OnlineStoreService).FullName!, nameof(TelegramHandlerOfMainButtonAsync), nameof(Exception),
                             $"{typeof(TlgWebAppPopupMessages).FullName!}.{nameof(TlgWebAppPopupMessages.WalletBalanceChangedInIikoBiz)}", ExceptionType.Null);
+
                         await TwaNet.ShowOkPopupMessageAsync(JsRuntime, btnTxt.Title, btnTxt.Description, HapticFeedBackNotificationType.warning);
                         continue;
                     }
 
-                    // Save changed order info by using CreateInvoiceLinkAsync method
-                    await OrderService!.SendChangedOrderModelToServerAsync();
-                    await OrderService!.CreateInvoiceLinkAsync(JsRuntime, TwaNet);
+                    // Tries to create an invoice link in API server
+                    await OrderService!.TryToCreateInvoiceLinkAsync(JsRuntime, TwaNet);
                     await TwaNet!.HideProgressAsync(JsRuntime);
                 }
             }
@@ -1602,70 +1778,83 @@ else {
             {
                 Console.WriteLine(ex.Message);
 
-                // !!! Ask the user abount to close web app or left it !!!
+                // !!! Ask the user about to close web app or left it !!!
                 await TryToCloseWebAppAsync();
             }
         }
     }
 
-    // Tracking the click of the back telegram button +
-    private async Task TelegramHandlerBackButtonAsync()
+    // Listens the Tg's back button. When the button is clicked, the operations described inside the method are performed
+    private async Task TelegramHandlerOfBackButtonAsync()
     {
-        // Wait a callback from the telegram
-        Console.WriteLine(typeof(Index).FullName!, nameof(TelegramHandlerBackButtonAsync), "Listening the TelegramBot back button");
+        Console.WriteLine(typeof(Index).FullName!, nameof(TelegramHandlerOfBackButtonAsync), "Listening the TelegramBot back button");
 
+        // Listens the button until the web app is closed or until a critical error occurs
         while (true)
         {
             try
             {
+                // Listens tha back button
                 await TwaNet!.ListenBackButtonAsync(JsRuntime);
+                // Calls the haptic feedback in Web App
                 await TwaNet.SetHapticFeedbackImpactOccurredAsync(JsRuntime, HapticFeedbackImpactOccurredType.light);
 
-                if (StateOfPage!.IsPageBlocked)
+                // If there is a long processing on the page then do nothing
+                if (StateOfPage!.IsPageBlocked) continue;
+
+                // Goes back to the previous page (main page view)
+                else if (StateOfPage.PageTypeOfOrder == PageViewType.SelectingModifiersAndAmountsForProduct)
                 {
-                    continue;
-                }
-                else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.SelectingModifiersAndAmountsForProduct)
-                {
+                    // Removes the current product position from the basket
                     OrderService!.CancelCurrSelectedItemWithModifiers();
 
+                    // Goes back to the previous page
                     StateOfPage.GoBack();
                     StateHasChanged();
 
-                    if (OrderService.OrderInfo.HaveSelectedProducts())
+                    // Shows the Tg's main button of the main page view
+                    if (OrderService.PersonalInfoOfOrder.HaveSelectedProducts())
                     {
-                        var btnText = OrderService!.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
+                        var btnText = OrderService!.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().SelectingProducts;
                         await TwaNet.SetMainButtonTextAsync(JsRuntime, btnText);
                     }
-                    else await TwaNet.HideMainButtonAsync(JsRuntime);
+                    else
+                    {
+                        await TwaNet.HideMainButtonAsync(JsRuntime);
+                    }
+                    // Hides the Tg's back button
                     await TwaNet.HideBackButtonAsync(JsRuntime);
                 }
-                else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.SelectingAmountsForProducts)
+                // Goes back to the previous page (main page view)
+                else if (StateOfPage.PageTypeOfOrder == PageViewType.SelectingAmountsForProducts)
                 {
                     StateOfPage.GoBack();
                     StateHasChanged();
 
-                    var btnText = OrderService!.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
+                    var btnText = OrderService!.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().SelectingProducts;
                     await TwaNet.SetMainButtonTextAsync(JsRuntime, btnText);
                     await TwaNet.HideBackButtonAsync(JsRuntime);
                 }
-                else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.ChangingSelectedProductsWithModifiers)
+                // Goes back to the previous page (main page view)
+                else if (StateOfPage.PageTypeOfOrder == PageViewType.ChangingSelectedProductsWithModifiers)
                 {
                     StateOfPage.GoBack();
                     StateHasChanged();
 
-                    var btnText = OrderService!.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
+                    var btnText = OrderService!.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().SelectingProducts;
                     await TwaNet.SetMainButtonTextAsync(JsRuntime, btnText);
                     await TwaNet.HideBackButtonAsync(JsRuntime);
                 }
-                else if (StateOfPage.PageTypeOfOrder == PageTypeOfOrder.ShoppingCart)
+                // Goes back to the previous page (main page view)
+                else if (StateOfPage.PageTypeOfOrder == PageViewType.ShoppingCart)
                 {
                     StateOfPage.GoBack();
                     StateHasChanged();
 
-                    var btnText = OrderService!.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
+                    var btnText = OrderService!.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().SelectingProducts;
                     await TwaNet.SetMainButtonTextAsync(JsRuntime, btnText);
                     await TwaNet.HideBackButtonAsync(JsRuntime);
+                    // Save the action data of this web app in a API server
                     await OrderService!.SendChangedOrderModelToServerAsync();
                 }
             }
@@ -1679,11 +1868,12 @@ else {
         }
     }
 
-    // +
+    // Tries to close the web application in the Telegram
     private async Task TryToCloseWebAppAsync()
     {
         try
         {
+            // Closes the web app in the Telegram
             await TwaNet!.CloseWebAppAsync(JsRuntime);
         }
         catch (Exception ex)
@@ -1693,13 +1883,15 @@ else {
         }
     }
 
-    // Pay the completed order (use only in web mode) +
+    // Sends the resulting order to API server and gets back an invoice link to pay (only for test)
     private async Task PayOrderForTestAsync()
     {
         try
         {
-            await OrderService!.CreateInvoiceUrlLinkAsync();
-            StateOfPage!.GoToPage(PageTypeOfOrder.InfoAboutCreatedOrder);
+            // Tries to create an invoice link in API server
+            await OrderService!.TryToCreateInvoiceUrlLinkAsync();
+            // Shows info about the created order
+            StateOfPage!.GoToPage(PageViewType.InfoAboutCreatedOrder);
         }
         catch (Exception ex)
         {
@@ -1707,15 +1899,15 @@ else {
         }
     }
 
-    // Listen handler events of JS (***Testing mode***) +
+    // Listens the Tg's main and back buttons
     async Task ListenTwaBtnsAsync()
     {
         try
         {
             Console.WriteLine(typeof(Index).FullName!, nameof(ListenTwaBtnsAsync), "Listening the main button of the TelegramBot");
-            // Call handler to catch the click of telegram button
-            var mainButtonTask = TelegramHandlerMainButtonAsync();
-            var backButtonTask = TelegramHandlerBackButtonAsync();
+
+            var mainButtonTask = TelegramHandlerOfMainButtonAsync();
+            var backButtonTask = TelegramHandlerOfBackButtonAsync();
             await mainButtonTask;
             await backButtonTask;
         }
@@ -1726,35 +1918,50 @@ else {
         }
     }
 
-    // Receive terminal id from html form (beta) +
+    // Gets the terminal ID when a customer selects the terminal on the page
     private async Task OnSelectTerminalAsync(ChangeEventArgs e)
     {
         try
         {
+            // Available to use the Tg WebApp interface in this mode (WebApp have to be loaded via the Telegram)
             if (OrderService!.IsReleaseMode)
             {
+                // Calls the haptic feedback in Web App
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
             }
 
+            // Converts the argument to string type
             var arg = Convert.ToString(e.Value);
-            if (!string.IsNullOrEmpty(arg))
+            // If the argument is parsed to Guid successfully then set the new terminal ID for order
+            if (Guid.TryParse(arg, out Guid id))
             {
-                var id = Guid.Parse(arg);
                 if (OrderService!.IsReleaseMode)
                 {
                     if (OrderService.IsLoyaltyProgramAvailableForProcess)
                     {
+                        // Displays a loading indicator on the Tg main button
                         await TwaNet!.ShowProgressAsync(JsRuntime);
+                        // Sets the terminal ID to the order with calculating the loyalty program
                         await OrderService!.SetPickupTerminalWithLoyaltyProgramProcessAsync(JsRuntime, TwaNet!, id);
 
-                        var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart;
-                        btnText = string.Format(btnText, OrderService!.FinalSumOfOrder());
+                        // Text of the shopping cart page with a final sum
+                        var btnText = string.Format(OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().ShoppingCart, OrderService!.FinalSumOfOrder());
+                        // Shows the resulting text on the button
                         await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
+                        // Hides a loading indicator on the Tg main button
                         await TwaNet!.HideProgressAsync(JsRuntime);
                     }
+                    // Just sets the new terminal ID for the order
                     else OrderService.SetPickupTerminal(id);
                 }
-                else await OrderService!.SetPickupTerminalWithLoyaltyProgramProcessAsync(id);
+                else if (OrderService.IsLoyaltyProgramAvailableForProcess)
+                {
+                    await OrderService!.SetPickupTerminalWithLoyaltyProgramProcessAsync(id);
+                }
+                else
+                {
+                    OrderService.SetPickupTerminal(id);
+                }
             }
         }
         catch (Exception ex)
@@ -1767,20 +1974,26 @@ else {
         }
     }
 
-    // Calculate discount program +
+    // Calculates/Recalculates the loaylty program after the coupon has been applied
     private async Task CalculateLoyaltyProgramByCouponAsync()
     {
         try
         {
+            // Available to use the Tg WebApp interface in this mode (WebApp have to be loaded via the Telegram)
             if (OrderService!.IsReleaseMode)
             {
+                // Calls the haptic feedback in Web App
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
+                // Displays a loading indicator on the Tg main button
                 await TwaNet!.ShowProgressAsync(JsRuntime);
+                // Calculates the loaylty program and calculate the allowed bonus amount to pay
                 await OrderService.CalculateLoayltyProgramAndAllowedSumAsync(JsRuntime, TwaNet);
 
-                var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart;
-                btnText = string.Format(btnText, OrderService!.FinalSumOfOrder());
+                // Text of the shopping cart page with a final sum
+                var btnText = string.Format(OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().ShoppingCart, OrderService!.FinalSumOfOrder());
+                // Shows the resulting text on the button
                 await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
+                // Hides a loading indicator on the Tg main button
                 await TwaNet!.HideProgressAsync(JsRuntime);
             }
             else await OrderService.CalculateLoayltyProgramAndAllowedSumAsync();
@@ -1795,23 +2008,31 @@ else {
         }
     }
 
-    // +
+    // Changes the delivery method for order
     private async Task ChangeDeliveryTypeFlagAsync(bool byCourier)
     {
         try
         {
-            OrderService!.OrderInfo.ByCourier = byCourier;
+            OrderService!.PersonalInfoOfOrder.ByCourier = byCourier;
+
+            // Available to use the Tg WebApp interface in this mode (WebApp have to be loaded via the Telegram)
             if (OrderService!.IsReleaseMode)
             {
+                // Calls the haptic feedback in Web App
                 await TwaNet!.SetHapticFeedbackSelectionChangedAsync(JsRuntime);
+
                 if (OrderService.IsLoyaltyProgramAvailableForProcess)
                 {
+                    // Displays a loading indicator on the Tg main button
                     await TwaNet!.ShowProgressAsync(JsRuntime);
+                    // Calculates the loaylty program and calculate the allowed bonus amount to pay
                     await OrderService.CalculateLoayltyProgramAndAllowedSumAsync(JsRuntime, TwaNet);
 
-                    var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart;
-                    btnText = string.Format(btnText, OrderService!.FinalSumOfOrder());
+                    // Text of the shopping cart page with a final sum
+                    var btnText = string.Format(OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().ShoppingCart, OrderService!.FinalSumOfOrder());
+                    // Shows the resulting text on the button
                     await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
+                    // Hides a loading indicator on the Tg main button
                     await TwaNet!.HideProgressAsync(JsRuntime);
                 }
             }
@@ -1827,31 +2048,39 @@ else {
         }
     }
 
-    // Remove all selected products in the shopping cart +
+    // Empties the basket
     private async Task RemoveAllSelectedProductsInShoppingCartAsync()
     {
         try
         {
+            // Available to use the Tg WebApp interface in this mode (WebApp have to be loaded via the Telegram)
             if (OrderService!.IsReleaseMode)
             {
-                var popupMsg = OrderService.DeliveryGeneralInfo.GetTlgWebAppPopupMessages().EmptyShoppingCart ?? throw new InfoException(typeof(Index).FullName!,
+                // This popup message is using to empty the basket
+                var popupMsg = OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppPopupMessages().EmptyShoppingCart ?? throw new InfoException(typeof(Index).FullName!,
                     nameof(RemoveAllSelectedProductsInShoppingCartAsync), nameof(Exception), $"{typeof(TlgWebAppPopupMessages).FullName!}." +
                     $"{nameof(TlgWebAppPopupMessages.EmptyShoppingCart)}", ExceptionType.Null);
 
                 const string yes = "0";
                 const string no = "1";
 
+                // https://core.telegram.org/bots/webapps#popupparams
                 var popupPrms = new PopupParams(popupMsg.Title, popupMsg.Description, new List<PopupButton>
                 {
                     new PopupButton(yes, "Да", PopupButtonType.destructive),
                     new PopupButton(no, "Отмена", PopupButtonType.destructive)
                 });
 
+                // Gives a customer to make a choice
                 var res = await TwaNet!.ShowPopupParamsAsync(JsRuntime, popupPrms, HapticFeedBackNotificationType.warning, HapticFeedbackImpactOccurredType.soft);
+                // A customer chose to empty the basket
                 if (res == yes)
                 {
+                    // Goes back to the main page view
                     StateOfPage!.GoBack();
+                    // Empties the basket
                     await OrderService.RemoveAllSelectedProductsInShoppingCartPageAsync();
+                    // Hide the Tg's main and back buttons
                     await TwaNet.HideMainButtonAsync(JsRuntime);
                     await TwaNet.HideBackButtonAsync(JsRuntime);
                 }
@@ -1868,34 +2097,43 @@ else {
         }
     }
 
-    // Remove selected products with modifiers by ID +
+    // Removes the current product positions from the order
     private async Task CancelCurrSimilarSelectedItemsWithModifiersAsync()
     {
         try
         {
+            // Available to use the Tg WebApp interface in this mode (WebApp have to be loaded via the Telegram)
             if (OrderService!.IsReleaseMode)
             {
-                var popupMsg = OrderService.DeliveryGeneralInfo.GetTlgWebAppPopupMessages().EmptyShoppingCart ?? throw new InfoException(typeof(Index).FullName!,
+                // This popup message is using to remove the current product positions from the order
+                var popupMsg = OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppPopupMessages().EmptySelectedItemsWithModifiers ?? throw new InfoException(typeof(Index).FullName!,
                     nameof(CancelCurrSimilarSelectedItemsWithModifiersAsync), nameof(Exception), $"{typeof(TlgWebAppPopupMessages).FullName!}." +
                     $"{nameof(TlgWebAppPopupMessages.EmptySelectedItemsWithModifiers)}", ExceptionType.Null);
 
                 const string yes = "0";
                 const string no = "1";
 
+                // https://core.telegram.org/bots/webapps#popupparams
                 var popupPrms = new PopupParams(popupMsg.Title, popupMsg.Description, new List<PopupButton>
                 {
                     new PopupButton(yes, "Да", PopupButtonType.destructive),
                     new PopupButton(no, "Отмена", PopupButtonType.destructive)
                 });
 
+                // Gives a customer to make a choice
                 var res = await TwaNet!.ShowPopupParamsAsync(JsRuntime, popupPrms, HapticFeedBackNotificationType.warning, HapticFeedbackImpactOccurredType.soft);
+                // A customer chose to remove the current product positions from the order
                 if (res == yes)
                 {
+                    // Goes back to the main page view
                     StateOfPage!.GoBack();
+                    // Removes the current product positions from the order
                     await OrderService.CancelCurrSimilarSelectedItemsWithModifiersAsync();
-                    if (OrderService.OrderInfo.HaveSelectedProducts())
+
+                    // If there are any selected products left, then show the Tg's main button of the main page view
+                    if (OrderService.PersonalInfoOfOrder.HaveSelectedProducts())
                     {
-                        var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingProducts;
+                        var btnText = OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().SelectingProducts;
                         await TwaNet.SetMainButtonTextAsync(JsRuntime, btnText);
                     }
                     else
@@ -1912,25 +2150,30 @@ else {
         }
     }
 
-    // +
+    // Changes the product's size of the current position
     private async Task OnChangingProductSizeAsync(ChangeEventArgs arg)
     {
+        // Available to use the Tg WebApp interface in this mode (WebApp have to be loaded via the Telegram)
         if (OrderService!.IsReleaseMode)
         {
+            // Calls the haptic feedback in Web App
             await TwaNet!.SetHapticFeedbackImpactOccurredAsync(JsRuntime, HapticFeedbackImpactOccurredType.soft);
         }
 
+        // Converts the argument to string type
         var value = arg.Value?.ToString();
-        if (value is not null && Guid.TryParse(value, out Guid sizeId))
+        // If the argument is parsed to Guid successfully then set the new size ID to the current position
+        if (Guid.TryParse(value, out Guid sizeId))
         {
             try
             {
+                // Sets the new size ID to the current position
                 var item = OrderService.ChangeProductSize(sizeId);
 
                 if (OrderService!.IsReleaseMode)
                 {
-                    var btnText = OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().SelectingModifiersAndAmountsForProduct;
-                    btnText = string.Format(btnText, item.TotalPrice);
+                    // Text of Tg's main button that shows the amount to be added
+                    var btnText = string.Format(OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().SelectingModifiersAndAmountsForProduct, item.TotalPrice);
                     await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnText);
                 }
             }
@@ -1941,16 +2184,20 @@ else {
         }
     }
 
-    // +
+    // Set an amount of bonus to the order
     private async void OnChangeAllowedWalletSum(ChangeEventArgs arg)
     {
+        // Converts the argument to string type
         var value = arg.Value?.ToString();
-        if (value is not null && Int32.TryParse(value, out var walletSum))
+        // If the argument is parsed to Int successfully then set the new amount
+        if (Int32.TryParse(value, out var walletSum))
         {
-            OrderService!.OrderInfo.SelectedWalletSum = walletSum;
+            OrderService!.PersonalInfoOfOrder.SelectedWalletSum = walletSum;
+
+            // Available to use the Tg WebApp interface in this mode (WebApp have to be loaded via the Telegram)
             if (OrderService.IsReleaseMode)
             {
-                var btnTxt = string.Format(OrderService.DeliveryGeneralInfo.GetTlgWebAppBtnTxts().ShoppingCart, OrderService.OrderInfo.FinalSum - walletSum);
+                var btnTxt = string.Format(OrderService.GeneralInfoOfOnlineStore.GetTlgWebAppBtnTxts().ShoppingCart, OrderService.PersonalInfoOfOrder.FinalSum - walletSum);
                 await TwaNet!.SetMainButtonTextAsync(JsRuntime, btnTxt);
             }
         }

@@ -12,7 +12,7 @@ namespace WebAppAssembly.Shared.Entities.OfServerSide
 {
     public class MainInfoForWebAppOrder
     {
-        public MainInfoForWebAppOrder(OrderModelOfServer orderInfo, DeliveryGeneralInfo deliveryGeneralInfo, bool isReleaseMode)
+        public MainInfoForWebAppOrder(PersonalInfoOfOrderByServerSide orderInfo, GeneralInfoOfOnlineStore deliveryGeneralInfo, bool isReleaseMode)
         {
             OrderInfo = orderInfo;
             DeliveryGeneralInfo = deliveryGeneralInfo;
@@ -22,10 +22,10 @@ namespace WebAppAssembly.Shared.Entities.OfServerSide
 
         [JsonProperty("orderInfo")]
         [JsonPropertyName("orderInfo")]
-        public OrderModelOfServer OrderInfo { get; set; }
+        public PersonalInfoOfOrderByServerSide OrderInfo { get; set; }
         [JsonProperty("deliveryGeneralInfo")]
         [JsonPropertyName("deliveryGeneralInfo")]
-        public DeliveryGeneralInfo DeliveryGeneralInfo { get; set; }
+        public GeneralInfoOfOnlineStore DeliveryGeneralInfo { get; set; }
         [JsonProperty("isReleaseMode")]
         [JsonPropertyName("isReleaseMode")]
         public bool IsReleaseMode { get; set; }

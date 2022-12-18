@@ -14,10 +14,10 @@ namespace WebAppAssembly.Shared.Entities.WebApp
     {
         [JsonProperty("orderInfo")]
         [JsonPropertyName("orderInfo")]
-        public OrderModel? OrderInfo { get; set; }
+        public PersonalInfoOfOrder? OrderInfo { get; set; }
         [JsonProperty("deliveryGeneralInfo")]
         [JsonPropertyName("deliveryGeneralInfo")]
-        public DeliveryGeneralInfo? DeliveryGeneralInfo { get; set; }
+        public GeneralInfoOfOnlineStore? DeliveryGeneralInfo { get; set; }
         [JsonProperty("isReleaseMode")]
         [JsonPropertyName("isReleaseMode")]
         public bool IsReleaseMode { get; set; }

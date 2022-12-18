@@ -12,16 +12,16 @@ using JsonIgnoreAttribute = Newtonsoft.Json.JsonIgnoreAttribute;
 
 namespace WebAppAssembly.Shared.Models.Order
 {
-    public class OrderModel : ICloneable
+    public class PersonalInfoOfOrder : ICloneable
     {
-        public OrderModel()
+        public PersonalInfoOfOrder()
         {
             OperationId = Guid.NewGuid();
             CreatedDate = DateTime.Now.ToString("yyyy-mm-dd hh:mm:ss");
             Items = new List<Item>();
         }
 
-        public OrderModel(Guid operationId, double totalSum, string comment, string createdDate)
+        public PersonalInfoOfOrder(Guid operationId, double totalSum, string comment, string createdDate)
         {
             OperationId = operationId;
             TotalSum = totalSum;
@@ -29,14 +29,14 @@ namespace WebAppAssembly.Shared.Models.Order
             CreatedDate = createdDate;
         }
 
-        public OrderModel(List<Item> items)
+        public PersonalInfoOfOrder(List<Item> items)
         {
             OperationId = Guid.NewGuid();
             Items = items;
             CreatedDate = DateTime.Now.ToString("yyyy-mm-dd hh:mm:ss");
         }
 
-        public OrderModel(Guid operationId, List<Item> items, string comment, double totalSum, string createdDate, double totalAmount, double bonusSum, bool byCourier, Guid? terminalId)
+        public PersonalInfoOfOrder(Guid operationId, List<Item> items, string comment, double totalSum, string createdDate, double totalAmount, double bonusSum, bool byCourier, Guid? terminalId)
         {
             OperationId = operationId;
             Items = items;
@@ -49,7 +49,7 @@ namespace WebAppAssembly.Shared.Models.Order
             TerminalId = terminalId;
         }
 
-        public OrderModel(Guid operationId, long chatId, List<Item> items, List<Item> freeItems, string comment, double totalSum, string createdDate, double totalAmount, double bonusSum, bool byCourier, Guid? terminalId, DeliveryTerminal deliveryTerminal, DeliveryPoint address, string coupon, double discountSum, List<Guid> freePriceItems)
+        public PersonalInfoOfOrder(Guid operationId, long chatId, List<Item> items, List<Item> freeItems, string comment, double totalSum, string createdDate, double totalAmount, double bonusSum, bool byCourier, Guid? terminalId, DeliveryTerminal deliveryTerminal, DeliveryPoint address, string coupon, double discountSum, List<Guid> freePriceItems)
         {
             OperationId = operationId;
             ChatId = chatId;
@@ -69,7 +69,7 @@ namespace WebAppAssembly.Shared.Models.Order
             DiscountFreeItems = freePriceItems;
         }
 
-        public OrderModel(Guid operationId, long chatId, List<Item> items, double totalSum, double totalAmount, double bonusSum, bool byCourier,
+        public PersonalInfoOfOrder(Guid operationId, long chatId, List<Item> items, double totalSum, double totalAmount, double bonusSum, bool byCourier,
             Guid? terminalId, double discountSum, List<Guid> freePriceItems, List<Item> freeItems, string? comment = null, string? createdDate = null,
             DeliveryTerminal? deliveryTerminal = null, DeliveryPoint? address = null, string? coupon = null)
         {
@@ -275,14 +275,14 @@ namespace WebAppAssembly.Shared.Models.Order
             {
                 if (Items is null) return;
                 var amount = item.Amount;
-                var totalPrice = item.TotalPrice ?? throw new InfoException(typeof(OrderModel).FullName!, nameof(Exception),
+                var totalPrice = item.TotalPrice ?? throw new InfoException(typeof(PersonalInfoOfOrder).FullName!, nameof(Exception),
                     $"{typeof(Item).FullName!}.{nameof(Item.TotalPrice)}", ExceptionType.Null); ;
                 Items.Remove(item);
                 DecreaseTotalAmountAndSumBy(amount, totalPrice);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"{typeof(OrderModel).FullName}.{nameof(ZeroAmountOfItem)}.{nameof(Exception)}: " +
+                Console.WriteLine($"{typeof(PersonalInfoOfOrder).FullName}.{nameof(ZeroAmountOfItem)}.{nameof(Exception)}: " +
                     $"{ex.Message}");
             }
         }
@@ -297,7 +297,7 @@ namespace WebAppAssembly.Shared.Models.Order
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"{typeof(OrderModel).FullName}.{nameof(RemoveItemsById)}.{nameof(Exception)}: " +
+                Console.WriteLine($"{typeof(PersonalInfoOfOrder).FullName}.{nameof(RemoveItemsById)}.{nameof(Exception)}: " +
                     $"{ex.Message}");
             }
         }
@@ -330,7 +330,7 @@ namespace WebAppAssembly.Shared.Models.Order
         /// <returns></returns>
         /// <exception cref="InfoException"></exception>
         public IEnumerable<Item> CurrItems()
-            => Items ?? throw new InfoException(typeof(OrderModel).FullName!, nameof(CurrItems),
+            => Items ?? throw new InfoException(typeof(PersonalInfoOfOrder).FullName!, nameof(CurrItems),
                 nameof(Exception), $"{nameof(Enumerable)}<{typeof(Item).FullName!}>", ExceptionType.Null);
 
         /// <summary>
@@ -340,7 +340,7 @@ namespace WebAppAssembly.Shared.Models.Order
         /// <returns></returns>
         /// <exception cref="InfoException"></exception>
         public Item ItemById(Guid productId)
-            => CurrItems().FirstOrDefault(item => item.ProductId == productId) ?? throw new InfoException(typeof(OrderModel).FullName!,
+            => CurrItems().FirstOrDefault(item => item.ProductId == productId) ?? throw new InfoException(typeof(PersonalInfoOfOrder).FullName!,
                 nameof(ItemById), nameof(Exception), $"No found an item ({typeof(Item).FullName}) by ProductId - '{productId}'");
 
         /// <summary>
@@ -360,7 +360,7 @@ namespace WebAppAssembly.Shared.Models.Order
         /// <exception cref="InfoException"></exception>
         public Item ItemById(Guid productId, Guid? positionId = null)
             => positionId is null ? ItemById(productId) : CurrItems().FirstOrDefault(item => item.ProductId == productId && item.PositionId == positionId)
-            ?? throw new InfoException(typeof(OrderModel).FullName!, nameof(ItemById), nameof(Exception),
+            ?? throw new InfoException(typeof(PersonalInfoOfOrder).FullName!, nameof(ItemById), nameof(Exception),
                 $"No found an item ({typeof(Item).FullName}) by ProductId - '{productId}' and PositionId - '{positionId}'");
 
         public object Clone()
@@ -370,7 +370,7 @@ namespace WebAppAssembly.Shared.Models.Order
             else foreach (var item in Items)
                     items.Add((Item)item.Clone());
 
-            return new OrderModel(OperationId, ChatId, items, TotalSum, TotalAmount, WalletBalance, ByCourier, TerminalId, DiscountSum, DiscountFreeItems, FreeItems, Comment, CreatedDate, 
+            return new PersonalInfoOfOrder(OperationId, ChatId, items, TotalSum, TotalAmount, WalletBalance, ByCourier, TerminalId, DiscountSum, DiscountFreeItems, FreeItems, Comment, CreatedDate, 
                 DeliveryTerminal, Address, Coupon);
         }
 
@@ -379,7 +379,7 @@ namespace WebAppAssembly.Shared.Models.Order
         /// </summary>
         /// <param name="productId"></param>
         /// <returns></returns>
-        public bool HaveMoreThanOneItemPositionOfProduct(Guid productId)
+        public bool HaveSeveralItemPositionsOfProduct(Guid productId)
         {
             var items = CurrItems().Where(x => x.ProductId == productId);
 

@@ -1,20 +1,15 @@
 ﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 using WebAppAssembly.Shared.Entities.CreateDelivery;
 using WebAppAssembly.Shared.Entities.Telegram;
 
 namespace WebAppAssembly.Shared.Models.Order
 {
-    public class OrderModelOfServer : ICloneable
+    public class PersonalInfoOfOrderByServerSide : ICloneable
     {
-        public OrderModelOfServer() { }
+        public PersonalInfoOfOrderByServerSide() { }
 
-        public OrderModelOfServer(Guid operationId, long chatId, List<Item> items, double totalSum, double totalAmount, double bonusSum,
+        public PersonalInfoOfOrderByServerSide(Guid operationId, long chatId, List<Item> items, double totalSum, double totalAmount, double bonusSum,
             bool byCourier, Guid? terminalId, double discountSum, List<Guid> freePriceItems, List<Item> freeItems, string? comment,
             string? createdDate, DeliveryTerminal? deliveryTerminal, DeliveryPoint? address, string? coupon, int selectedBonusSum)
         {
@@ -120,7 +115,7 @@ namespace WebAppAssembly.Shared.Models.Order
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"{typeof(OrderModel).FullName}.{nameof(ZeroAmountOfItem)}.{nameof(Exception)}: " +
+                Console.WriteLine($"{typeof(PersonalInfoOfOrder).FullName}.{nameof(ZeroAmountOfItem)}.{nameof(Exception)}: " +
                     $"{ex.Message}");
             }
         }
@@ -135,7 +130,7 @@ namespace WebAppAssembly.Shared.Models.Order
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"{typeof(OrderModel).FullName}.{nameof(RemoveItemsById)}.{nameof(Exception)}: " +
+                Console.WriteLine($"{typeof(PersonalInfoOfOrder).FullName}.{nameof(RemoveItemsById)}.{nameof(Exception)}: " +
                     $"{ex.Message}");
             }
         }
