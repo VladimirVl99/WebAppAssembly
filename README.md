@@ -21,3 +21,6 @@ Needs to change the appearance of the 'ShoppingCart' page in the WebApp
 
 #0006:
 DeliveryGeneralInfo: remove 'GetTlgWebAppBtnTxts()' method, and init this object without null result
+
+#0007:
+The 'PersonalInfo' class has been changed. Needs to make the changes on the API server
