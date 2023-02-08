@@ -1,10 +1,12 @@
-﻿using ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExternalMenuByID;
-using Microsoft.JSInterop;
+﻿using Microsoft.JSInterop;
 using TlgWebAppNet;
-using WebAppAssembly.Shared.Entities.CreateDelivery;
+using WebAppAssembly.Shared.Entities.Api.Common.IikoTransport.RetrieveExternalMenuByID;
+using WebAppAssembly.Shared.Entities.OnlineStore;
+using WebAppAssembly.Shared.Entities.OnlineStore.Orders;
 using WebAppAssembly.Shared.Entities.Telegram;
 using WebAppAssembly.Shared.Entities.WebApp;
-using WebAppAssembly.Shared.Models.Order;
+using WebAppAssembly.Shared.Entities.WebAppPage;
+using WebAppAssembly.Shared.Models.OrderData;
 
 namespace WebAppAssembly.Client.Service
 {
@@ -18,43 +20,38 @@ namespace WebAppAssembly.Client.Service
         /// A customer's personal data of the order.
         /// For example: selected products, a selected delivery method, an address and etc.
         /// </summary>
-        PersonalInfoOfOrder PersonalInfoOfOrder { get; set; }
+        IPersonalInfo<OrderClient> PersonalInfo { get; }
         /// <summary>
         /// Stores the necessary information for the operation of the online store.
         /// It stores information about prouducts, product categories, dilivery methods, points of sale,
         /// loyalty program and etc.
         /// </summary>
-        GeneralInfoOfOnlineStore GeneralInfoOfOnlineStore { get; set; }
-        /// <summary>
-        /// A selected product.
-        /// It is used on those pages where to need to work with an individual product position/positions.
-        /// </summary>
-        CurrentProduct? CurrentProduct { get; set; }
+        OnlineStoreItem CommonItem { get; }
         /// <summary>
         /// The current product position that is currently being edited.
         /// </summary>
-        Item? CurrItem { get; set; }
-        /// <summary>
-        /// The current product that is currently being used.
-        /// </summary>
-        TransportItemDto? CurrProductItem { get; set; }
+        CurrItemPosition? CurrItemPosition { get; }
         /// <summary>
         /// The current group. It's used for displaying products of the group.
         /// </summary>
-        Guid? CurrentGroupId { get; set; }
+        Guid? CurrentGroupId { get; }
         /// <summary>
         /// The web application operation mode (test or release mode).
         /// </summary>
-        bool IsReleaseMode { get; set; }
+        bool IsReleaseMode { get; }
         /// <summary>
         /// Color of the Telegram's main button.
         /// </summary>
-        string TlgMainBtnColor { get; set; }
+        string TlgMainBtnColor { get; }
         /// <summary>
         /// Allows or not to work with the loyalty program.
         /// This flag is used on the basket page.
         /// </summary>
         bool IsLoyaltyProgramAvailableForProcess { get; }
+        /// <summary>
+        /// Shows that the order has items.
+        /// </summary>
+        bool HaveSelectedItemsInOrder { get; }
 
 
         /// <summary>
@@ -68,316 +65,332 @@ namespace WebAppAssembly.Client.Service
         Task InitOnlineStoreServiceAsync(long chatId, string urlPathOfMainInfo);
 
         /// <summary>
+        /// Sets an agrument 'jsProcessing' if the web application starts with the Telegram.
+        /// Perform the following depending on the page view:
+        /// </summary>
+        /// <remarks>
+        /// - The page where products are selected (main page):
+        /// <para>
         /// Adds a new item for a product that contains modifiers and sizes every time this method is called.
         /// Adds a new item for a product without modifiers and sizes then increases the quantity for this item.
-        /// Also returns the bool value that the first item has been added
-        /// </summary>
+        /// Also returns the bool value that the first item has been added.
+        /// </para>
+        /// - The basket page (for payment page):
+        /// <para>
+        /// Increases the number of positions of the selected product item.
+        /// Recalculates the checkin with the allowed bonus sum to pay when the loyalty system is used.
+        /// Supports operation only when working with the Telegram application, in others cases it is not recommended for use.
+        /// </para>
+        /// - The page where the sample item positions are changed:
+        /// <para>
+        /// Increases the number of positions of the selected product item.
+        /// </para>
+        /// - The page where modifiers and sizes of the item position are selected:
+        /// <para>
+        /// Increases the number of positions of the selected product item.
+        /// </para>
+        /// - The page where the number of the item position is inreased:
+        /// <para>
+        /// Adds a new item for a product without modifiers and sizes then increases the quantity for this item (It's executes for the product items
+        /// that has been selected for the first time).
+        /// In another case, it increases the number of positions of the selected product item.
+        /// </para>
+        /// </remarks>
+        /// <param name="pageView"></param>
+        /// <param name="jsProcessing"></param>
         /// <param name="productId"></param>
+        /// <param name="positionId"></param>
         /// <returns></returns>
-        Task<ProductInfo> AddOrIncreaseItemPositionForSelectingProductPageAsync(Guid productId);
+        Task<(IOrderItemProcessing Item, bool? HasFirstItemBeenAdded)> AddOrIncreaseItemPositionAsync(PageViewType pageView,
+            (IJSRuntime, ITwaNet)? jsProcessing = null, Guid? productId = null, Guid? positionId = null);
 
         /// <summary>
-        /// Decreases the number of positions of the selected product wihtout modifiers and sizes.
-        /// Removes the item if the number of positions is equal to zero.
+        /// Sets an agrument 'jsProcessing' if the web application starts with the Telegram.
+        /// Perform the following depending on the page view:
         /// </summary>
-        /// <param name="productId"></param>
-        /// <returns></returns>
-        Task<ProductInfo?> RemoveOrDecreaseItemPositionForSelectingProductPageAsync(Guid productId);
-
-        /// <summary>
-        /// Decreases the number of positions of the selected product wihtout modifiers and sizes.
-        /// Removes the item if the number of positions is equal to zero.
-        /// </summary>
+        /// <remarks>
+        /// - The page where products are selected (main page):
+        /// <para>
+        /// Adds a new item for a product that contains modifiers and sizes every time this method is called.
+        /// Adds a new item for a product without modifiers and sizes then increases the quantity for this item.
+        /// Also returns the bool value that the first item has been added.
+        /// </para>
+        /// - The basket page (for payment page):
+        /// <para>
+        /// Increases the number of positions of the selected product item.
+        /// Recalculates the checkin with the allowed bonus sum to pay when the loyalty system is used.
+        /// Supports operation only when working with the Telegram application, in others cases it is not recommended for use.
+        /// </para>
+        /// - The page where the sample item positions are changed:
+        /// <para>
+        /// Increases the number of positions of the selected product item.
+        /// </para>
+        /// - The page where modifiers and sizes of the item position are selected:
+        /// <para>
+        /// Increases the number of positions of the selected product item.
+        /// </para>
+        /// - The page where the number of the item position is inreased:
+        /// <para>
+        /// Adds a new item for a product without modifiers and sizes then increases the quantity for this item (It's executes for the product items
+        /// that has been selected for the first time).
+        /// In another case, it increases the number of positions of the selected product item.
+        /// </para>
+        /// </remarks>
+        /// <param name="pageView"></param>
+        /// <param name="jsProcessing"></param>
         /// <param name="product"></param>
-        /// <returns></returns>
-        Task<ProductInfo?> RemoveOrDecreaseItemPositionForSelectingProductPageAsync(TransportItemDto product);
-
-        /// <summary>
-        /// Increases the number of positions of the selected product item.
-        /// Recalculates the loaylty program with the allowed bonus sum to pay when the loyalty system is used.
-        /// Supports operation only when working with the Telegram application, in other cases it is not recommended for use.
-        /// </summary>
-        /// <param name="jsRuntime"></param>
-        /// <param name="twaNet"></param>
-        /// <param name="productId"></param>
         /// <param name="positionId"></param>
         /// <returns></returns>
-        Task<ProductInfo> IncreaseItemPositionForShoppingCartPageAsync(IJSRuntime jsRuntime, ITwaNet twaNet, Guid productId,
-            Guid? positionId = null);
+        Task<(IOrderItemProcessing Item, bool? HasFirstItemBeenAdded)> AddOrIncreaseItemPositionAsync(PageViewType pageView,
+            (IJSRuntime, ITwaNet)? jsProcessing = null, TransportItemDto? product = null, Guid? positionId = null);
 
         /// <summary>
-        /// Increases the number of positions of the selected product item.
-        /// Recalculates the loaylty program with the allowed bonus sum to pay when the loyalty system is used.
+        /// Sets an agrument 'jsProcessing' if the web application starts with the Telegram.
+        /// Perform the following depending on the page view:
         /// </summary>
-        /// <param name="productId"></param>
-        /// <param name="positionId"></param>
-        /// <returns></returns>
-        Task<ProductInfo> IncreaseItemPositionForShoppingCartPageAsync(Guid productId, Guid? positionId = null);
-
-        /// <summary>
+        /// <remarks>
+        /// - The page where products are selected (main page):
+        /// <para>
+        /// Decreases the number of positions of the selected product wihtout modifiers and sizes.
+        /// Removes the item if the number of positions is equal to zero.
+        /// </para>
+        /// - The basket page (for payment page):
+        /// <para>
         /// Decrease the number of positions of the selected product item.
         /// Removes the item if the number of positions is equal to zero.
-        /// Recalculates the loaylty program with the allowed bonus sum to pay when the loyalty system is used.
-        /// Supports operation only when working with the Telegram application, in other cases it is not recommended for use.
-        /// </summary>
-        /// <param name="jsRuntime"></param>
-        /// <param name="twaNet"></param>
-        /// <param name="productId"></param>
-        /// <param name="positionId"></param>
-        /// <returns></returns>
-        Task<ProductInfo?> RemoveOrDecreaseItemPositionForShoppingCartPageAsync(IJSRuntime jsRuntime, ITwaNet twaNet, Guid productId,
-            Guid? positionId = null);
-
-        /// <summary>
-        /// Decrease the number of positions of the selected product item.
-        /// Removes the item if the number of positions is equal to zero.
-        /// Recalculates the loaylty program with the allowed bonus sum to pay when the loyalty system is used.
-        /// </summary>
-        /// <param name="productId"></param>
-        /// <param name="positionId"></param>
-        /// <returns></returns>
-        Task<ProductInfo?> RemoveOrDecreaseItemPositionForShoppingCartPageAsync(Guid productId, Guid? positionId = null);
-
-        /// <summary>
+        /// Recalculates the checkin with the allowed bonus sum to pay when the loyalty system is used.
+        /// Also:
+        /// [
         /// If there are several items in the order with the same product ID (as a rule, these are products with modifiers and sizes)
         /// then just sets the current product for the order and returns the 'true'.
         /// In other case, to decrease the number of positions of the remainder product item and removes it
         /// if the number of positions is equal to zero.
-        /// </summary>
+        /// ]
+        /// </para>
+        /// - The page where the sample item positions are changed:
+        /// <para>
+        /// Decreases the number of positions of the selected product item and removes it if the number of positions is equal to zero.
+        /// </para>
+        /// - The page where modifiers and sizes of the item position are selected:
+        /// <para>
+        /// Decreases the number of positions of the selected product item and removes it if the number of positions is equal to zero.
+        /// </para>
+        /// - The page where the number of the item position is inreased:
+        /// <para>
+        /// Decreases the number of positions of the current product item and removes it if the number of positions is equal to zero.
+        /// </para>
+        /// </remarks>
+        /// <param name="pageView"></param>
+        /// <param name="jsProcessing"></param>
         /// <param name="productId"></param>
+        /// <param name="positionId"></param>
         /// <returns></returns>
-        Task<bool> RemoveOrDecreaseItemPositionWithModifiersOrSizesForSelectingProductPageAsync(Guid productId);
+        Task<(IOrderItemProcessing? Item, bool IsBasketEmpty, bool IsSeveralItemPosition)> RemoveOrDecreaseItemPositionAsync(PageViewType pageView,
+            (IJSRuntime, ITwaNet)? jsProcessing = null, Guid? productId = null, Guid? positionId = null);
 
         /// <summary>
+        /// Sets an agrument 'jsProcessing' if the web application starts with the Telegram.
+        /// Perform the following depending on the page view:
+        /// </summary>
+        /// <remarks>
+        /// - The page where products are selected (main page):
+        /// <para>
+        /// Decreases the number of positions of the selected product wihtout modifiers and sizes.
+        /// Removes the item if the number of positions is equal to zero.
+        /// </para>
+        /// - The basket page (for payment page):
+        /// <para>
+        /// Decrease the number of positions of the selected product item.
+        /// Removes the item if the number of positions is equal to zero.
+        /// Recalculates the checkin with the allowed bonus sum to pay when the loyalty system is used.
+        /// Also:
+        /// [
         /// If there are several items in the order with the same product ID (as a rule, these are products with modifiers and sizes)
         /// then just sets the current product for the order and returns the 'true'.
         /// In other case, to decrease the number of positions of the remainder product item and removes it
         /// if the number of positions is equal to zero.
-        /// </summary>
-        /// <param name="product"></param>
-        /// <returns></returns>
-        Task<bool> RemoveOrDecreaseItemPositionWithModifiersOrSizesForSelectingProductPageAsync(TransportItemDto product);
-
-        /// <summary>
-        /// Increases the number of positions of the selected product item.
-        /// </summary>
-        /// <param name="productId"></param>
-        /// <param name="positionId"></param>
-        /// <returns></returns>
-        Task<ProductInfo> IncreaseItemPositionWithModifiersOrSizesForChangingSelectedProductsWithModifiersPageAsync(Guid productId,
-            Guid positionId);
-
-        /// <summary>
+        /// ]
+        /// </para>
+        /// - The page where the sample item positions are changed:
+        /// <para>
         /// Decreases the number of positions of the selected product item and removes it if the number of positions is equal to zero.
-        /// </summary>
-        /// <param name="productId"></param>
+        /// </para>
+        /// - The page where modifiers and sizes of the item position are selected:
+        /// <para>
+        /// Decreases the number of positions of the selected product item and removes it if the number of positions is equal to zero.
+        /// </para>
+        /// - The page where the number of the item position is inreased:
+        /// <para>
+        /// Decreases the number of positions of the current product item and removes it if the number of positions is equal to zero.
+        /// </para>
+        /// </remarks>
+        /// <param name="pageView"></param>
+        /// <param name="jsProcessing"></param>
+        /// <param name="product"></param>
         /// <param name="positionId"></param>
         /// <returns></returns>
-        Task<ProductInfo?> RemoveOrDecreaseItemPositionWithModifiersOrSizesForChangingSelectedProductsWithModifiersPageAsync(Guid productId,
-            Guid positionId);
+        Task<(IOrderItemProcessing? Item, bool IsBasketEmpty, bool IsSeveralItemPosition)> RemoveOrDecreaseItemPositionAsync(PageViewType pageView,
+            (IJSRuntime, ITwaNet)? jsProcessing = null, TransportItemDto? product = null, Guid? positionId = null);
 
         /// <summary>
-        /// Increase the selected modifier's number of positions of the selected product item.
+        /// Increases the selected modifier's number of positions of the selected product item.
         /// </summary>
         /// <param name="modifierId"></param>
         /// <param name="modifierGroupId"></param>
         /// <returns></returns>
-        Item IncreaseModifierItemPositionForSelectingModifiersAndAmountsForProductPageAsync(Guid modifierId, Guid? modifierGroupId = null);
+        IOrderItemProcessing IncreaseModifierItemPositionForPageWhereModifiersAndSizesOfItemPositionAreSelectedAsync(IOrderItemProcessing item,
+            Guid modifierId, Guid? modifierGroupId = null);
 
         /// <summary>
-        /// Decrease the selected modifier's number of positions of the selected product item.
+        /// Decreases the selected modifier's number of positions of the selected product item.
         /// </summary>
         /// <param name="modifierId"></param>
         /// <param name="modifierGroupId"></param>
         /// <returns></returns>
-        Item DecreaseModifierItemPositionForSelectingModifiersAndAmountsForProductPageAsync(Guid modifierId, Guid? modifierGroupId = null);
+        IOrderItemProcessing DecreaseModifierItemPositionForPageWhereModifiersAndSizesOfItemPositionAreSelectedAsync(IOrderItemProcessing item,
+            Guid modifierId, Guid? modifierGroupId = null);
 
         /// <summary>
-        /// Increases the number of positions of the selected product item.
+        /// Saves the changed personal data in API server.
         /// </summary>
         /// <returns></returns>
-        Item IncreaseItemPositionForSelectingModifiersAndAmountsForProductPageAsync();
+        Task SavePersonalDataOfOrderInServerAsync();
 
         /// <summary>
-        /// Decreases the number of positions of the selected product item and removes it if the number of positions is equal to zero.
+        /// Calculates the checkin and the allowed bonus sum to pay for the order.
+        /// Sets an agrument if the web application starts with the Telegram.
         /// </summary>
+        /// <param name="jsProcessing"></param>
         /// <returns></returns>
-        Item? RemoveOrDecreaseItemPositionForSelectingModifiersAndAmountsForProductPageAsync();
+        Task CalculateCheckinAndAllowedSumAsync((IJSRuntime, ITwaNet)? jsProcessing = null);
 
         /// <summary>
-        /// 
+        /// Calculates the checkin, the allowed bonus sum to pay and the available sum to pay for the order.
+        /// Returns 'false' when not all necessary conditions (of loyalty program) are executed.
+        /// Supports operation only when working with the Telegram application, in others cases it is not recommended for use.
         /// </summary>
-        /// <param name="productId"></param>
-        /// <returns></returns>
-        ProductInfo AddProductWithoutModifiersForSelectingAmountsForProductsPageAsync(Guid productId);
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="productId"></param>
-        /// <returns></returns>
-        ProductInfo AddProductWithoutModifiersInSelectingAmountsForProductsPageAsync();
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="productId"></param>
-        /// <returns></returns>
-        ProductInfo? RemoveProductWithoutModifiersInSelectingAmountsForProductsPageAsync();
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="product"></param>
-        /// <param name="item"></param>
-        void DecreaseAmountOfProduct(Item item);
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="product"></param>
-        /// <param name="item"></param>
-        /// <returns></returns>
-        bool RemoveOrDecreaseAmountOfProduct(Item item);
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        Task SendChangedOrderModelToServerAsync();
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        bool HaveSelectedProductsAtFirst();
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        Task CalculateLoayltyProgramAndAllowedSumAsync();
-
-        /// <summary>
-        /// 
-        /// </summary>
+        /// <param name="jsRuntime"></param>
         /// <param name="twaNet"></param>
         /// <returns></returns>
-        Task CalculateLoayltyProgramAndAllowedSumAsync(IJSRuntime jsRuntime, ITwaNet twaNet);
+        Task<bool> CalculateCheckinAndAllowedSumAndCheckAvailableMinSumForPayAsync(IJSRuntime jsRuntime, ITwaNet twaNet);
 
         /// <summary>
-        /// 
+        /// Calculates the available sum to pay for the order.
+        /// Returns 'false' when the order sum (to pay) doesn't match the minimum allowable payment value.
+        /// Supports operation only when working with the Telegram application, in others cases it is not recommended for use.
         /// </summary>
+        /// <param name="jsRuntime"></param>
         /// <param name="twaNet"></param>
         /// <returns></returns>
-        Task<bool> CalculateLoyaltyProgramAndAllowedSumAndCheckAvailableMinSumForPayAsync(IJSRuntime jsRuntime, ITwaNet twaNet);
+        Task<bool> IsOrderTotalSumMoreOrEqualMinSumForPayAsync(IJSRuntime jsRuntime, ITwaNet twaNet);
 
         /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="twaNet"></param>
-        /// <returns></returns>
-        Task<bool> CheckAvailableMinSumForPayAsync(IJSRuntime jsRuntime, ITwaNet twaNet);
-
-        /// <summary>
-        /// 
+        /// The order total sum with a discount
         /// </summary>
         /// <returns></returns>
-        double FinalSumOfOrder();
+        double FinalPaymentAmount();
 
         /// <summary>
-        /// 
+        /// Gets the customer's wallet balance from the API server.
         /// </summary>
         /// <returns></returns>
         Task<WalletBalance> RetrieveWalletBalanceAsync();
 
         /// <summary>
-        /// 
+        /// Returs 'true' if mandatory modifiers of the current item positions is selected.
         /// </summary>
         /// <returns></returns>
-        bool CheckSelectedModifiersInSelectingModifiersAndAmountsForProductPageAsync();
+        bool IsSelectedModifiersOfCurrentItemPositionCorrect();
 
         /// <summary>
-        /// 
+        /// Returns 'true' if the necessary data or the order is correct. Explanations of all conditions and actions are specified
+        /// inside this method.
+        /// Supports operation only when working with the Telegram application, in others cases it is not recommended for use.
         /// </summary>
+        /// <param name="jsRuntime"></param>
         /// <param name="twaNet"></param>
         /// <returns></returns>
-        Task<bool> IsNecessaryDataOfOrderCorrect(IJSRuntime jsRuntime, ITwaNet twaNet);
+        Task<bool> IsNecessaryDataOfOrderCorrectAsync(IJSRuntime jsRuntime, ITwaNet twaNet);
 
         /// <summary>
-        /// 
+        /// Returns 'true' if the customer's wallet balance has been changed after the last request of wallet balance.
         /// </summary>
         /// <returns></returns>
-        Task<bool> IsWalletBalanceChangedInIikoCardAsync();
+        Task<bool> IsWalletBalanceChangedAfterLastRequestAsync();
 
         /// <summary>
-        /// 
+        /// Tries to create the invoice link to pay the order in the Telegram payment interface.
+        /// Returns 'false' when not all necessary conditions (of the order or payment) are correct.
         /// </summary>
         /// <returns></returns>
         Task<InvoiceLinkStatus> TryToCreateInvoiceUrlLinkAsync();
 
         /// <summary>
-        /// 
+        /// Tries to create the invoice link to pay the order in the Telegram payment interface.
+        /// Returns 'false' when not all necessary conditions (of the order or payment) are correct.
+        /// Supports operation only when working with the Telegram application, in others cases it is not recommended for use.
         /// </summary>
+        /// <param name="jsRuntime"></param>
         /// <param name="twaNet"></param>
         /// <returns></returns>
         Task<bool> TryToCreateInvoiceLinkAsync(IJSRuntime jsRuntime, ITwaNet twaNet);
 
         /// <summary>
-        /// 
+        /// Removes the current item position from the order.
         /// </summary>
         void CancelCurrSelectedItemWithModifiers();
 
         /// <summary>
-        /// 
+        /// Removes the current similar item positions from the order.
         /// </summary>
         /// <returns></returns>
         Task CancelCurrSimilarSelectedItemsWithModifiersAsync();
 
         /// <summary>
-        /// 
+        /// !!! Remove this method !!!
         /// </summary>
-        /// <returns></returns>
-        CurrentProduct GetCurrProduct();
-
-        /// <summary>
-        /// 
-        /// </summary>
+        /// <param name="jsRuntime"></param>
         /// <param name="twaNet"></param>
         /// <param name="id"></param>
         /// <returns></returns>
-        Task SetPickupTerminalWithLoyaltyProgramProcessAsync(IJSRuntime jsRuntime, ITwaNet twaNet, Guid id);
+        Task SetPickupTerminalWithCalculatingCheckinAsync(IJSRuntime jsRuntime, ITwaNet twaNet, Guid id);
 
         /// <summary>
-        /// 
+        /// !!! Remove this method !!!
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
         Task SetPickupTerminalWithLoyaltyProgramProcessAsync(Guid id);
 
         /// <summary>
-        /// 
+        /// Sets/changes the terminal of pickup.
         /// </summary>
         /// <param name="id"></param>
         void SetPickupTerminal(Guid id);
 
         /// <summary>
-        /// 
+        /// Removes all selected item positions from the basket.
         /// </summary>
         /// <returns></returns>
-        Task RemoveAllSelectedProductsInShoppingCartPageAsync();
+        Task RemoveAllSelectedProductsFromBasketAsync();
 
         /// <summary>
-        /// 
+        /// An information about the created order.
         /// </summary>
         /// <returns></returns>
         string InfoAboutCreatedOrderForTest();
 
         /// <summary>
-        /// 
+        /// Changes the size of the current item position.
         /// </summary>
         /// <param name="sizeId"></param>
         /// <returns></returns>
-        Item ChangeProductSize(Guid sizeId);
+        IOrderItemProcessing ChangeProductSize(Guid sizeId);
+
+        /// <summary>
+        /// Sets/changes the current group of items in the order.
+        /// </summary>
+        /// <param name="groupId"></param>
+        void SetCurrentGroup(Guid groupId);
     }
 }

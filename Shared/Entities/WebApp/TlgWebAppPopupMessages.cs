@@ -10,35 +10,34 @@ namespace WebAppAssembly.Shared.Entities.WebApp
 {
     public class TlgWebAppPopupMessages
     {
-        [JsonProperty("loayltyProgramUnavailable")]
-        [JsonPropertyName("loayltyProgramUnavailable")]
-        public TlgWebAppPopupMessage? LoayltyProgramUnavailable { get; set; }
-        [JsonProperty("unavailableMinSumWithDiscountForPay")]
-        [JsonPropertyName("unavailableMinSumWithDiscountForPay")]
-        public TlgWebAppPopupMessage? UnavailableMinSumWithDiscountForPay { get; set; }
-        [JsonProperty("unavailableMinSumtForPay")]
-        [JsonPropertyName("unavailableMinSumtForPay")]
-        public TlgWebAppPopupMessage? UnavailableMinSumtForPay { get; set; }
-        [JsonProperty("incorrectSelectingOfModifier")]
-        [JsonPropertyName("incorrectSelectingOfModifier")]
-        public TlgWebAppPopupMessage? IncorrectSelectedModifier { get; set; }
-        [JsonProperty("incorrectCityFormat")]
-        [JsonPropertyName("incorrectCityFormat")]
-        public TlgWebAppPopupMessage? IncorrectCityFormat { get; set; }
-        [JsonProperty("incorrectStreetFormat")]
-        [JsonPropertyName("incorrectStreetFormat")]
-        public TlgWebAppPopupMessage? IncorrectStreetFormat { get; set; }
-        [JsonProperty("incorrectHouseFormat")]
-        [JsonPropertyName("incorrectHouseFormat")]
-        public TlgWebAppPopupMessage? IncorrectHouseFormat { get; set; }
-        [JsonProperty("walletBalanceChangedInIikoBiz")]
-        [JsonPropertyName("walletBalanceChangedInIikoBiz")]
-        public TlgWebAppPopupMessage? WalletBalanceChangedInIikoBiz { get; set; }
-        [JsonProperty("emptyShoppingCart")]
-        [JsonPropertyName("emptyShoppingCart")]
-        public TlgWebAppPopupMessage? EmptyShoppingCart { get; set; }
-        [JsonProperty("emptySelectedItemsWithModifiers")]
-        [JsonPropertyName("emptySelectedItemsWithModifiers")]
-        public TlgWebAppPopupMessage? EmptySelectedItemsWithModifiers { get; set; }
+        [JsonProperty(PropertyName = "loayltyProgramUnavailable", Required = Required.Always)]
+        public TlgWebAppPopupMessage LoayltyProgramUnavailable { get; set; } = default!;
+
+        [JsonProperty(PropertyName = "unavailableMinSumWithDiscountForPay", Required = Required.Always)]
+        public TlgWebAppPopupMessage UnavailableMinSumWithDiscountForPay { get; set; } = default!;
+
+        [JsonProperty(PropertyName = "unavailableMinSumtForPay", Required = Required.Always)]
+        public TlgWebAppPopupMessage UnavailableMinSumtForPay { get; set; } = default!;
+
+        [JsonProperty(PropertyName = "incorrectSelectingOfModifier", Required = Required.Always)]
+        public TlgWebAppPopupMessage IncorrectSelectedModifier { get; set; } = default!;
+
+        [JsonProperty(PropertyName = "incorrectCityFormat", Required = Required.Always)]
+        public TlgWebAppPopupMessage IncorrectCityFormat { get; set; } = default!;
+
+        [JsonProperty(PropertyName = "incorrectStreetFormat", Required = Required.Always)]
+        public TlgWebAppPopupMessage IncorrectStreetFormat { get; set; } = default!;
+
+        [JsonProperty(PropertyName = "incorrectHouseFormat", Required = Required.Always)]
+        public TlgWebAppPopupMessage IncorrectHouseFormat { get; set; } = default!;
+
+        [JsonProperty(PropertyName = "walletBalanceChangedInIikoBiz", Required = Required.Always)]
+        public TlgWebAppPopupMessage WalletBalanceChangedInIikoBiz { get; set; } = default!;
+
+        [JsonProperty(PropertyName = "emptyShoppingCart", Required = Required.Always)]
+        public TlgWebAppPopupMessage EmptyShoppingCart { get; set; } = default!;
+
+        [JsonProperty(PropertyName = "emptySelectedItemsWithModifiers", Required = Required.Always)]
+        public TlgWebAppPopupMessage EmptySelectedItemsWithModifiers { get; set; } = default!;
     }
 }

@@ -128,8 +128,8 @@
             tlg.showPopup({ "title": title, "message": message, "buttons": [{ "type": "ok" }] });
         }
 
-        function ShowProgress() {
-            tlg.MainButton.showProgress(false);
+        function ShowProgress(leaveActive) {
+            tlg.MainButton.showProgress(leaveActive);
         }
 
         function HideProgress() {

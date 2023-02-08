@@ -1,10 +1,9 @@
 ﻿using ApiServerForTelegram.Entities.EExceptions;
-using ApiServerForTelegram.Entities.IikoCloudApi.General.Menu.RetrieveExternalMenuByID;
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
 using System.Text.Json.Serialization;
+using WebAppAssembly.Shared.Entities.Api.Common.IikoTransport.RetrieveExternalMenuByID;
 using WebAppAssembly.Shared.Entities.WebApp;
-using WebAppAssembly.Shared.Models.Order;
 
 namespace WebAppAssembly.Shared.Entities.Telegram
 {

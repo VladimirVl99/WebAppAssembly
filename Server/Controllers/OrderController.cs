@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Net;
-using WebAppAssembly.Server.Repositories.OrderCreationInWebRepository;
-using WebAppAssembly.Server.Repositories.OrderCreationOrderInWebRepository;
+using WebAppAssembly.Server.Repositories.ForOnlineStore;
+using WebAppAssembly.Shared.Entities.Api.Common.OnlineStore;
+using WebAppAssembly.Shared.Entities.Api.Common.PersonalData;
 using WebAppAssembly.Shared.Entities.Telegram;
-using WebAppAssembly.Shared.Models.Order;
-using MainInfoForWebAppOrderOfServerSide = WebAppAssembly.Shared.Entities.OfServerSide.MainInfoForWebAppOrder;
+using WebAppAssembly.Shared.Models.OrderData;
 
 namespace WebAppAssembly.Server.Controllers
 {
@@ -18,13 +18,13 @@ namespace WebAppAssembly.Server.Controllers
         /// <param name="configuration"></param>
         public OrderController(IConfiguration configuration)
         {
-            ShoppingOrderService = new ShoppingOnlineService(configuration);
+            ShoppingOrderService = new OnlineStore(configuration);
         }
 
         /// <summary>
         /// For working with order infos
         /// </summary>
-        private readonly IShoppingOnlineService ShoppingOrderService;
+        private readonly IOnlineStore ShoppingOrderService;
 
 
         /// <summary>
@@ -34,14 +34,17 @@ namespace WebAppAssembly.Server.Controllers
         /// <param name="chatInfo"></param>
         /// <returns></returns>
         [HttpPost("mainInfoForWebAppOrder")]
-        public async Task<ActionResult<MainInfoForWebAppOrderOfServerSide>> GeneralInfoForWorkingWithOrderInWebAppAsync(ChatInfo chatInfo)
+        public async Task<ActionResult<OnlineStoreInfo>> MainInfoOfOnlineStoreAsync(ChatInfo chatInfo)
         {
             try
             {
                 // Gets a personal data of a customer via API server
-                var orderInfoOfCustomer = await ShoppingOrderService.GetPersonalDataOfOrderAsync(chatInfo);
+                var personalOrderInfo = await ShoppingOrderService.GetPersonalDataOfOrderAsync(chatInfo);
                 // Returns the gotten personal data of a customer, the general data for the operation of the web app and the web app operation mode
-                return Ok(new MainInfoForWebAppOrderOfServerSide(orderInfoOfCustomer, ShoppingOrderService.GeneralInfoOfOnlineStore, ShoppingOrderService.IsReleaseMode));
+                return Ok(new OnlineStoreInfo(ShoppingOrderService.OnlineStoreItem, ShoppingOrderService.IsReleaseMode)
+                {
+                    PersonalOrderInfo = personalOrderInfo
+                });
             }
             catch (Exception ex)
             {
@@ -75,7 +78,7 @@ namespace WebAppAssembly.Server.Controllers
         /// <param name="order"></param>
         /// <returns></returns>
         [HttpPost("saveOrderInfoInServer")]
-        public async Task<IActionResult> SavePersonalDataOfOrderInServerAsync(PersonalInfoOfOrderByServerSide order)
+        public async Task<IActionResult> SavePersonalDataOfOrderInServerAsync(PersonalInfo order)
         {
             try
             {
@@ -95,7 +98,7 @@ namespace WebAppAssembly.Server.Controllers
         /// <param name="order"></param>
         /// <returns></returns>
         [HttpPost("calculateCheckin")]
-        public async Task<ActionResult<LoyaltyCheckinInfo>> CalculateCheckinAsync(PersonalInfoOfOrderByServerSide order)
+        public async Task<ActionResult<LoyaltyCheckinInfo>> CalculateCheckinAsync(PersonalInfo order)
         {
             try
             {
@@ -114,7 +117,7 @@ namespace WebAppAssembly.Server.Controllers
         /// <param name="order"></param>
         /// <returns></returns>
         [HttpPost("createInvoiceLink")]
-        public async Task<ActionResult<InvoiceLinkStatus>> RetrieveInvoiceLinkAsync(PersonalInfoOfOrderByServerSide order)
+        public async Task<ActionResult<InvoiceLinkStatus>> RetrieveInvoiceLinkAsync(PersonalInfo order)
         {
             try
             {

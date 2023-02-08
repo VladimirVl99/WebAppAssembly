@@ -15,4 +15,12 @@
   <ItemGroup>
     <SupportedPlatform Include="browser" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Entities\Api\Requests\" />
+    <Folder Include="Entities\Api\Responses\" />
+    <Folder Include="Entities\Deliveries\" />
+    <Folder Include="Entities\IikoCloudApi\" />
+    <Folder Include="Models\Order\" />
+  </ItemGroup>
 </Project>

@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System.Text.Json.Serialization;
-using WebAppAssembly.Shared.Entities.IikoCloudApi;
+using WebAppAssembly.Shared.Entities.Api.Common.IikoTransport;
 
 namespace WebAppAssembly.Shared.Entities.Telegram
 {

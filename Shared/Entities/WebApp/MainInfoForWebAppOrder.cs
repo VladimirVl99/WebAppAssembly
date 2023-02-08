@@ -5,24 +5,40 @@ using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using WebAppAssembly.Shared.Entities.Api.Common.PersonalData;
 using WebAppAssembly.Shared.Entities.Telegram;
-using WebAppAssembly.Shared.Models.Order;
+using WebAppAssembly.Shared.Models.OrderData;
 
 namespace WebAppAssembly.Shared.Entities.WebApp
 {
+    /// <summary>
+    /// 
+    /// </summary>
+    [JsonObject]
     public class MainInfoForWebAppOrder
     {
-        [JsonProperty("orderInfo")]
-        [JsonPropertyName("orderInfo")]
-        public PersonalInfoOfOrder? OrderInfo { get; set; }
-        [JsonProperty("deliveryGeneralInfo")]
-        [JsonPropertyName("deliveryGeneralInfo")]
+        /// <summary>
+        /// 
+        /// </summary>
+        [JsonProperty(PropertyName = "orderInfo")]
+        public PersonalInfo? PersonalInfoOfOrder { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        [JsonProperty(PropertyName = "deliveryGeneralInfo")]
         public GeneralInfoOfOnlineStore? DeliveryGeneralInfo { get; set; }
-        [JsonProperty("isReleaseMode")]
-        [JsonPropertyName("isReleaseMode")]
+
+        /// <summary>
+        /// 
+        /// </summary>
+        [JsonProperty(PropertyName = "isReleaseMode")]
         public bool IsReleaseMode { get; set; }
-        [JsonProperty("tlgMainBtnColor")]
-        [JsonPropertyName("tlgMainBtnColor")]
+
+        /// <summary>
+        /// 
+        /// </summary>
+        [JsonProperty(PropertyName = "tlgMainBtnColor")]
         public string? TlgMainBtnColor { get; set; }
     }
 }

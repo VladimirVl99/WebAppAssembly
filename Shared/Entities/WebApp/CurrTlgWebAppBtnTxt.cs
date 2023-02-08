@@ -1,53 +1,57 @@
 ﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 namespace WebAppAssembly.Shared.Entities.WebApp
 {
     public class TlgWebAppBtnTxts
     {
+        private const string DefaultSelectingProducts = "";
+        private const string DefaultSelectingModifiersAndAmountsForProduct = "";
+        private const string DefaultShoppingCart = "";
+        private const string DefaultChangingSelectedProductsWithModifiers = "";
+        private const string DefaultSelectingAmountsForProducts = "";
+
+
         private string? _selectingProducts;
-        [JsonProperty("selectingProducts")]
-        [JsonPropertyName("selectingProducts")]
+        private string? _selectingModifiersAndAmountsForProduct;
+        private string? _shoppingCart;
+        private string? _changingSelectedProductsWithModifiers;
+        private string? _selectingAmountsForProducts;
+
+
+        [JsonProperty(PropertyName = "selectingProducts", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string SelectingProducts
         {
-            get => _selectingProducts ?? string.Empty;
+            get => _selectingProducts ?? DefaultSelectingProducts;
             set => _selectingProducts = value;
         }
-        private string? _selectingModifiersAndAmountsForProduct;
-        [JsonProperty("selectingModifiersAndAmountsForProduct")]
-        [JsonPropertyName("selectingModifiersAndAmountsForProduct")]
+
+        [JsonProperty(PropertyName = "selectingModifiersAndAmountsForProduct",
+            DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string SelectingModifiersAndAmountsForProduct
         {
-            get => _selectingModifiersAndAmountsForProduct ?? string.Empty;
+            get => _selectingModifiersAndAmountsForProduct ?? DefaultSelectingModifiersAndAmountsForProduct;
             set => _selectingModifiersAndAmountsForProduct = value;
         }
-        private string? _shoppingCart;
-        [JsonProperty("shoppingCart")]
-        [JsonPropertyName("shoppingCart")]
+
+        [JsonProperty(PropertyName = "shoppingCart", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string ShoppingCart
         {
-            get => _shoppingCart ?? string.Empty;
+            get => _shoppingCart ?? DefaultShoppingCart;
             set => _shoppingCart = value;
         }
-        private string? _changingSelectedProductsWithModifiers;
-        [JsonProperty("changingSelectedProductsWithModifiers")]
-        [JsonPropertyName("changingSelectedProductsWithModifiers")]
+
+        [JsonProperty(PropertyName = "changingSelectedProductsWithModifiers",
+            DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string ChangingSelectedProductsWithModifiers
         {
-            get => _changingSelectedProductsWithModifiers ?? string.Empty;
+            get => _changingSelectedProductsWithModifiers ?? DefaultChangingSelectedProductsWithModifiers;
             set => _changingSelectedProductsWithModifiers = value;
         }
-        private string? _selectingAmountsForProducts;
-        [JsonProperty("selectingAmountsForProducts")]
-        [JsonPropertyName("selectingAmountsForProducts")]
+
+        [JsonProperty(PropertyName = "selectingAmountsForProducts", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string SelectingAmountsForProducts
         {
-            get => _selectingAmountsForProducts ?? string.Empty;
+            get => _selectingAmountsForProducts ?? DefaultSelectingAmountsForProducts;
             set => _selectingAmountsForProducts = value;
         }
     }
