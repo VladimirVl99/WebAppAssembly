@@ -1,14 +1,10 @@
-﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
-using WebAppAssembly.Shared.Entities.OnlineStore.Orders;
+﻿using WebAppAssembly.Shared.Entities.OnlineStore.Orders;
 
 namespace WebAppAssembly.Shared.Entities.Api.Common.Delivery.Orders
 {
+    /// <summary>
+    /// Information about an order.
+    /// </summary>
     public interface IOrder
     {
         /// <summary>

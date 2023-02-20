@@ -1,19 +1,23 @@
-﻿using WebAppAssembly.Shared.Entities.Api.Common.IikoTransport.RetrieveExternalMenuByID;
+﻿using WebAppAssembly.Shared.Entities.Api.Common.Delivery;
+using WebAppAssembly.Shared.Entities.Api.Common.IikoTransport.ExternalMenus;
+using WebAppAssembly.Shared.Entities.Api.Common.OfTelegram;
 using WebAppAssembly.Shared.Entities.Api.Common.OnlineStore;
-using WebAppAssembly.Shared.Entities.Telegram;
-using WebAppAssembly.Shared.Entities.WebApp;
 using DeliveryTerminal = WebAppAssembly.Shared.Entities.Api.Common.General.Terminals.DeliveryTerminal;
 using OnlineStoreItemRequest = WebAppAssembly.Shared.Entities.Api.Common.OnlineStore.OnlineStoreItem;
+using Product = WebAppAssembly.Shared.Entities.OnlineStore.Orders.Menus.Product;
 
 namespace WebAppAssembly.Shared.Entities.OnlineStore
 {
+    /// <summary>
+    /// Common data for the online store.
+    /// </summary>
     public class OnlineStoreItem : IOnlineStoreItem
     {
         #region Properties
 
-        public IEnumerable<TransportMenuCategoryDto> MenuCategories { get; }
+        public IEnumerable<MenuCategory> MenuCategories { get; }
 
-        public IEnumerable<TransportItemDto> Menus { get; }
+        public IEnumerable<Product> Menus { get; }
 
         public IEnumerable<DeliveryTerminal>? DeliveryTerminals { get; }
 
@@ -27,9 +31,9 @@ namespace WebAppAssembly.Shared.Entities.OnlineStore
 
         public float MinPaymentAmountInRubOfTg { get; }
 
-        public TlgWebAppBtnTxts TgWebAppBtnTxts { get; }
+        public TgWebAppBtnTxts TgWebAppBtnTxts { get; }
 
-        public TlgWebAppPopupMessages TgWebAppPopupMessages { get; }
+        public TgWebAppPopupMessages TgWebAppPopupMessages { get; }
 
         public double? TimeOutForLoyaltyProgramProcessing { get; }
 
@@ -39,10 +43,10 @@ namespace WebAppAssembly.Shared.Entities.OnlineStore
 
         #region Constructors
 
-        public OnlineStoreItem(IEnumerable<TransportMenuCategoryDto> itemCategories,
-            IEnumerable<TransportItemDto> transportItemDtos, IEnumerable<DeliveryTerminal>? deliveryTerminals,
+        public OnlineStoreItem(IEnumerable<MenuCategory> itemCategories,
+            IEnumerable<Product> transportItemDtos, IEnumerable<DeliveryTerminal>? deliveryTerminals,
             PickupType pickupType, bool useIikoBizProgram, bool useCoupon, bool useDiscountBalance, float currOfRub,
-            TlgWebAppBtnTxts? tlgWebAppBtnTxts, TlgWebAppPopupMessages tlgWebAppPopupMessages,
+            TgWebAppBtnTxts? tlgWebAppBtnTxts, TgWebAppPopupMessages tlgWebAppPopupMessages,
             double? timeOutForLoyaltyProgramProcessing, string tlgMainBtnColor)
         {
             MenuCategories = itemCategories;
@@ -53,7 +57,7 @@ namespace WebAppAssembly.Shared.Entities.OnlineStore
             UseCoupon = useCoupon;
             UseDiscountBalance = useDiscountBalance;
             MinPaymentAmountInRubOfTg = currOfRub;
-            TgWebAppBtnTxts = tlgWebAppBtnTxts ?? new TlgWebAppBtnTxts();
+            TgWebAppBtnTxts = tlgWebAppBtnTxts ?? new TgWebAppBtnTxts();
             TgWebAppPopupMessages = tlgWebAppPopupMessages;
             TimeOutForLoyaltyProgramProcessing = timeOutForLoyaltyProgramProcessing;
             TgMainBtnColor = tlgMainBtnColor;
@@ -62,14 +66,14 @@ namespace WebAppAssembly.Shared.Entities.OnlineStore
         public OnlineStoreItem(OnlineStoreItemRequest response)
         {
             MenuCategories = response.MenuCategories;
-            Menus = response.Menus;
+            Menus = (IEnumerable<Product>)response.Menus;
             DeliveryTerminals = response.DeliveryTerminals;
             PickupType = response.PickupType;
             UseIikoBizProgram = response.UseIikoBizProgram;
             UseCoupon = response.UseCoupon;
             UseDiscountBalance = response.UseDiscountBalance;
             MinPaymentAmountInRubOfTg = response.MinPaymentAmountInRubOfTg;
-            TgWebAppBtnTxts = response.TgWebAppBtnTxts ?? new TlgWebAppBtnTxts();
+            TgWebAppBtnTxts = response.TgWebAppBtnTxts ?? new TgWebAppBtnTxts();
             TgWebAppPopupMessages = response.TgWebAppPopupMessages;
             TimeOutForLoyaltyProgramProcessing = response.TimeOutForLoyaltyProgramProcessing;
             TgMainBtnColor = response.TgMainBtnColor;
@@ -86,14 +90,14 @@ namespace WebAppAssembly.Shared.Entities.OnlineStore
         /// <param name="groupId"></param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public TransportItemDto ProductById(Guid productId, Guid? groupId = null)
-            => groupId is not null
+        public Product ProductById(Guid productId, Guid? groupId = null)
+            => (Product)(groupId is not null
             ? (MenuCategories.FirstOrDefault(item => item.Id == groupId)
             ?? throw new Exception(""))
-            .Items.FirstOrDefault(x => x.ItemId == productId)
+            .Items?.FirstOrDefault(x => x.Id == productId)
             ?? throw new Exception("")
-            : Menus.FirstOrDefault(x => x.ItemId == productId)
-            ?? throw new Exception("");
+            : Menus.FirstOrDefault(x => x.Id == productId)
+            ?? throw new Exception(""));
 
         #endregion
     }

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WebAppAssembly.Shared.Entities.Telegram;
+using WebAppAssembly.Shared.Entities.Api.Common.OfTelegram;
 
 namespace TlgWebAppNet
 {

@@ -1,29 +1,35 @@
 ﻿using Newtonsoft.Json;
-using System.Text.Json.Serialization;
 
 namespace WebAppAssembly.Shared.Entities.Api.Common.Delivery.Orders
 {
+    /// <summary>
+    /// Information about an item's modifier.
+    /// </summary>
+    [JsonObject]
     public class SimpleModifier
     {
-        public SimpleModifier(Guid id, string name, double minAmount, double maxAmount)
-        {
-            Id = id;
-            MinQuantity = minAmount;
-            MaxQuantity = maxAmount;
-            Name = name;
-        }
-
-        [JsonProperty("id")]
-        [JsonPropertyName("id")]
+        /// <summary>
+        /// ID.
+        /// </summary>
+        [JsonProperty(PropertyName = "id", Required = Required.Always)]
         public Guid Id { get; set; }
-        [JsonProperty("name")]
-        [JsonPropertyName("name")]
-        public string Name { get; set; }
-        [JsonProperty("minAmount")]
-        [JsonPropertyName("minAmount")]
+
+        /// <summary>
+        /// Name.
+        /// </summary>
+        [JsonProperty(PropertyName = "name", Required = Required.Always)]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// Minimum amount.
+        /// </summary>
+        [JsonProperty(PropertyName = "minAmount", Required = Required.Always)]
         public double MinQuantity { get; set; }
-        [JsonProperty("maxAmount")]
-        [JsonPropertyName("maxAmount")]
+
+        /// <summary>
+        /// Maximum amount.
+        /// </summary>
+        [JsonProperty(PropertyName = "maxAmount", Required = Required.Always)]
         public double MaxQuantity { get; set; }
     }
 }

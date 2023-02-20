@@ -1,6 +1,6 @@
 ﻿using Microsoft.JSInterop;
-using TlgWebAppNet.Entities;
-using WebAppAssembly.Shared.Entities.Telegram;
+using WebAppAssembly.Shared.Entities.Api.Common.OfTelegram;
+using WebAppAssembly.Shared.Repositories.Common;
 
 namespace TlgWebAppNet
 {
@@ -11,6 +11,24 @@ namespace TlgWebAppNet
     public class TwaNet : ITwaNet
     {
         #region Fields
+
+        private const string DefaultTelegramWebAppInit = "TelegramWebAppInit";
+        private const string DefaultCloseWebApp = "CloseWebApp";
+        private const string DefaultSetMainButtonText = "SetMainButtonText";
+        private const string DefaultHideMainButton = "HideMainButton";
+        private const string DefaultMainButtonHandler = "MainButtonHandler";
+        private const string DefaultShowBackButton = "ShowBackButton";
+        private const string DefaultHideBackButton = "HideBackButton";
+        private const string DefaultBackButtonHandler = "BackButtonHandler";
+        private const string DefaultInvoiceClosedHandler = "InvoiceClosedHandler";
+        private const string DefaultSetHapticFeedbackNotification = "SetHapticFeedbackNotification";
+        private const string DefaultSetHapticFeedbackSelectionChanged = "SetHapticFeedbackSelectionChanged";
+        private const string DefaultSetOkPopupMessage = "SetOkPopupMessage";
+        private const string DefaultShowProgress = "ShowProgress";
+        private const string DefaultHideProgress = "HideProgress";
+        private const string DefaultShowPopupParamsAsync = "ShowPopupParamsAsync";
+        private const string DefaultSetHapticFeedbackImpactOccurred = "SetHapticFeedbackImpactOccurred";
+        private const string DefaultSetMainButtonColor = "SetMainButtonColor";
 
         /// <summary>
         /// State of progressing.
@@ -39,66 +57,69 @@ namespace TlgWebAppNet
 
         private static async Task<long> TwaNetInitAsync(IJSRuntime jsRuntime)
         {
-            var chatId = await jsRuntime.InvokeAsync<long>(TwaMethodNames.TelegramWebAppInit.ToString());
+            var chatId = await jsRuntime.InvokeAsync<long>(DefaultTelegramWebAppInit);
             if (chatId != 0) return chatId;
             throw new Exception($"Incorrect format of chat_id - '{chatId}'");
         }
 
         public async Task SetMainBtnColorAsync(IJSRuntime jsRuntime, string color)
-            => await jsRuntime.InvokeVoidAsync(TwaMethodNames.SetMainButtonColor.ToString(), color);
+            => await jsRuntime.InvokeVoidAsync(DefaultSetMainButtonColor, color);
 
         public async Task ListenMainButtonAsync(IJSRuntime jsRuntime)
-            => await jsRuntime.InvokeVoidAsync(TwaMethodNames.MainButtonHandler.ToString());
+            => await jsRuntime.InvokeVoidAsync(DefaultMainButtonHandler);
 
         public async Task ListenBackButtonAsync(IJSRuntime jsRuntime)
-            => await jsRuntime.InvokeVoidAsync(TwaMethodNames.BackButtonHandler.ToString());
+            => await jsRuntime.InvokeVoidAsync(DefaultBackButtonHandler);
 
         public async Task CloseWebAppAsync(IJSRuntime jsRuntime)
-            => await jsRuntime.InvokeVoidAsync(TwaMethodNames.CloseWebApp.ToString());
+            => await jsRuntime.InvokeVoidAsync(DefaultCloseWebApp);
 
         public async Task SetMainButtonTextAsync(IJSRuntime jsRuntime, string txt)
-            => await jsRuntime.InvokeVoidAsync(TwaMethodNames.SetMainButtonText.ToString(), txt, false);
+            => await jsRuntime.InvokeVoidAsync(DefaultSetMainButtonText, txt, false);
 
         public static async Task SetMainButtonTextWithExpandAsync(IJSRuntime jsRuntime, string txt)
-            => await jsRuntime.InvokeVoidAsync(TwaMethodNames.SetMainButtonText.ToString(), txt, true);
+            => await jsRuntime.InvokeVoidAsync(DefaultSetMainButtonText, txt, true);
 
         public async Task HideMainButtonAsync(IJSRuntime jsRuntime)
-            => await jsRuntime.InvokeVoidAsync(TwaMethodNames.HideMainButton.ToString());
+            => await jsRuntime.InvokeVoidAsync(DefaultHideMainButton);
 
         public async Task ShowBackButtonAsync(IJSRuntime jsRuntime)
-            => await jsRuntime.InvokeVoidAsync(TwaMethodNames.ShowBackButton.ToString());
+            => await jsRuntime.InvokeVoidAsync(DefaultShowBackButton);
 
         public async Task HideBackButtonAsync(IJSRuntime jsRuntime)
-            => await jsRuntime.InvokeVoidAsync(TwaMethodNames.HideBackButton.ToString());
+            => await jsRuntime.InvokeVoidAsync(DefaultHideBackButton);
 
         public async Task<InvoiceClosedStatus> InvoiceClosedHandlerAsync(IJSRuntime jsRuntime, string invoiceLink)
         {
             try
             {
-                var res = await jsRuntime.InvokeAsync<string>(TwaMethodNames.InvoiceClosedHandler.ToString(), invoiceLink);
-                if (!Enum.TryParse(res, out InvoiceClosedStatus invoiceClosedType))
+                var res = await jsRuntime.InvokeAsync<string>(DefaultInvoiceClosedHandler, invoiceLink);
+
+                if (!res.TryToConvertToInvoiceClosedStatus(out var invoiceClosedType))
+                {
                     throw new Exception($"Failed to convert string value to {nameof(InvoiceClosedStatus)} type");
-                return invoiceClosedType;
+                }
+                return (InvoiceClosedStatus)invoiceClosedType!;
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
-                return InvoiceClosedStatus.error;
+                return InvoiceClosedStatus.Error;
             }
         }
 
         public async Task HapticFeedbackNotificationAsync(IJSRuntime jsRuntime, HapticFeedBackNotificationType type)
-            => await jsRuntime.InvokeVoidAsync(TwaMethodNames.SetHapticFeedbackNotification.ToString(), type.ToString());
+            => await jsRuntime.InvokeVoidAsync(DefaultSetHapticFeedbackNotification, type.EnumToString());
 
         public async Task HapticFeedbackImpactOccurredAsync(IJSRuntime jsRuntime, HapticFeedbackImpactOccurredType style)
-            => await jsRuntime.InvokeVoidAsync(TwaMethodNames.SetHapticFeedbackImpactOccurred.ToString(), style.ToString());
+            => await jsRuntime.InvokeVoidAsync(DefaultSetHapticFeedbackImpactOccurred, style.EnumToString());
 
         public async Task HapticFeedbackSelectionChangedAsync(IJSRuntime jsRuntime)
-            => await jsRuntime.InvokeVoidAsync(TwaMethodNames.SetHapticFeedbackSelectionChanged.ToString());
+            => await jsRuntime.InvokeVoidAsync(DefaultSetHapticFeedbackSelectionChanged);
 
         public async Task ShowOkPopupMessageAsync(IJSRuntime jsRuntime, string title, string description, HapticFeedBackNotificationType notificationType)
         {
-            await jsRuntime.InvokeVoidAsync(TwaMethodNames.SetOkPopupMessage.ToString(), title, description);
+            await jsRuntime.InvokeVoidAsync(DefaultSetOkPopupMessage, title, description);
             await HapticFeedbackNotificationAsync(jsRuntime, notificationType);
         }
 
@@ -106,7 +127,7 @@ namespace TlgWebAppNet
         {
             if (!_isProgressing)
             {
-                await jsRuntime.InvokeVoidAsync(TwaMethodNames.ShowProgress.ToString(), leaveActive);
+                await jsRuntime.InvokeVoidAsync(DefaultShowProgress, leaveActive);
                 _isProgressing = true;
             }
         }
@@ -115,7 +136,7 @@ namespace TlgWebAppNet
         {
             if (_isProgressing)
             {
-                await jsRuntime.InvokeVoidAsync(TwaMethodNames.HideProgress.ToString());
+                await jsRuntime.InvokeVoidAsync(DefaultHideProgress);
                 _isProgressing = false;
             }
         }
@@ -125,14 +146,10 @@ namespace TlgWebAppNet
         {
             if (type is not null) await HapticFeedbackNotificationAsync(jsRuntime, (HapticFeedBackNotificationType)type);
 
-            var popupButtons = new List<PopupButtonAsString>();
-            foreach (var popupButton in popup.Buttons)
-                popupButtons.Add(new PopupButtonAsString(popupButton.Id, popupButton.Text,
-                    popupButton.Type == PopupButtonType._default ? "default" : popupButton.Type.ToString()));
+            var res = await jsRuntime.InvokeAsync<string>(DefaultShowPopupParamsAsync, popup.ToNativePopupParams());
 
-            var rightPopup = new PopupParamsAsString(popup.Title, popup.Message, popupButtons);
-            var res = await jsRuntime.InvokeAsync<string>(TwaMethodNames.ShowPopupParamsAsync.ToString(), rightPopup);
             if (style is not null) await HapticFeedbackImpactOccurredAsync(jsRuntime, (HapticFeedbackImpactOccurredType)style);
+
             return res;
         }
 

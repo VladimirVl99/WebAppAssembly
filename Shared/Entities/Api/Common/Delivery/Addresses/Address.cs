@@ -1,10 +1,4 @@
 ﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 namespace WebAppAssembly.Shared.Entities.Api.Common.Delivery.Addresses
 {
@@ -14,37 +8,37 @@ namespace WebAppAssembly.Shared.Entities.Api.Common.Delivery.Addresses
     public class Address
     {
         /// <summary>
-        /// 
+        /// City.
         /// </summary>
         [JsonProperty(PropertyName = "city", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string? City { get; set; }
 
         /// <summary>
-        /// 
+        /// Street.
         /// </summary>
         [JsonProperty(PropertyName = "street", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string? Street { get; set; }
 
         /// <summary>
-        /// 
+        /// House.
         /// </summary>
         [JsonProperty(PropertyName = "house", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string? House { get; set; }
 
         /// <summary>
-        /// 
+        /// Apartment.
         /// </summary>
         [JsonProperty(PropertyName = "flat", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string? Flat { get; set; }
 
         /// <summary>
-        /// 
+        /// Entrance.
         /// </summary>
         [JsonProperty(PropertyName = "entrance", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string? Entrance { get; set; }
 
         /// <summary>
-        /// 
+        /// Floor.
         /// </summary>
         [JsonProperty(PropertyName = "floor", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string? Floor { get; set; }

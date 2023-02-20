@@ -1,18 +1,22 @@
 ﻿using Newtonsoft.Json;
-using WebAppAssembly.Shared.Entities.Api.Common.IikoTransport.RetrieveExternalMenuByID;
-using WebAppAssembly.Shared.Entities.Telegram;
-using WebAppAssembly.Shared.Entities.WebApp;
+using WebAppAssembly.Shared.Entities.Api.Common.Delivery;
+using WebAppAssembly.Shared.Entities.Api.Common.IikoTransport.ExternalMenus;
+using WebAppAssembly.Shared.Entities.Api.Common.OfTelegram;
 using DeliveryTerminal = WebAppAssembly.Shared.Entities.Api.Common.General.Terminals.DeliveryTerminal;
+using Product = WebAppAssembly.Shared.Entities.OnlineStore.Orders.Menus.Product;
 
 namespace WebAppAssembly.Shared.Entities.Api.Common.OnlineStore
 {
+    /// <summary>
+    /// Common data for the online store.
+    /// </summary>
     public class OnlineStoreItem : IOnlineStoreItem
     {
         [JsonProperty(PropertyName = "itemCategories", Required = Required.Always)]
-        public IEnumerable<TransportMenuCategoryDto> MenuCategories { get; set; } = default!;
+        public IEnumerable<MenuCategory> MenuCategories { get; set; } = default!;
 
         [JsonProperty(PropertyName = "menus", Required = Required.Always)]
-        public IEnumerable<TransportItemDto> Menus { get; set; } = default!;
+        public IEnumerable<Product> Menus { get; set; } = default!;
 
         [JsonProperty(PropertyName = "deliveryTerminals", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public IEnumerable<DeliveryTerminal>? DeliveryTerminals { get; set; }
@@ -33,10 +37,10 @@ namespace WebAppAssembly.Shared.Entities.Api.Common.OnlineStore
         public float MinPaymentAmountInRubOfTg { get; set; }
 
         [JsonProperty(PropertyName = "tlgWebAppBtnTxts", DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public TlgWebAppBtnTxts? TgWebAppBtnTxts { get; set; }
+        public TgWebAppBtnTxts TgWebAppBtnTxts { get; set; } = default!;
 
         [JsonProperty(PropertyName = "tlgWebAppPopupMessages", Required = Required.Always)]
-        public TlgWebAppPopupMessages TgWebAppPopupMessages { get; set; } = default!;
+        public TgWebAppPopupMessages TgWebAppPopupMessages { get; set; } = default!;
 
         [JsonProperty(PropertyName = "timeOutForLoyaltyProgramProcessing",
             DefaultValueHandling = DefaultValueHandling.Ignore)]

@@ -1,13 +1,17 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using WebAppAssembly.Server.Repositories.ForOnlineStore;
+using WebAppAssembly.Shared.Entities.Api.Common.Loylties;
+using WebAppAssembly.Shared.Entities.Api.Common.OfTelegram;
 using WebAppAssembly.Shared.Entities.Api.Common.OnlineStore;
 using WebAppAssembly.Shared.Entities.Api.Common.PersonalData;
-using WebAppAssembly.Shared.Entities.Telegram;
-using WebAppAssembly.Shared.Models.OrderData;
+using OnlineStoreInfoRequest = WebAppAssembly.Shared.Entities.Api.Requests.OnlineStore.OnlineStoreInfo;
 
 namespace WebAppAssembly.Server.Controllers
 {
+    /// <summary>
+    /// Controller for online store.
+    /// </summary>
     [ApiController]
     [Route("[controller]")]
     public class OrderController : ControllerBase
@@ -34,14 +38,14 @@ namespace WebAppAssembly.Server.Controllers
         /// <param name="chatInfo"></param>
         /// <returns></returns>
         [HttpPost("mainInfoForWebAppOrder")]
-        public async Task<ActionResult<OnlineStoreInfo>> MainInfoOfOnlineStoreAsync(ChatInfo chatInfo)
+        public async Task<ActionResult<OnlineStoreInfo>> MainInfoOfOnlineStoreAsync(TgChat chatInfo)
         {
             try
             {
                 // Gets a personal data of a customer via API server
                 var personalOrderInfo = await ShoppingOrderService.GetPersonalDataOfOrderAsync(chatInfo);
                 // Returns the gotten personal data of a customer, the general data for the operation of the web app and the web app operation mode
-                return Ok(new OnlineStoreInfo(ShoppingOrderService.OnlineStoreItem, ShoppingOrderService.IsReleaseMode)
+                return Ok(new OnlineStoreInfoRequest(ShoppingOrderService.OnlineStoreItem, ShoppingOrderService.IsReleaseMode)
                 {
                     PersonalOrderInfo = personalOrderInfo
                 });
@@ -59,7 +63,7 @@ namespace WebAppAssembly.Server.Controllers
         /// <param name="chatInfo"></param>
         /// <returns></returns>
         [HttpPost("walletBalance")]
-        public async Task<ActionResult<WalletBalance>> WalletBalanceOfCustomerAsync(ChatInfo chatInfo)
+        public async Task<ActionResult<WalletBalance>> WalletBalanceOfCustomerAsync(TgChat chatInfo)
         {
             try
             {

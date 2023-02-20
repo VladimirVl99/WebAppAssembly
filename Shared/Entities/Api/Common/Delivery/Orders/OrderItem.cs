@@ -1,7 +1,5 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using WebAppAssembly.Shared.Entities.CreateDelivery;
-using Modifier = WebAppAssembly.Shared.Entities.Api.Common.Delivery.Orders.Modifier;
 
 namespace WebAppAssembly.Shared.Entities.Api.Common.Delivery.Orders
 {

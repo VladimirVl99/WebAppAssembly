@@ -1,18 +1,22 @@
 ﻿using System.Data;
-using ApiServerForTelegram.Entities.EExceptions;
 using WebAppAssembly.Shared.Entities.Api.Common.Delivery.Orders;
 using Modifier = WebAppAssembly.Shared.Entities.Api.Common.Delivery.Orders.Modifier;
-using WebAppAssembly.Shared.Entities.CreateDelivery;
-using WebAppAssembly.Shared.Entities.Api.Common.IikoTransport.RetrieveExternalMenuByID;
+using WebAppAssembly.Shared.Entities.Exceptions;
+using SimpleModifierRequest = WebAppAssembly.Shared.Entities.Api.Requests.Delivery.Orders.SimpleModifier;
+using SimpleGroupModifierRequest = WebAppAssembly.Shared.Entities.Api.Requests.Delivery.Orders.SimpleGroupModifier;
+using WebAppAssembly.Shared.Entities.Api.Common.IikoTransport.ExternalMenus;
+using Product = WebAppAssembly.Shared.Entities.OnlineStore.Orders.Menus.Product;
 
 namespace WebAppAssembly.Shared.Entities.OnlineStore.Orders
 {
     /// <summary>
-    /// 
+    /// Information about an order item (product).
     /// </summary>
     public class OrderItem : IOrderItemProcessing
     {
         #region Fields
+
+        private const string DefaultItemName = "???";
 
         private double _price;
         private double _totalPrice;
@@ -112,9 +116,9 @@ namespace WebAppAssembly.Shared.Entities.OnlineStore.Orders
         /// <param name="product"></param>
         /// <param name="positionId"></param>
         /// <exception cref="InfoException"></exception>
-        public OrderItem(TransportItemDto product, Guid positionId, Guid? sizeId = null)
+        public OrderItem(Product product, Guid positionId, Guid? sizeId = null)
         {
-            ProductId = product.ItemId;
+            ProductId = product.Id;
             ProductName = product.Name;
             Type = product.OrderItemType;
             PositionId = positionId;
@@ -127,39 +131,35 @@ namespace WebAppAssembly.Shared.Entities.OnlineStore.Orders
             var simpleGroups = new List<SimpleGroupModifier>();
             var simpleModifiers = new List<SimpleModifier>();
 
-            if (product.ItemSizes is not null)
+
+            foreach (var size in product.Sizes)
             {
-                foreach (var size in product.ItemSizes)
+                if (size.ModifierGroups is not null)
                 {
-                    if (size.ItemModifierGroups is not null)
+                    foreach (var modifierGroup in size.ModifierGroups)
                     {
-                        foreach (var modifierGroup in size.ItemModifierGroups)
+                        // The amount of selected items by default
+                        int totalDefault = 0;
+
+                        foreach (var item in modifierGroup.Items)
                         {
-                            if (modifierGroup.Items is not null)
-                            {
-                                // The amount of selected items by default
-                                int totalDefault = 0;
+                            AddSimpleModifier(
+                                modifiers,
+                                simpleModifiers,
+                                modifier: item,
+                                modifierGroupId: modifierGroup.ItemGroupId);
 
-                                foreach (var item in modifierGroup.Items)
-                                {
-                                    AddSimpleModifier(
-                                        modifiers,
-                                        simpleModifiers,
-                                        modifier: item,
-                                        modifierGroupId: modifierGroup.ItemGroupId);
-
-                                    totalDefault += item.Restrictions?.ByDefault ?? 0;
-                                }
-
-                                AddSimpleGroupModifier(simpleGroups, modifierGroup, totalDefault);
-                            }
+                            totalDefault += item.Restrictions?.ByDefault ?? 0;
                         }
+
+                        AddSimpleGroupModifier(simpleGroups, modifierGroup, totalDefault);
                     }
                 }
-                SimpleGroupModifiers = simpleGroups;
-                _modifiers = modifiers.Any() ? modifiers : null;
-                SimpleModifiers = simpleModifiers;
             }
+
+            SimpleGroupModifiers = simpleGroups;
+            _modifiers = modifiers.Any() ? modifiers : null;
+            SimpleModifiers = simpleModifiers;
         }
 
         public OrderItem(Guid productId, string productName, double amount, OrderItemType type)
@@ -497,7 +497,7 @@ namespace WebAppAssembly.Shared.Entities.OnlineStore.Orders
         /// <returns></returns>
         private double IncreaseTotalPrice(Modifier modifier)
         {
-            var price = modifier.PriceBy();
+            var price = modifier.Price;
             // Increases the total price of all selected modifiers
             _totalPriceOfModifiers += price;
             // The value by which the total price should increase depending on the selected quantity of this item
@@ -517,7 +517,7 @@ namespace WebAppAssembly.Shared.Entities.OnlineStore.Orders
         /// <returns></returns>
         private double DecreaseTotalPrice(Modifier modifier)
         {
-            var price = modifier.PriceBy();
+            var price = modifier.Price;
             // Decreases the total price of all selected modifiers
             _totalPriceOfModifiers -= price;
             // The value by which the total price should decrease depending on the selected quantity of this item
@@ -567,14 +567,12 @@ namespace WebAppAssembly.Shared.Entities.OnlineStore.Orders
         /// <param name="modifier"></param>
         /// <param name="modifierGroupId"></param>
         /// <exception cref="InfoException"></exception>
-        private void AddSimpleModifier(List<Modifier> modifiers, List<SimpleModifier> simpleModifiers, TransportModifierItemDto modifier,
+        private void AddSimpleModifier(List<Modifier> modifiers, List<SimpleModifier> simpleModifiers, Api.Common.IikoTransport.ExternalMenus.Modifier modifier,
             Guid? modifierGroupId = null)
         {
-            var modifierName = modifier.Name ?? "???";
+            var modifierName = string.IsNullOrWhiteSpace(modifier.Name) ? DefaultItemName : modifier.Name;
 
-            var modifierId = modifier.ItemId ?? throw new InfoException(typeof(OrderItem).FullName!, nameof(AddSimpleModifier),
-                nameof(Exception), $"{typeof(TransportModifierItemDto).FullName!}.{nameof(TransportModifierItemDto.ItemId)}",
-                ExceptionType.Null);
+            var modifierId = modifier.Id;
 
             var modifierRestriction = modifier.Restrictions;
 
@@ -591,10 +589,10 @@ namespace WebAppAssembly.Shared.Entities.OnlineStore.Orders
 
             int _default = modifierRestriction?.ByDefault ?? 0;
             if (_default > 0) _totalPriceOfModifiers += _default * modifier.Price();
-            int min = modifierRestriction?.MinQuantity is not null ? (int)modifierRestriction.MinQuantity - _default : 0;
-            int max = modifierRestriction?.MaxQuantity is not null ? (int)modifierRestriction.MaxQuantity - _default : 0;
+            int min = modifierRestriction?.MinQuantity is not null ? modifierRestriction.MinQuantity - _default : 0;
+            int max = modifierRestriction?.MaxQuantity is not null ? modifierRestriction.MaxQuantity - _default : 0;
 
-            simpleModifiers.Add(new SimpleModifier(modifierId, modifierName, min, max));
+            simpleModifiers.Add(new SimpleModifierRequest(modifierId, modifierName, min, max));
         }
 
         /// <summary>
@@ -604,19 +602,17 @@ namespace WebAppAssembly.Shared.Entities.OnlineStore.Orders
         /// <param name="groupModifier"></param>
         /// <param name="default_"></param>
         /// <exception cref="InfoException"></exception>
-        private static void AddSimpleGroupModifier(List<SimpleGroupModifier> simpleGroupModifiers, TransportModifierGroupDto groupModifier,
+        private static void AddSimpleGroupModifier(List<SimpleGroupModifier> simpleGroupModifiers, GroupModifier groupModifier,
             int default_)
         {
-            var groupModifierName = groupModifier.Name ?? "???";
+            var groupModifierName = groupModifier.Name;
 
-            var groupModifierId = groupModifier.ItemGroupId ?? throw new InfoException(typeof(OrderItem).FullName!,
-                nameof(AddSimpleGroupModifier), nameof(Exception), $"{typeof(TransportModifierGroupDto).FullName!}." +
-                $"{nameof(TransportModifierGroupDto.ItemGroupId)}", ExceptionType.Null);
+            var groupModifierId = groupModifier.ItemGroupId;
 
-            int min = groupModifier.Restrictions?.MinQuantity is not null ? (int)groupModifier.Restrictions.MinQuantity - default_ : 0;
-            int max = groupModifier.Restrictions?.MaxQuantity is not null ? (int)groupModifier.Restrictions.MaxQuantity - default_ : 0;
+            int min = groupModifier.Restrictions?.MinQuantity is not null ? groupModifier.Restrictions.MinQuantity - default_ : 0;
+            int max = groupModifier.Restrictions?.MaxQuantity is not null ? groupModifier.Restrictions.MaxQuantity - default_ : 0;
 
-            simpleGroupModifiers.Add(new SimpleGroupModifier(groupModifierId, groupModifierName, min, max));
+            simpleGroupModifiers.Add(new SimpleGroupModifierRequest(groupModifierId, groupModifierName, min, max));
         }
 
         #endregion

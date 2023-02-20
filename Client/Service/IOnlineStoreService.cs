@@ -1,12 +1,13 @@
 ﻿using Microsoft.JSInterop;
 using TlgWebAppNet;
-using WebAppAssembly.Shared.Entities.Api.Common.IikoTransport.RetrieveExternalMenuByID;
+using WebAppAssembly.Client.Entities;
+using WebAppAssembly.Client.Entities.Orders;
+using WebAppAssembly.Shared.Entities.Api.Common.Loylties;
+using WebAppAssembly.Shared.Entities.Api.Common.OfTelegram;
 using WebAppAssembly.Shared.Entities.OnlineStore;
 using WebAppAssembly.Shared.Entities.OnlineStore.Orders;
-using WebAppAssembly.Shared.Entities.Telegram;
-using WebAppAssembly.Shared.Entities.WebApp;
-using WebAppAssembly.Shared.Entities.WebAppPage;
-using WebAppAssembly.Shared.Models.OrderData;
+using WebAppAssembly.Shared.Entities.OnlineStore.Personals;
+using Product = WebAppAssembly.Shared.Entities.OnlineStore.Orders.Menus.Product;
 
 namespace WebAppAssembly.Client.Service
 {
@@ -30,7 +31,7 @@ namespace WebAppAssembly.Client.Service
         /// <summary>
         /// The current product position that is currently being edited.
         /// </summary>
-        CurrItemPosition? CurrItemPosition { get; }
+        CurrOrderItem? CurrItemPosition { get; }
         /// <summary>
         /// The current group. It's used for displaying products of the group.
         /// </summary>
@@ -55,16 +56,6 @@ namespace WebAppAssembly.Client.Service
 
 
         /// <summary>
-        /// Receives and verifies data from the API server for the online store.
-        /// Receives the necessary information for the operation of an online store.
-        /// Also receives and verifies the customer's personal data of the order.
-        /// </summary>
-        /// <param name="chatId"></param>
-        /// <param name="urlPathOfMainInfo"></param>
-        /// <returns></returns>
-        Task InitOnlineStoreServiceAsync(long chatId, string urlPathOfMainInfo);
-
-        /// <summary>
         /// Sets an agrument 'jsProcessing' if the web application starts with the Telegram.
         /// Perform the following depending on the page view:
         /// </summary>
@@ -142,7 +133,7 @@ namespace WebAppAssembly.Client.Service
         /// <param name="positionId"></param>
         /// <returns></returns>
         Task<(IOrderItemProcessing Item, bool? HasFirstItemBeenAdded)> AddOrIncreaseItemPositionAsync(PageViewType pageView,
-            (IJSRuntime, ITwaNet)? jsProcessing = null, TransportItemDto? product = null, Guid? positionId = null);
+            (IJSRuntime, ITwaNet)? jsProcessing = null, Product? product = null, Guid? positionId = null);
 
         /// <summary>
         /// Sets an agrument 'jsProcessing' if the web application starts with the Telegram.
@@ -230,7 +221,7 @@ namespace WebAppAssembly.Client.Service
         /// <param name="positionId"></param>
         /// <returns></returns>
         Task<(IOrderItemProcessing? Item, bool IsBasketEmpty, bool IsSeveralItemPosition)> RemoveOrDecreaseItemPositionAsync(PageViewType pageView,
-            (IJSRuntime, ITwaNet)? jsProcessing = null, TransportItemDto? product = null, Guid? positionId = null);
+            (IJSRuntime, ITwaNet)? jsProcessing = null, Product? product = null, Guid? positionId = null);
 
         /// <summary>
         /// Increases the selected modifier's number of positions of the selected product item.

@@ -2,11 +2,15 @@
 using System.Net;
 using System.Text;
 using WebAppAssembly.Shared.Entities.Exceptions;
-using WebAppAssembly.Shared.Entities.Telegram;
 using WebAppAssembly.Shared.LogRepository;
-using WebAppAssembly.Shared.Models.OrderData;
 using WebAppAssembly.Shared.Entities.Api.Common.PersonalData;
 using WebAppAssembly.Shared.Entities.Api.Common.OnlineStore;
+using WebAppAssembly.Shared.Entities.Api.Common.OfTelegram;
+using InvoiceLinkRequest = WebAppAssembly.Shared.Entities.Api.Requests.OfTelegram.InvoiceLinkStatus;
+using WebAppAssembly.Shared.Entities.Api.Common.Loylties;
+using LoyaltyCheckInfoRequest = WebAppAssembly.Shared.Entities.Api.Requests.Loyalties.LoyaltyCheckinInfo;
+using HttpResInfoRequest = WebAppAssembly.Shared.Entities.Api.Requests.HttpInfos.HttpResponseShortInfo;
+using WebAppAssembly.Server.Entities.Urls;
 
 namespace WebAppAssembly.Server.Repositories.ForOnlineStore
 {
@@ -71,7 +75,7 @@ namespace WebAppAssembly.Server.Repositories.ForOnlineStore
         private async Task<OnlineStoreItem> GetGenralInfoForOnlineStoreAsync()
         {
             using var client = new HttpClient();
-            var response = await client.GetAsync(Url.WebAppInfo);
+            var response = await client.GetAsync(Url.CommonDataForOnlineStore);
             response.EnsureSuccessStatusCode();
             string responseBody = await response.Content.ReadAsStringAsync();
 
@@ -88,12 +92,12 @@ namespace WebAppAssembly.Server.Repositories.ForOnlineStore
         /// <param name="chatInfo"></param>
         /// <returns></returns>
         /// <exception cref="HttpProcessException"></exception>
-        public async Task<PersonalInfo> GetPersonalDataOfOrderAsync(ChatInfo chatInfo)
+        public async Task<PersonalInfo> GetPersonalDataOfOrderAsync(TgChat chatInfo)
         {
             using var httpClient = new HttpClient();
             var body = JsonConvert.SerializeObject(chatInfo);
             var data = new StringContent(body, Encoding.UTF8, "application/json");
-            var response = await httpClient.PostAsync(Url.OrderModel, data);
+            var response = await httpClient.PostAsync(Url.PersonalInfo, data);
 
             string responseBody = await response.Content.ReadAsStringAsync();
             if (!response.StatusCode.Equals(HttpStatusCode.OK))
@@ -115,7 +119,7 @@ namespace WebAppAssembly.Server.Repositories.ForOnlineStore
                 using var client = new HttpClient();
                 var body = JsonConvert.SerializeObject(order);
                 var data = new StringContent(body, Encoding.UTF8, "application/json");
-                var response = await client.PostAsync(Url.SaveOrderModel, data);
+                var response = await client.PostAsync(Url.SavePersonalInfo, data);
 
                 string responseBody = await response.Content.ReadAsStringAsync();
                 if (!response.StatusCode.Equals(HttpStatusCode.OK))
@@ -135,13 +139,12 @@ namespace WebAppAssembly.Server.Repositories.ForOnlineStore
         /// <exception cref="HttpProcessException"></exception>
         public async Task<InvoiceLinkStatus> RetrieveInvoiceLinkAsync(PersonalInfo order)
         {
-            ;
             try
             {
                 using var client = new HttpClient();
                 var body = JsonConvert.SerializeObject(order);
                 var data = new StringContent(body, Encoding.UTF8, "application/json");
-                var response = await client.PostAsync(Url.CheckOrderInfoAndCreateInvoiceLink, data);
+                var response = await client.PostAsync(Url.CheckPersonalOrderAndCreateInvoiceLink, data);
 
                 string responseBody = await response.Content.ReadAsStringAsync();
                 if (response.StatusCode != HttpStatusCode.OK)
@@ -152,7 +155,7 @@ namespace WebAppAssembly.Server.Repositories.ForOnlineStore
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
-                return new(false, null, ex.Message);
+                return new InvoiceLinkRequest(ok: false, message: ex.Message);
             }
         }
 
@@ -182,21 +185,21 @@ namespace WebAppAssembly.Server.Repositories.ForOnlineStore
                 }
 
                 var checkin = JsonConvert.DeserializeObject<Checkin>(responseBody);
-                return new LoyaltyCheckinInfo(true, checkin);
+                return new LoyaltyCheckInfoRequest(true, checkin);
             }
             catch (HttpRequestException ex)
             {
                 Console.WriteLine(ex.Message);
-                return new LoyaltyCheckinInfo(
+                return new LoyaltyCheckInfoRequest(
                     ok: false,
-                    httpResponseInfo: new HttpResponseInfo(ex.StatusCode ?? HttpStatusCode.InternalServerError, ex.Message));
+                    httpResponseInfo: new HttpResInfoRequest(ex.StatusCode ?? HttpStatusCode.InternalServerError, ex.Message));
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
-                return new LoyaltyCheckinInfo(
+                return new LoyaltyCheckInfoRequest(
                 ok: false,
-                httpResponseInfo: new HttpResponseInfo(HttpStatusCode.InternalServerError, ex.Message));
+                httpResponseInfo: new HttpResInfoRequest(HttpStatusCode.InternalServerError, ex.Message));
             }
         }
 
@@ -205,7 +208,7 @@ namespace WebAppAssembly.Server.Repositories.ForOnlineStore
         /// </summary>
         /// <param name="chatInfo"></param>
         /// <returns></returns>
-        public async Task<WalletBalance> GetCustomerWalletBalanceAsync(ChatInfo chatInfo)
+        public async Task<WalletBalance> GetCustomerWalletBalanceAsync(TgChat chatInfo)
         {
             try
             {

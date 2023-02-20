@@ -1,6 +1,4 @@
-﻿using WebAppAssembly.Shared.Entities.CreateDelivery;
-
-namespace WebAppAssembly.Shared.Entities.Api.Common.Delivery.Orders
+﻿namespace WebAppAssembly.Shared.Entities.Api.Common.Delivery.Orders
 {
     /// <summary>
     /// Contains information about the goods for the order.

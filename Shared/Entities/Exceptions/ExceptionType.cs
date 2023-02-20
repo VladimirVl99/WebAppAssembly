@@ -1,4 +1,4 @@
-﻿namespace ApiServerForTelegram.Entities.EExceptions
+﻿namespace WebAppAssembly.Shared.Entities.Exceptions
 {
     public enum ExceptionType
     {

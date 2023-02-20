@@ -1,7 +1,7 @@
-﻿using WebAppAssembly.Shared.Entities.Api.Common.OnlineStore;
+﻿using WebAppAssembly.Shared.Entities.Api.Common.Loylties;
+using WebAppAssembly.Shared.Entities.Api.Common.OfTelegram;
+using WebAppAssembly.Shared.Entities.Api.Common.OnlineStore;
 using WebAppAssembly.Shared.Entities.Api.Common.PersonalData;
-using WebAppAssembly.Shared.Entities.Telegram;
-using WebAppAssembly.Shared.Models.OrderData;
 
 namespace WebAppAssembly.Server.Repositories.ForOnlineStore
 {
@@ -28,7 +28,7 @@ namespace WebAppAssembly.Server.Repositories.ForOnlineStore
         /// </summary>
         /// <param name="chatInfo"></param>
         /// <returns></returns>
-        Task<PersonalInfo> GetPersonalDataOfOrderAsync(ChatInfo chatInfo);
+        Task<PersonalInfo> GetPersonalDataOfOrderAsync(TgChat chatInfo);
 
         /// <summary>
         /// Saves the changed personal data in API server
@@ -56,6 +56,6 @@ namespace WebAppAssembly.Server.Repositories.ForOnlineStore
         /// </summary>
         /// <param name="chatInfo"></param>
         /// <returns></returns>
-        Task<WalletBalance> GetCustomerWalletBalanceAsync(ChatInfo chatInfo);
+        Task<WalletBalance> GetCustomerWalletBalanceAsync(TgChat chatInfo);
     }
 }

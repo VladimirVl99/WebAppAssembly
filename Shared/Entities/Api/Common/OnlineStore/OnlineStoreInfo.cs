@@ -10,8 +10,6 @@ namespace WebAppAssembly.Shared.Entities.Api.Common.OnlineStore
     [JsonObject]
     public class OnlineStoreInfo
     {
-        #region Properties
-
         /// <summary>
         /// Customer's personal data of the order.
         /// </summary>
@@ -30,19 +28,5 @@ namespace WebAppAssembly.Shared.Entities.Api.Common.OnlineStore
         /// </summary>
         [JsonProperty(PropertyName = "isReleaseMode", Required = Required.Always)]
         public bool IsReleaseMode { get; set; }
-
-        #endregion
-
-        #region Constructors
-
-        public OnlineStoreInfo() { }
-
-        public OnlineStoreInfo(OnlineStoreItem onlineStoreItem, bool isReleaseMode)
-        {
-            OnlineStoreItem = onlineStoreItem;
-            IsReleaseMode = isReleaseMode;
-        }
-
-        #endregion
     }
 }

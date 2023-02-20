@@ -1,21 +1,25 @@
-﻿using WebAppAssembly.Shared.Entities.Api.Common.IikoTransport.RetrieveExternalMenuByID;
-using WebAppAssembly.Shared.Entities.Telegram;
-using WebAppAssembly.Shared.Entities.WebApp;
+﻿using WebAppAssembly.Shared.Entities.Api.Common.Delivery;
+using WebAppAssembly.Shared.Entities.Api.Common.IikoTransport.ExternalMenus;
+using WebAppAssembly.Shared.Entities.Api.Common.OfTelegram;
 using DeliveryTerminal = WebAppAssembly.Shared.Entities.Api.Common.General.Terminals.DeliveryTerminal;
+using Product = WebAppAssembly.Shared.Entities.OnlineStore.Orders.Menus.Product;
 
 namespace WebAppAssembly.Shared.Entities.Api.Common.OnlineStore
 {
+    /// <summary>
+    /// Common data for the online store.
+    /// </summary>
     public interface IOnlineStoreItem
     {
         /// <summary>
         /// Menu categories.
         /// </summary>
-        IEnumerable<TransportMenuCategoryDto> MenuCategories { get; }
+        IEnumerable<MenuCategory> MenuCategories { get; }
 
         /// <summary>
         /// Menus.
         /// </summary>
-        IEnumerable<TransportItemDto> Menus { get; }
+        IEnumerable<Product> Menus { get; }
 
         /// <summary>
         /// Pickup terminals.
@@ -51,13 +55,13 @@ namespace WebAppAssembly.Shared.Entities.Api.Common.OnlineStore
         /// Texts of the Telegram's main button.
         /// Source: https://core.telegram.org/bots/webapps#mainbutton.
         /// </summary>
-        TlgWebAppBtnTxts TgWebAppBtnTxts { get; }
+        TgWebAppBtnTxts TgWebAppBtnTxts { get; }
 
         /// <summary>
         /// Messages of the Telegram popups.
         /// Source: https://core.telegram.org/bots/webapps#popupparams.
         /// </summary>
-        TlgWebAppPopupMessages TgWebAppPopupMessages { get; }
+        TgWebAppPopupMessages TgWebAppPopupMessages { get; }
 
         /// <summary>
         /// Timeout for loyalty program calculation.

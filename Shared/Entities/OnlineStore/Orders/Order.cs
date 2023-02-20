@@ -1,17 +1,12 @@
-﻿using ApiServerForTelegram.Entities.EExceptions;
-using Microsoft.VisualBasic;
-using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
-using WebAppAssembly.Shared.Entities.Api.Common.IikoTransport.RetrieveExternalMenuByID;
-using WebAppAssembly.Shared.Models.OrderData;
+﻿using WebAppAssembly.Shared.Entities.Exceptions;
+using Product = WebAppAssembly.Shared.Entities.OnlineStore.Orders.Menus.Product;
+using ProductRequest = WebAppAssembly.Shared.Entities.Api.Common.IikoTransport.ExternalMenus.Product;
 
 namespace WebAppAssembly.Shared.Entities.OnlineStore.Orders
 {
+    /// <summary>
+    /// Information about an order.
+    /// </summary>
     public class Order : IOrderService
     {
         #region Fields
@@ -252,9 +247,9 @@ namespace WebAppAssembly.Shared.Entities.OnlineStore.Orders
             IncreaseTotalPaymentAmount(different);
         }
 
-        public IOrderItemProcessing AddItemWithNewPosition(TransportItemDto product, Guid? sizeId = null)
+        public IOrderItemProcessing AddItemWithNewPosition(ProductRequest product, Guid? sizeId = null)
         {
-            var item = new OrderItem(product, Guid.NewGuid(), sizeId);
+            var item = new OrderItem((Product)product, Guid.NewGuid(), sizeId);
             Items!.Add(item);
             return item;
         }
