@@ -12,17 +12,12 @@ namespace WebAppAssembly.Shared.Entities.Api.Common.PersonalData
     [JsonObject]
     public class PersonalItem : IPersonalItem
     {
-        [JsonProperty("deliveryServiceType", Required = Required.Always)]
-        [JsonConverter(typeof(StringEnumConverter))]
         public DeliveryServiceType DeliveryServiceType { get; set; }
-
-        [JsonProperty("terminalId", DefaultValueHandling = DefaultValueHandling.Ignore)]
+      
         public Guid? TerminalId { get; set; }
 
-        [JsonProperty("deliveryTerminal", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public DeliveryTerminal? DeliveryTerminal { get; set; }
 
-        [JsonProperty("address", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public Address? Address { get; set; }
     }
 }

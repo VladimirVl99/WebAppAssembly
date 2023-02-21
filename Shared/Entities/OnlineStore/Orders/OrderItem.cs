@@ -149,7 +149,7 @@ namespace WebAppAssembly.Shared.Entities.OnlineStore.Orders
                                 modifier: item,
                                 modifierGroupId: modifierGroup.ItemGroupId);
 
-                            totalDefault += item.Restrictions?.ByDefault ?? 0;
+                            totalDefault += item.Restrictions.ByDefault;
                         }
 
                         AddSimpleGroupModifier(simpleGroups, modifierGroup, totalDefault);

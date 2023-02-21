@@ -2,9 +2,11 @@
 using WebAppAssembly.Shared.Entities.Api.Common.IikoTransport.ExternalMenus;
 using WebAppAssembly.Shared.Entities.Api.Common.OfTelegram;
 using WebAppAssembly.Shared.Entities.Api.Common.OnlineStore;
+using WebAppAssembly.Shared.Entities.Exceptions;
 using DeliveryTerminal = WebAppAssembly.Shared.Entities.Api.Common.General.Terminals.DeliveryTerminal;
 using OnlineStoreItemRequest = WebAppAssembly.Shared.Entities.Api.Common.OnlineStore.OnlineStoreItem;
 using Product = WebAppAssembly.Shared.Entities.OnlineStore.Orders.Menus.Product;
+using ProductRequest = WebAppAssembly.Shared.Entities.Api.Common.IikoTransport.ExternalMenus.Product;
 
 namespace WebAppAssembly.Shared.Entities.OnlineStore
 {
@@ -93,11 +95,16 @@ namespace WebAppAssembly.Shared.Entities.OnlineStore
         public Product ProductById(Guid productId, Guid? groupId = null)
             => (Product)(groupId is not null
             ? (MenuCategories.FirstOrDefault(item => item.Id == groupId)
-            ?? throw new Exception(""))
+            ?? throw new InfoException(typeof(OnlineStoreItem).FullName!, nameof(ProductById), nameof(Exception),
+                $"{nameof(Enumerable)}<{typeof(MenuCategory).FullName}>", ExceptionType.Null))
+
             .Items?.FirstOrDefault(x => x.Id == productId)
-            ?? throw new Exception("")
+            ?? throw new InfoException(typeof(OnlineStoreItem).FullName!, nameof(ProductById), nameof(Exception),
+                $"{nameof(Enumerable)}<{typeof(ProductRequest).FullName}>", ExceptionType.Null)
+
             : Menus.FirstOrDefault(x => x.Id == productId)
-            ?? throw new Exception(""));
+            ?? throw new InfoException(typeof(OnlineStoreItem).FullName!, nameof(ProductById), nameof(Exception),
+                $"{nameof(Enumerable)}<{typeof(Product).FullName}>", ExceptionType.Null));
 
         #endregion
     }
